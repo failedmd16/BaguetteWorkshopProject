@@ -1,0 +1,12 @@
+--bare
+-I
+C:/college/projectQT/BaguetteWorkshopProject/project/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug
+-I
+C:/Qt/6.9.0/mingw_64/qml
+--resource
+C:/college/projectQT/BaguetteWorkshopProject/project/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/.qt/rcc/qmake_project.qrc
+--resource
+C:/college/projectQT/BaguetteWorkshopProject/project/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/.qt/rcc/appproject_raw_qml_0.qrc
+C:/college/projectQT/BaguetteWorkshopProject/project/Main.qml
+--json
+C:/college/projectQT/BaguetteWorkshopProject/project/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/appproject_qmllint.json
