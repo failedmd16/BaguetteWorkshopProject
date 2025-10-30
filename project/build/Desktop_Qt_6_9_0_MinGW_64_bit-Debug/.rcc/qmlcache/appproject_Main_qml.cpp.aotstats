@@ -1,0 +1,44 @@
+[
+    {
+        "moduleFiles": [
+            {
+                "entries": [
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 16,
+                        "durationMicroseconds": 155,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 11
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 31,
+                        "durationMicroseconds": 55,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 15
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 31,
+                        "durationMicroseconds": 35,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 21
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 31,
+                        "durationMicroseconds": 43,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 26
+                    }
+                ],
+                "filepath": "C:/college/projectQT/BaguetteWorkshopProject/project/Main.qml"
+            }
+        ],
+        "moduleId": "project(appproject)"
+    }
+]
