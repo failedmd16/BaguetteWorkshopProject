@@ -16,6 +16,7 @@ build-*/
 cmake-build-*/
 Debug/
 Release/
+build/
 
 # Qt Creator
 *.cmake
@@ -25,12 +26,25 @@ CMakeLists.txt.user*
 *.includes/
 *.config/
 
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.app
+
+# Qt specific
+.moc/
+.obj/
+.pch/
+.rcc/
+.qmlc/
+.jsc/
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Executables
-*.exe
-*.app
-*.dll
-*.so
+# Project specific (добавь свои папки сборки)
+project/build/
