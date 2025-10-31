@@ -4,8 +4,8 @@ import QtQuick.Layouts
 import QtQuick.LocalStorage
 
 Window {
-    width: 1280
-    height: 720
+    width: 800
+    height: 600
     visible: true
     title: qsTr("Багетная мастерская")
     ColumnLayout {
