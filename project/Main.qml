@@ -1,247 +1,128 @@
 ﻿import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
-import QtQuick.LocalStorage
 
-Window {
+ApplicationWindow {
     visibility: Window.Maximized
     visible: true
     title: qsTr("Багетная мастерская")
 
-    property color blackColor: "#000000"
-    property color whiteColor: "#FFFFFF"
-    property color grayColor: "#808080"
-    property color lightGrayColor: "#D3D3D3"
-    property color darkGrayColor: "#404040"
+    // Проверка, кто именно зашел для отображения нужных страниц
+    property bool sellerLogged: false
+    property bool masterLogged: false
 
-    property string currentUser: ""
-    property string currentRole: ""
-    property int currentUserId: -1
+    // Создание окна авторизации, переход к этому окну, далее, в зависимости от роли входа, переброс на нужную страницу
+    function loadLoginPage() {
+        let loginComponent = Qt.createComponent("pages/LoginPage.qml")
+        stack.push(loginComponent)
 
-    // Инициализация БД при запуске
-    Component.onCompleted: {
-        initializeDatabase();
+        let loginItem = stack.currentItem
+        loginItem.loginMasterSuccess.connect(function() {
+            masterLogged = true
+            stack.push("pages/MastersOrdersPage.qml")
+        })
+        loginItem.loginSellerSuccess.connect(function() {
+            sellerLogged = true
+            stack.push("pages/SalePage.qml")
+        })
     }
 
-    // Функции БД
-    function initializeDatabase() {
-        var db = LocalStorage.openDatabaseSync("BagetWorkshopDB", "1.0", "База данных багетной мастерской", 1000000);
-
-        db.transaction(function(tx) {
-            // Таблица пользователей
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS users (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'login TEXT UNIQUE NOT NULL, ' +
-                'password TEXT NOT NULL, ' +
-                'role TEXT NOT NULL CHECK(role IN ("Продавец", "Мастер производства")), ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица покупателей
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS customers (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'surname TEXT NOT NULL, ' +
-                'name TEXT NOT NULL, ' +
-                'phone TEXT, ' +
-                'email TEXT, ' +
-                'address TEXT, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица материалов для рамок
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS materials (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'name TEXT NOT NULL, ' +
-                'type TEXT NOT NULL, ' +
-                'price_per_unit REAL NOT NULL, ' +
-                'quantity INTEGER NOT NULL, ' +
-                'unit TEXT NOT NULL, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица готовых наборов вышивки
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS embroidery_kits (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'name TEXT NOT NULL, ' +
-                'description TEXT, ' +
-                'price REAL NOT NULL, ' +
-                'quantity INTEGER NOT NULL, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица расходной фурнитуры
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS consumables (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'name TEXT NOT NULL, ' +
-                'category TEXT NOT NULL, ' +
-                'price REAL NOT NULL, ' +
-                'quantity INTEGER NOT NULL, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица заказов на изготовление
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS production_orders (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'customer_id INTEGER NOT NULL, ' +
-                'description TEXT NOT NULL, ' +
-                'material_id INTEGER NOT NULL, ' +
-                'status TEXT NOT NULL DEFAULT "Новый" CHECK(status IN ("Новый", "В процессе", "Завершён", "Доставлен")), ' +
-                'created_by INTEGER NOT NULL, ' +
-                'assigned_master INTEGER, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP, ' +
-                'completed_at DATETIME)'
-            );
-
-            // Тестовые пользователи для проверки
-            var result = tx.executeSql('SELECT COUNT(*) as count FROM users');
-            if (result.rows.item(0).count === 0) {
-                tx.executeSql('INSERT INTO users (login, password, role) VALUES (?, ?, ?)', ['seller1', 'password123', 'Продавец']);
-                tx.executeSql('INSERT INTO users (login, password, role) VALUES (?, ?, ?)', ['master1', 'password123', 'Мастер производства']);
-            }
-        });
-    }
-
-    function authenticateUser(login, password, callback) {
-        var db = LocalStorage.openDatabaseSync("BagetWorkshopDB", "1.0", "База данных багетной мастерской", 1000000);
-        db.transaction(function(tx) {
-            var result = tx.executeSql('SELECT * FROM users WHERE login = ? AND password = ?', [login, password]);
-            if (result.rows.length === 1) {
-                var user = result.rows.item(0);
-                callback(true, user);
-            } else {
-                callback(false, null);
-            }
-        });
-    }
-
-    // Стартовая страница авторизации
     StackView {
-        id: stackView
-        initialItem: loginPage
+        id: stack
         anchors.fill: parent
     }
 
-    // Страница авторизации
-    Component {
-        id: loginPage
+    Component.onCompleted: loadLoginPage()
 
-        Page {
-            background: Rectangle { color: whiteColor }
+    header: Label {
+        id: headerLabel
+        visible: masterLogged || sellerLogged
+        horizontalAlignment: Qt.AlignHCenter
+        text: {
+            // Реализовать так, чтобы текст первой страницы верно отображался сразу при входе
+        }
 
-            ColumnLayout {
-                anchors.centerIn: parent
-                width: 300
-                spacing: 15
+        font.pixelSize: 24
+        color: "black"
+    }
 
-                Label {
-                    text: "Вход в систему"
-                    font.pixelSize: 24
-                    font.bold: true
-                    Layout.alignment: Qt.AlignHCenter
-                    color: blackColor
-                }
+    footer: TabBar {
+        id: tabBar
+        visible: masterLogged || sellerLogged
+        width: parent.width
 
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 1
-                    color: grayColor
-                }
-
-                TextField {
-                    id: loginTF
-                    placeholderText: "Логин"
-                    font.pixelSize: 14
-                    Layout.fillWidth: true
-                    background: Rectangle {
-                        border.color: grayColor
-                        border.width: 1
-                        radius: 4
-                    }
-                }
-
-                TextField {
-                    id: passwordTF
-                    placeholderText: "Пароль"
-                    echoMode: TextInput.Password
-                    font.pixelSize: 14
-                    Layout.fillWidth: true
-                    background: Rectangle {
-                        border.color: grayColor
-                        border.width: 1
-                        radius: 4
-                    }
-                }
-
-                Button {
-                    id: enterBtn
-                    text: "Войти"
-                    font.pixelSize: 16
-                    Layout.fillWidth: true
-
-                    background: Rectangle {
-                        color: parent.down ? darkGrayColor : (parent.hovered ? lightGrayColor : grayColor)
-                        radius: 4
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: whiteColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: {
-                        var user_name = loginTF.text.trim()
-                        var user_password = passwordTF.text.trim()
-
-                        if (user_name === "") {
-                            infoLbl.text = "Логин не может быть пустым"
-                            infoLbl.color = "red"
-                            return
-                        }
-
-                        if (user_password === "") {
-                            infoLbl.text = "Пароль не может быть пустым"
-                            infoLbl.color = "red"
-                            return
-                        }
-
-                        authenticateUser(user_name, user_password, function(success, user) {
-                            if (success) {
-                                mainWindow.currentUser = user.login
-                                mainWindow.currentRole = user.role
-                                mainWindow.currentUserId = user.id
-                                infoLbl.text = "Вход успешен"
-                                infoLbl.color = "green"
-
-                                // Переходим на главную страницу в зависимости от роли
-                                if (user.role === "seller") {
-                                    stackView.push(sellerDashboard) // ПАНЕЛЬ ДЛЯ ПРОДАВЦА (еще не реализовано)
-                                } else if (user.role === "master") {
-                                    stackView.push(masterDashboard) // ПАНЕЛЬ ДЛЯ МАСТЕРА (еще не реализовано)
-                                }
-                            } else {
-                                infoLbl.text = "Неверный логин или пароль"
-                                infoLbl.color = "red"
-                            }
-                        });
-                    }
-                }
-
-                Label {
-                    id: infoLbl
-                    text: "Введите учетные данные"
-                    font.pixelSize: 14
-                    Layout.alignment: Qt.AlignHCenter
-                    color: grayColor
-                }
+        TabButton {
+            text: "Покупатели"
+            font.bold: true
+            onClicked: {
+                stack.push("./pages/ClientsPage.qml")
+                headerLabel.text = "Покупатели"
             }
+            visible: sellerLogged
+        }
+
+        TabButton {
+            text: "Заказы"
+            font.bold: true
+            onClicked: {
+                stack.push("./pages/OrdersPage.qml")
+                headerLabel.text = "Заказы"
+            }
+            visible: sellerLogged
+        }
+
+        TabButton {
+            text: "Продажа"
+            font.bold: true
+            onClicked: {
+                stack.push("./pages/SalePage.qml")
+                headerLabel.text = "Продажа"
+            }
+            visible: sellerLogged
+        }
+
+        TabButton {
+            text: "Продукция мастерской"
+            font.bold: true
+            onClicked: {
+                stack.push("./pages/ProductsPage.qml")
+                headerLabel.text = "Продукция мастерской"
+            }
+            visible: sellerLogged
+        }
+
+        TabButton {
+            text: "Заказы"
+            font.bold: true
+            onClicked: {
+                stack.push("./pages/MastersOrdersPage.qml")
+                headerLabel.text = "Заказы"
+            }
+            visible: masterLogged
+        }
+        TabButton {
+            text: "Материалы"
+            font.bold: true
+            onClicked: {
+                stack.push("./pages/MastersProductsPage.qml")
+                headerLabel.text = "Материалы"
+            }
+            visible: masterLogged
+        }
+    }
+
+    RoundButton {
+        visible: masterLogged || sellerLogged
+        text: "\u2715"
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        ToolTip.delay: 250
+        ToolTip.visible: hovered
+        ToolTip.text: qsTr("Завершить работу")
+        onClicked: {
+            masterLogged = false
+            sellerLogged = false
+            stack.clear()
+            loadLoginPage()
         }
     }
 }
