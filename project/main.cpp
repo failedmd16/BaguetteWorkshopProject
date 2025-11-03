@@ -1,9 +1,12 @@
 ﻿#include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include "src/DatabaseManager.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    qmlRegisterType<DatabaseManager>("databasemanager", 1, 0, "DatabaseManager"); // Связывание QML и cpp
 
     QQmlApplicationEngine engine;
     QObject::connect(

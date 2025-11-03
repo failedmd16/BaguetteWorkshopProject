@@ -2,6 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.LocalStorage
+import databasemanager // подключение cpp класса к QML
 
 Page {
     signal loginSellerSuccess()
@@ -13,108 +14,9 @@ Page {
     property color lightGrayColor: "#D3D3D3"
     property color darkGrayColor: "#404040"
 
-    property string currentUser: ""
-    property string currentRole: ""
-    property int currentUserId: -1
-
-    Component.onCompleted: {
-        initializeDatabase();
-    }
-
-    function initializeDatabase() {
-        var db = LocalStorage.openDatabaseSync("BagetWorkshopDB", "1.0", "База данных багетной мастерской", 1000000);
-
-        db.transaction(function(tx) {
-            // Таблица пользователей
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS users (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'login TEXT UNIQUE NOT NULL, ' +
-                'password TEXT NOT NULL, ' +
-                'role TEXT NOT NULL CHECK(role IN ("Продавец", "Мастер производства")), ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица покупателей
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS customers (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'surname TEXT NOT NULL, ' +
-                'name TEXT NOT NULL, ' +
-                'phone TEXT, ' +
-                'email TEXT, ' +
-                'address TEXT, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица материалов для рамок
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS materials (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'name TEXT NOT NULL, ' +
-                'type TEXT NOT NULL, ' +
-                'price_per_unit REAL NOT NULL, ' +
-                'quantity INTEGER NOT NULL, ' +
-                'unit TEXT NOT NULL, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица готовых наборов вышивки
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS embroidery_kits (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'name TEXT NOT NULL, ' +
-                'description TEXT, ' +
-                'price REAL NOT NULL, ' +
-                'quantity INTEGER NOT NULL, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица расходной фурнитуры
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS consumables (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'name TEXT NOT NULL, ' +
-                'category TEXT NOT NULL, ' +
-                'price REAL NOT NULL, ' +
-                'quantity INTEGER NOT NULL, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
-            );
-
-            // Таблица заказов на изготовление
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS production_orders (' +
-                'id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                'customer_id INTEGER NOT NULL, ' +
-                'description TEXT NOT NULL, ' +
-                'material_id INTEGER NOT NULL, ' +
-                'status TEXT NOT NULL DEFAULT "Новый" CHECK(status IN ("Новый", "В процессе", "Завершён", "Доставлен")), ' +
-                'created_by INTEGER NOT NULL, ' +
-                'assigned_master INTEGER, ' +
-                'created_at DATETIME DEFAULT CURRENT_TIMESTAMP, ' +
-                'completed_at DATETIME)'
-            );
-
-            // Тестовые пользователи для проверки
-            var result = tx.executeSql('SELECT COUNT(*) as count FROM users');
-            if (result.rows.item(0).count === 0) {
-                tx.executeSql('INSERT INTO users (login, password, role) VALUES (?, ?, ?)', ['seller1', 'password123', 'Продавец']);
-                tx.executeSql('INSERT INTO users (login, password, role) VALUES (?, ?, ?)', ['master1', 'password123', 'Мастер производства']);
-            }
-        });
-    }
-
-    function authenticateUser(login, password, callback) {
-        var db = LocalStorage.openDatabaseSync("BagetWorkshopDB", "1.0", "База данных багетной мастерской", 1000000);
-        db.transaction(function(tx) {
-            var result = tx.executeSql('SELECT * FROM users WHERE login = ? AND password = ?', [login, password]);
-            if (result.rows.length === 1) {
-                var user = result.rows.item(0);
-                callback(true, user);
-            } else {
-                callback(false, null);
-            }
-        });
+    // создается объект класса DatabaseManager, вызывается конструктор, где происходит инициализация БД
+    DatabaseManager {
+        id: dbmanager
     }
 
     background: Rectangle { color: whiteColor }
@@ -197,21 +99,18 @@ Page {
                     return
                 }
 
-                authenticateUser(user_name, user_password, function(success, user) {
-                    if (success) {
-                        infoLbl.text = "Вход успешен"
-                        infoLbl.color = "green"
+                if (dbmanager.loginUser(user_name, user_password)) { // проверка входа пользователя при помощи метода из cpp
+                    infoLbl.text = "Вход успешен"
+                    infoLbl.color = "green"
 
-                        if (user.role === "Продавец") {
-                            loginSellerSuccess()
-                        } else if (user.role === "Мастер производства") {
-                            loginMasterSuccess()
-                        }
-                    } else {
-                        infoLbl.text = "Неверный логин или пароль"
-                        infoLbl.color = "red"
-                    }
-                });
+                    if (dbmanager.getCurrentUserRole() === "Продавец") // проверяем роль пользователя и перебрасываем в осн. окно
+                        loginSellerSuccess()
+                        else if (dbmanager.getCurrentUserRole() === "Мастер производства") // проверяем роль пользователя и перебрасываем в осн. окно
+                        loginMasterSuccess()
+                } else {
+                    infoLbl.text = "Неверный логин или пароль"
+                    infoLbl.color = "red"
+                }
             }
         }
 
