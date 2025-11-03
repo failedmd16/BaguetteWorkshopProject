@@ -13,7 +13,7 @@ ApplicationWindow {
     // Создание окна авторизации, переход к этому окну, далее, в зависимости от роли входа, переброс на нужную страницу
     function loadLoginPage() {
         let loginComponent = Qt.createComponent("pages/LoginPage.qml")
-        stack.push(loginComponent)
+        stack.push(loginComponent) // Сначала загружается страница авторизации
 
         let loginItem = stack.currentItem
         loginItem.loginMasterSuccess.connect(function() {
