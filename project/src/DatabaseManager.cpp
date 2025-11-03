@@ -15,8 +15,7 @@ DatabaseManager::~DatabaseManager()
 
     QString connectionName = _database.connectionName();
 
-    QSqlDatabase::removeDatabase(connectionName); // Пофиксить кривое соединение, когда выходим из аккаунта (возвращаемся в LoginPage),
-                                                  // то происходит ошибка с дубликатом соединения
+    QSqlDatabase::removeDatabase(connectionName);
 }
 
 bool DatabaseManager::initializeDatabase() {
@@ -139,9 +138,9 @@ void DatabaseManager::createTables() {
                                 "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                                 "order_number TEXT UNIQUE NOT NULL, "
                                 "customer_id INTEGER NOT NULL, "
-                                "order_type TEXT NOT NULL CHECK(order_type IN ('frame_production', 'kit_sale')), "
+                                "order_type TEXT NOT NULL CHECK(order_type IN ('Изготовление рамки', 'Продажа набора')), "
                                 "total_amount REAL NOT NULL, "
-                                "status TEXT NOT NULL CHECK(status IN ('new', 'in_progress', 'ready', 'completed', 'cancelled')), "
+                                "status TEXT NOT NULL CHECK(status IN ('Новый', 'В работе', 'Готов', 'Завершён', 'Отменён')), "
                                 "created_by INTEGER NOT NULL, "
                                 "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
                                 "completed_at DATETIME, "
@@ -177,7 +176,7 @@ void DatabaseManager::createTables() {
     QString createTableOrderItems = "CREATE TABLE IF NOT EXISTS order_items ("
                                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                                     "order_id INTEGER NOT NULL, "
-                                    "item_type TEXT NOT NULL CHECK(item_type IN ('embroidery_kit', 'consumable_furniture')), "
+                                    "item_type TEXT NOT NULL CHECK(item_type IN ('Готовый набор', 'Фурнитура')), "
                                     "item_id INTEGER NOT NULL, "
                                     "quantity INTEGER NOT NULL, "
                                     "unit_price REAL NOT NULL, "
@@ -349,7 +348,6 @@ bool DatabaseManager::loginUser(const QString &login, const QString &password) {
     }
 
     if (query.next()) {
-        // Сохраняем ID и роль текущего пользователя
         currentUserId = query.value(0).toInt();
         currentUserRole = query.value(1).toString();
         qDebug() << "Login successful. User ID: " << currentUserId << "Role: " << currentUserRole;
@@ -394,4 +392,273 @@ QString DatabaseManager::getColumnName(const QString &name, int index) {
         return record.fieldName(index);
     }
     return "";
+}
+
+// Получение данных конкретной строки
+QVariantMap DatabaseManager::getRowData(const QString &table, int row)
+{
+    QVariantMap result;
+
+    QSqlQueryModel *model = getTableModel(table);
+    if (model && row >= 0 && row < model->rowCount()) {
+        QSqlRecord record = model->record(row);
+        for (int i = 0; i < record.count(); ++i) {
+            QString fieldName = record.fieldName(i);
+            QVariant value = record.value(i);
+            result[fieldName] = value;
+
+            // Отладочная информация
+            if (fieldName == "created_by") {
+                qDebug() << "Found created_by:" << value.toInt();
+            }
+        }
+    } else {
+        qDebug() << "Invalid row or model for getRowData, row:" << row;
+    }
+
+    return result;
+}
+
+// Добавление нового покупателя
+void DatabaseManager::addCustomer(const QString &name, const QString &phone, const QString &email, const QString &address)
+{
+    QSqlQuery query;
+    query.prepare("INSERT INTO customers (full_name, phone, email, address, created_by) VALUES (?, ?, ?, ?, ?)");
+    query.addBindValue(name);
+    query.addBindValue(phone);
+    query.addBindValue(email);
+    query.addBindValue(address);
+    query.addBindValue(currentUserId);
+
+    if (!query.exec()) {
+        qDebug() << "Error adding customer:" << query.lastError().text();
+        return;
+    }
+
+    qDebug() << "Customer added successfully by user ID:" << currentUserId;
+}
+
+// Редактирование информации о покупателе
+void DatabaseManager::updateCustomer(int row, const QString &name, const QString &phone, const QString &email, const QString &address)
+{
+    QSqlQueryModel *model = getTableModel("customers");
+    if (!model || row < 0 || row >= model->rowCount()) {
+        qDebug() << "Invalid row for update:" << row;
+        return;
+    }
+
+    QSqlRecord record = model->record(row);
+    int id = record.value("id").toInt();
+
+    QSqlQuery query;
+    query.prepare("UPDATE customers SET full_name = ?, phone = ?, email = ?, address = ? WHERE id = ?");
+    query.addBindValue(name);
+    query.addBindValue(phone);
+    query.addBindValue(email);
+    query.addBindValue(address);
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error updating customer:" << query.lastError().text();
+        return;
+    }
+
+    qDebug() << "Customer updated successfully";
+}
+
+// Удаление покупателя
+void DatabaseManager::deleteCustomer(int row)
+{
+    QSqlQueryModel *model = getTableModel("customers");
+    if (!model || row < 0 || row >= model->rowCount()) {
+        qDebug() << "Invalid row for deletion:" << row;
+        return;
+    }
+
+    QSqlRecord record = model->record(row);
+    int id = record.value("id").toInt();
+
+    QSqlQuery query;
+    query.prepare("DELETE FROM customers WHERE id = ?");
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error deleting customer:" << query.lastError().text();
+        return;
+    }
+
+    qDebug() << "Customer deleted successfully";
+}
+
+// Количество записей в таблице
+int DatabaseManager::getRowCount(const QString &table)
+{
+    QSqlQuery query;
+    query.prepare("SELECT COUNT(*) FROM " + table);
+
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+
+    return 0;
+}
+
+// Количество столбцов в таблице
+int DatabaseManager::getColumnCount(const QString &table)
+{
+    QSqlRecord record = _database.record(table);
+    return record.count();
+}
+
+// Получить модель со всеми покупателями за указанный период
+QSqlQueryModel* DatabaseManager::getCustomersByPeriod(const QString& startDate, const QString& endDate)
+{
+    QSqlQueryModel* model = new QSqlQueryModel();
+    QSqlQuery query;
+
+    query.prepare(R"(
+        SELECT DISTINCT c.*
+        FROM customers c
+        JOIN sales s ON s.customer_id = c.id
+        WHERE date(s.sale_date) BETWEEN date(?) AND date(?)
+    )");
+
+    query.addBindValue(startDate);
+    query.addBindValue(endDate);
+    query.exec();
+
+    model->setQuery(query);
+    return model;
+}
+
+// Получить списком заказы покупателя для вывода в окне CustomersPage
+QVariantList DatabaseManager::getCustomerOrders(int customerId)
+{
+    QVariantList orders;
+
+    QSqlQuery query;
+    query.prepare("SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC");
+    query.addBindValue(customerId);
+
+    if (!query.exec()) {
+        qDebug() << "Error getting customer orders:" << query.lastError().text();
+        return orders;
+    }
+
+    while (query.next()) {
+        QVariantMap order;
+        QSqlRecord record = query.record();
+        for (int i = 0; i < record.count(); ++i) {
+            order[record.fieldName(i)] = record.value(i);
+        }
+        orders.append(order);
+    }
+
+    qDebug() << "Found" << orders.size() << "orders for customer ID:" << customerId;
+    return orders;
+}
+
+// Получить модель клиентов для ComboBox
+QSqlQueryModel* DatabaseManager::getCustomersModel() {
+    QSqlQueryModel* model = new QSqlQueryModel(this);
+    model->setQuery("SELECT id, full_name, phone, email FROM customers ORDER BY full_name", _database);
+    return model;
+}
+
+// Получить модель наборов для вышивки
+QSqlQueryModel* DatabaseManager::getEmbroideryKitsModel() {
+    QSqlQueryModel* model = new QSqlQueryModel(this);
+    model->setQuery("SELECT id, name, price FROM embroidery_kits WHERE is_active = 1 ORDER BY name", _database);
+    return model;
+}
+
+// Создать новый заказ
+bool DatabaseManager::createOrder(const QString &orderNumber, int customerId, const QString &orderType,
+                                  double totalAmount, const QString &status, const QString &notes) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO orders (order_number, customer_id, order_type, total_amount, status, created_by) "
+                  "VALUES (?, ?, ?, ?, ?, ?)");
+    query.addBindValue(orderNumber);
+    query.addBindValue(customerId);
+    query.addBindValue(orderType);
+    query.addBindValue(totalAmount);
+    query.addBindValue(status);
+    query.addBindValue(currentUserId);
+
+    if (!query.exec()) {
+        qDebug() << "Error creating order:" << query.lastError().text();
+        return false;
+    }
+
+    qDebug() << "Order created successfully:" << orderNumber;
+    return true;
+}
+
+// Создать заказ на рамку
+bool DatabaseManager::createFrameOrder(int orderId, double width, double height,
+                                       int frameMaterialId, int componentFurnitureId,
+                                       const QString &specialInstructions) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO frame_orders (order_id, width, height, frame_material_id, "
+                  "component_furniture_id, special_instructions, production_cost, selling_price) "
+                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    query.addBindValue(orderId);
+    query.addBindValue(width);
+    query.addBindValue(height);
+    query.addBindValue(frameMaterialId);
+    query.addBindValue(componentFurnitureId);
+    query.addBindValue(specialInstructions);
+
+    // Расчет стоимости (упрощенный)
+    double productionCost = (width * height / 10000) * 500; // 500 руб за кв.м
+    double sellingPrice = productionCost * 1.3; // Наценка 30%
+
+    query.addBindValue(productionCost);
+    query.addBindValue(sellingPrice);
+
+    if (!query.exec()) {
+        qDebug() << "Error creating frame order:" << query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
+
+// Создать позицию заказа для набора
+bool DatabaseManager::createOrderItem(int orderId, int itemId, const QString &itemType,
+                                      int quantity, double unitPrice) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO order_items (order_id, item_type, item_id, quantity, unit_price, total_price) "
+                  "VALUES (?, ?, ?, ?, ?, ?)");
+    query.addBindValue(orderId);
+    query.addBindValue(itemType);
+    query.addBindValue(itemId);
+    query.addBindValue(quantity);
+    query.addBindValue(unitPrice);
+    query.addBindValue(quantity * unitPrice);
+
+    if (!query.exec()) {
+        qDebug() << "Error creating order item:" << query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
+
+// Получить заказы с информацией о клиентах
+QSqlQueryModel* DatabaseManager::getOrdersWithCustomers() {
+    QSqlQueryModel* model = new QSqlQueryModel(this);
+    QString query = "SELECT o.*, c.full_name as customer_name, c.phone as customer_phone, c.email as customer_email "
+                    "FROM orders o LEFT JOIN customers c ON o.customer_id = c.id ORDER BY o.created_at DESC";
+    model->setQuery(query, _database);
+    return model;
+}
+
+// Получить ID последнего вставленного заказа
+int DatabaseManager::getLastInsertedOrderId() {
+    QSqlQuery query("SELECT last_insert_rowid()");
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+    return -1;
 }
