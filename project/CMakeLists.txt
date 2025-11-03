@@ -18,7 +18,7 @@ qt_add_qml_module(appproject
     VERSION 1.0
     QML_FILES
         Main.qml
-        pages/ClientsPage.qml
+        pages/CustomersPage.qml
         pages/LoginPage.qml
         pages/MastersOrdersPage.qml
         pages/MastersProductsPage.qml
