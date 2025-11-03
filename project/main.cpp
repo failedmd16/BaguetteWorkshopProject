@@ -1,5 +1,6 @@
 ﻿#include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QIcon>
 #include "src/DatabaseManager.h"
 
 int main(int argc, char *argv[])
@@ -16,6 +17,8 @@ int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
     engine.loadFromModule("project", "Main");
+
+    app.setWindowIcon(QIcon("../../images/icon.ico"));
 
     return app.exec();
 }

@@ -379,3 +379,19 @@ bool DatabaseManager::isSeller() const {
 bool DatabaseManager::isMaster() const {
     return currentUserRole == "Мастер производства";
 }
+
+// Получение модели таблицы
+QSqlQueryModel* DatabaseManager::getTableModel(const QString &name) {
+    QSqlQueryModel *model = new QSqlQueryModel(this);
+    model->setQuery("SELECT * FROM " + name, _database);
+    return model;
+}
+
+// Получение имен столбцов в таблице
+QString DatabaseManager::getColumnName(const QString &name, int index) {
+    QSqlRecord record = _database.record(name);
+    if (index >= 0 && index < record.count()) {
+        return record.fieldName(index);
+    }
+    return "";
+}
