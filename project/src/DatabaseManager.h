@@ -67,6 +67,30 @@ public slots:
     // Получить ID последнего вставленного заказа
     Q_INVOKABLE int getLastInsertedOrderId();
 
+    // MastersOrdersPage функции
+    Q_INVOKABLE QSqlQueryModel* getMasterOrders(); // Получить заказы для мастера
+    Q_INVOKABLE bool updateOrderStatus(int orderId, const QString &newStatus); // Обновить статус заказа
+    Q_INVOKABLE QVariantMap getOrderDetails(int orderId); // Получить детали заказа
+
+    // MastersProductsPage функции
+    // Функции для материалов рамок
+    Q_INVOKABLE QSqlQueryModel* getFrameMaterialsModel();
+    Q_INVOKABLE void addFrameMaterial(const QString &name, const QString &type, double pricePerMeter,
+                                      double stockQuantity, const QString &color, double width);
+    Q_INVOKABLE void updateFrameMaterial(int row, const QString &name, const QString &type,
+                                         double pricePerMeter, double stockQuantity, const QString &color, double width);
+    Q_INVOKABLE void deleteFrameMaterial(int row);
+    Q_INVOKABLE QVariantMap getFrameMaterialRowData(int row);
+
+    // Функции для комплектующей фурнитуры
+    Q_INVOKABLE QSqlQueryModel* getComponentFurnitureModel();
+    Q_INVOKABLE void addComponentFurniture(const QString &name, const QString &type,
+                                           double pricePerUnit, int stockQuantity);
+    Q_INVOKABLE void updateComponentFurniture(int row, const QString &name, const QString &type,
+                                              double pricePerUnit, int stockQuantity);
+    Q_INVOKABLE void deleteComponentFurniture(int row);
+    Q_INVOKABLE QVariantMap getComponentFurnitureRowData(int row);
+
 private:
     QSqlDatabase _database;
     int currentUserId = -1;
