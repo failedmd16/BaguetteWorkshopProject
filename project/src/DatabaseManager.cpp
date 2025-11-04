@@ -662,3 +662,222 @@ int DatabaseManager::getLastInsertedOrderId() {
     }
     return -1;
 }
+
+// Получить заказы для мастера
+QSqlQueryModel* DatabaseManager::getMasterOrders() {
+    QSqlQueryModel* model = new QSqlQueryModel(this);
+    QString query = "SELECT o.id, o.order_number, o.order_type, o.status, o.total_amount, "
+                    "o.created_at, c.full_name as customer_name, "
+                    "fo.width, fo.height, fo.special_instructions "
+                    "FROM orders o "
+                    "LEFT JOIN customers c ON o.customer_id = c.id "
+                    "LEFT JOIN frame_orders fo ON o.id = fo.order_id "
+                    "WHERE o.order_type = 'Изготовление рамки' "
+                    "ORDER BY o.created_at DESC";
+    model->setQuery(query, _database);
+    return model;
+}
+
+// Обновить статус заказа
+bool DatabaseManager::updateOrderStatus(int orderId, const QString &newStatus) {
+    QSqlQuery query;
+    query.prepare("UPDATE orders SET status = ? WHERE id = ?");
+    query.addBindValue(newStatus);
+    query.addBindValue(orderId);
+
+    if (!query.exec()) {
+        qDebug() << "Error updating order status:" << query.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// Получить детали заказа
+QVariantMap DatabaseManager::getOrderDetails(int orderId) {
+    QVariantMap result;
+
+    QSqlQuery query;
+    query.prepare("SELECT o.*, c.full_name, c.phone, c.email, c.address, "
+                  "fo.width, fo.height, fo.frame_material_id, fo.component_furniture_id, "
+                  "fo.special_instructions, fo.production_cost, fo.selling_price "
+                  "FROM orders o "
+                  "LEFT JOIN customers c ON o.customer_id = c.id "
+                  "LEFT JOIN frame_orders fo ON o.id = fo.order_id "
+                  "WHERE o.id = ?");
+    query.addBindValue(orderId);
+
+    if (query.exec() && query.next()) {
+        QSqlRecord record = query.record();
+        for (int i = 0; i < record.count(); ++i) {
+            result[record.fieldName(i)] = record.value(i);
+        }
+    }
+
+    return result;
+}
+
+// Функции для материалов рамок
+QSqlQueryModel* DatabaseManager::getFrameMaterialsModel() {
+    QSqlQueryModel* model = new QSqlQueryModel(this);
+    model->setQuery("SELECT * FROM frame_materials ORDER BY name", _database);
+    return model;
+}
+
+void DatabaseManager::addFrameMaterial(const QString &name, const QString &type,
+                                       double pricePerMeter, double stockQuantity,
+                                       const QString &color, double width) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO frame_materials (name, type, price_per_meter, stock_quantity, "
+                  "color, width, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    query.addBindValue(name);
+    query.addBindValue(type);
+    query.addBindValue(pricePerMeter);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(color);
+    query.addBindValue(width);
+    query.addBindValue(currentUserId);
+
+    if (!query.exec()) {
+        qDebug() << "Error adding frame material:" << query.lastError().text();
+    }
+}
+
+void DatabaseManager::updateFrameMaterial(int row, const QString &name, const QString &type,
+                                          double pricePerMeter, double stockQuantity,
+                                          const QString &color, double width) {
+    QSqlQueryModel *model = getFrameMaterialsModel();
+    if (!model || row < 0 || row >= model->rowCount()) return;
+
+    int id = model->data(model->index(row, 0)).toInt();
+
+    QSqlQuery query;
+    query.prepare("UPDATE frame_materials SET name = ?, type = ?, price_per_meter = ?, "
+                  "stock_quantity = ?, color = ?, width = ? WHERE id = ?");
+    query.addBindValue(name);
+    query.addBindValue(type);
+    query.addBindValue(pricePerMeter);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(color);
+    query.addBindValue(width);
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error updating frame material:" << query.lastError().text();
+    }
+}
+
+void DatabaseManager::deleteFrameMaterial(int row) {
+    QSqlQueryModel *model = getFrameMaterialsModel();
+    if (!model || row < 0 || row >= model->rowCount()) {
+        qDebug() << "Invalid row for deletion:" << row;
+        return;
+    }
+
+    int id = model->data(model->index(row, 0)).toInt();
+
+    QSqlQuery query;
+    query.prepare("DELETE FROM frame_materials WHERE id = ?");
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error deleting frame material:" << query.lastError().text();
+    } else {
+        qDebug() << "Frame material deleted successfully, ID:" << id;
+    }
+}
+
+QVariantMap DatabaseManager::getFrameMaterialRowData(int row) {
+    QVariantMap result;
+    QSqlQueryModel *model = getFrameMaterialsModel();
+
+    if (model && row >= 0 && row < model->rowCount()) {
+        result["id"] = model->data(model->index(row, 0));
+        result["name"] = model->data(model->index(row, 1));
+        result["type"] = model->data(model->index(row, 2));
+        result["price_per_meter"] = model->data(model->index(row, 3));
+        result["stock_quantity"] = model->data(model->index(row, 4));
+        result["color"] = model->data(model->index(row, 5));
+        result["width"] = model->data(model->index(row, 6));
+    }
+
+    return result;
+}
+
+// Функции для комплектующей фурнитуры
+QSqlQueryModel* DatabaseManager::getComponentFurnitureModel() {
+    QSqlQueryModel* model = new QSqlQueryModel(this);
+    model->setQuery("SELECT * FROM component_furniture ORDER BY name", _database);
+    return model;
+}
+
+void DatabaseManager::addComponentFurniture(const QString &name, const QString &type,
+                                            double pricePerUnit, int stockQuantity) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO component_furniture (name, type, price_per_unit, stock_quantity, "
+                  "created_by) VALUES (?, ?, ?, ?, ?)");
+    query.addBindValue(name);
+    query.addBindValue(type);
+    query.addBindValue(pricePerUnit);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(currentUserId);
+
+    if (!query.exec()) {
+        qDebug() << "Error adding component furniture:" << query.lastError().text();
+    }
+}
+
+void DatabaseManager::updateComponentFurniture(int row, const QString &name, const QString &type,
+                                               double pricePerUnit, int stockQuantity) {
+    QSqlQueryModel *model = getComponentFurnitureModel();
+    if (!model || row < 0 || row >= model->rowCount()) return;
+
+    int id = model->data(model->index(row, 0)).toInt();
+
+    QSqlQuery query;
+    query.prepare("UPDATE component_furniture SET name = ?, type = ?, price_per_unit = ?, "
+                  "stock_quantity = ? WHERE id = ?");
+    query.addBindValue(name);
+    query.addBindValue(type);
+    query.addBindValue(pricePerUnit);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error updating component furniture:" << query.lastError().text();
+    }
+}
+
+void DatabaseManager::deleteComponentFurniture(int row) {
+    QSqlQueryModel *model = getComponentFurnitureModel();
+    if (!model || row < 0 || row >= model->rowCount()) {
+        qDebug() << "Invalid row for deletion:" << row;
+        return;
+    }
+
+    int id = model->data(model->index(row, 0)).toInt();
+
+    QSqlQuery query;
+    query.prepare("DELETE FROM component_furniture WHERE id = ?");
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error deleting component furniture:" << query.lastError().text();
+    } else {
+        qDebug() << "Component furniture deleted successfully, ID:" << id;
+    }
+}
+
+QVariantMap DatabaseManager::getComponentFurnitureRowData(int row) {
+    QVariantMap result;
+    QSqlQueryModel *model = getComponentFurnitureModel();
+
+    if (model && row >= 0 && row < model->rowCount()) {
+        result["id"] = model->data(model->index(row, 0));
+        result["name"] = model->data(model->index(row, 1));
+        result["type"] = model->data(model->index(row, 2));
+        result["price_per_unit"] = model->data(model->index(row, 3));
+        result["stock_quantity"] = model->data(model->index(row, 4));
+    }
+
+    return result;
+}
