@@ -381,7 +381,26 @@ bool DatabaseManager::isMaster() const {
 // Получение модели таблицы
 QSqlQueryModel* DatabaseManager::getTableModel(const QString &name) {
     QSqlQueryModel *model = new QSqlQueryModel(this);
-    model->setQuery("SELECT * FROM " + name, _database);
+
+    qDebug() << "Loading table:" << name;
+
+    QString queryStr = "SELECT * FROM " + name;
+    model->setQuery(queryStr, _database);
+
+    if (model->lastError().isValid()) {
+        qDebug() << "Error loading table" << name << ":" << model->lastError().text();
+    } else {
+        qDebug() << "Table" << name << "loaded successfully, rows:" << model->rowCount();
+
+        if (model->rowCount() > 0) {
+            QSqlRecord record = model->record(0);
+            qDebug() << "Table columns:";
+            for (int i = 0; i < record.count(); ++i) {
+                qDebug() << " -" << record.fieldName(i) << ":" << record.value(i);
+            }
+        }
+    }
+
     return model;
 }
 
@@ -394,7 +413,7 @@ QString DatabaseManager::getColumnName(const QString &name, int index) {
     return "";
 }
 
-// Получение данных конкретной строки
+// Получение данных конкретной строки по индексу модели
 QVariantMap DatabaseManager::getRowData(const QString &table, int row)
 {
     QVariantMap result;
@@ -406,14 +425,11 @@ QVariantMap DatabaseManager::getRowData(const QString &table, int row)
             QString fieldName = record.fieldName(i);
             QVariant value = record.value(i);
             result[fieldName] = value;
-
-            // Отладочная информация
-            if (fieldName == "created_by") {
-                qDebug() << "Found created_by:" << value.toInt();
-            }
         }
+
+        qDebug() << "Row data for table" << table << "row" << row << ":" << result;
     } else {
-        qDebug() << "Invalid row or model for getRowData, row:" << row;
+        qDebug() << "Invalid row or model for getRowData, table:" << table << "row:" << row;
     }
 
     return result;
@@ -510,24 +526,22 @@ int DatabaseManager::getColumnCount(const QString &table)
     return record.count();
 }
 
-// Получить модель со всеми покупателями за указанный период
 QSqlQueryModel* DatabaseManager::getCustomersByPeriod(const QString& startDate, const QString& endDate)
 {
-    QSqlQueryModel* model = new QSqlQueryModel();
-    QSqlQuery query;
+    QSqlQueryModel* model = new QSqlQueryModel(this);
 
-    query.prepare(R"(
+    QString queryStr = R"(
         SELECT DISTINCT c.*
         FROM customers c
-        JOIN sales s ON s.customer_id = c.id
-        WHERE date(s.sale_date) BETWEEN date(?) AND date(?)
-    )");
+        JOIN orders o ON o.customer_id = c.id
+        WHERE date(o.created_at) BETWEEN date(')" + startDate + "') AND date('" + endDate + "')";
 
-    query.addBindValue(startDate);
-    query.addBindValue(endDate);
-    query.exec();
+    model->setQuery(queryStr, _database);
 
-    model->setQuery(query);
+    if (model->lastError().isValid()) {
+        qDebug() << "Error loading customers by period:" << model->lastError().text();
+    }
+
     return model;
 }
 
@@ -879,5 +893,71 @@ QVariantMap DatabaseManager::getComponentFurnitureRowData(int row) {
         result["stock_quantity"] = model->data(model->index(row, 4));
     }
 
+    return result;
+}
+
+// Получить модель расходной фурнитуры
+QSqlQueryModel* DatabaseManager::getConsumableFurnitureModel() {
+    QSqlQueryModel* model = new QSqlQueryModel(this);
+    model->setQuery("SELECT id, name, type, price_per_unit, stock_quantity, unit FROM consumable_furniture ORDER BY name", _database);
+    return model;
+}
+
+// Добавить набор для вышивки
+void DatabaseManager::addEmbroideryKit(const QString &name, const QString &description, double price, int stockQuantity) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO embroidery_kits (name, description, price, stock_quantity, created_by) VALUES (?, ?, ?, ?, ?)");
+    query.addBindValue(name);
+    query.addBindValue(description);
+    query.addBindValue(price);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(currentUserId);
+
+    if (!query.exec()) {
+        qDebug() << "Error adding embroidery kit:" << query.lastError().text();
+    }
+}
+
+// Добавить расходную фурнитуру
+void DatabaseManager::addConsumableFurniture(const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO consumable_furniture (name, type, price_per_unit, stock_quantity, unit, created_by) VALUES (?, ?, ?, ?, ?, ?)");
+    query.addBindValue(name);
+    query.addBindValue(type);
+    query.addBindValue(pricePerUnit);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(unit);
+    query.addBindValue(currentUserId);
+
+    if (!query.exec()) {
+        qDebug() << "Error adding consumable furniture:" << query.lastError().text();
+    }
+}
+
+QVariantList DatabaseManager::getOrdersData() {
+    QVariantList result;
+
+    QSqlQuery query(_database);
+    QString queryStr = "SELECT o.*, c.full_name as customer_name, c.phone as customer_phone, c.email as customer_email "
+                       "FROM orders o LEFT JOIN customers c ON o.customer_id = c.id ORDER BY o.created_at DESC";
+
+    qDebug() << "Executing orders query:" << queryStr;
+
+    if (!query.exec(queryStr)) {
+        qDebug() << "Error loading orders data:" << query.lastError().text();
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap rowData;
+        QSqlRecord record = query.record();
+        for (int i = 0; i < record.count(); ++i) {
+            rowData[record.fieldName(i)] = record.value(i);
+        }
+        result.append(rowData);
+        qDebug() << "Order row:" << rowData;
+    }
+
+    qDebug() << "Loaded" << result.size() << "orders";
     return result;
 }

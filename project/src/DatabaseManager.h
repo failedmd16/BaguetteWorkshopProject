@@ -91,6 +91,14 @@ public slots:
     Q_INVOKABLE void deleteComponentFurniture(int row);
     Q_INVOKABLE QVariantMap getComponentFurnitureRowData(int row);
 
+    Q_INVOKABLE QSqlQueryModel* getConsumableFurnitureModel();
+
+    Q_INVOKABLE void addEmbroideryKit(const QString &name, const QString &description, double price, int stockQuantity);
+
+    Q_INVOKABLE void addConsumableFurniture(const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit);
+
+    Q_INVOKABLE QVariantList getOrdersData();
+
 private:
     QSqlDatabase _database;
     int currentUserId = -1;

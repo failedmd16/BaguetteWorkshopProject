@@ -189,6 +189,8 @@ Page {
                             anchors.fill: parent
                             anchors.margins: 12
                             text: {
+                                if (!model) return ""
+
                                 switch(column) {
                                     case 0: return model.order_number || ""
                                     case 1: return model.customer_name || ""
@@ -289,30 +291,12 @@ Page {
 
     function refreshTable() {
         ordersModel.clear()
+        var ordersData = dbmanager.getOrdersData()
 
-        // Используем метод для получения заказов с клиентами
-        var model = dbmanager.getOrdersWithCustomers()
+        console.log("Raw orders data:", ordersData)
 
-        if (!model) {
-            console.error("Failed to get orders model")
-            return
-        }
-
-        for (var i = 0; i < model.rowCount(); i++) {
-            var orderData = {
-                id: model.data(model.index(i, 0)),
-                order_number: model.data(model.index(i, 1)),
-                customer_id: model.data(model.index(i, 2)),
-                order_type: model.data(model.index(i, 3)),
-                total_amount: model.data(model.index(i, 4)),
-                status: model.data(model.index(i, 5)),
-                created_by: model.data(model.index(i, 6)),
-                created_at: model.data(model.index(i, 7)),
-                completed_at: model.data(model.index(i, 8)),
-                customer_name: model.data(model.index(i, 9)),
-                customer_phone: model.data(model.index(i, 10)),
-                customer_email: model.data(model.index(i, 11))
-            }
+        for (var i = 0; i < ordersData.length; i++) {
+            var orderData = ordersData[i]
 
             // Применяем фильтры
             var statusFilterText = statusFilter.currentText
@@ -322,10 +306,12 @@ Page {
             if (statusFilterText !== "Все статусы" && orderData.status !== statusFilterText) continue
             if (typeFilterText !== "Все типы" && orderData.order_type !== typeFilterText) continue
             if (searchText && !orderData.order_number.toLowerCase().includes(searchText) &&
-                !orderData.customer_name.toLowerCase().includes(searchText)) continue
+                !(orderData.customer_name && orderData.customer_name.toLowerCase().includes(searchText))) continue
 
             ordersModel.append(orderData)
         }
+
+        console.log("Displaying", ordersModel.count, "filtered orders")
     }
 
     // Функции для диалога создания заказа

@@ -99,6 +99,9 @@ Page {
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
 
+                        // Получаем данные через модель
+                        property var rowData: model ? dbmanager.getRowData(root.tableName, row) : ({})
+
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
@@ -118,12 +121,14 @@ Page {
                             anchors.fill: parent
                             anchors.margins: 12
                             text: {
+                                if (!parent.rowData) return ""
+
                                 switch(column) {
-                                    case 0: return model.display || ""
-                                    case 1: return model.phone || ""
-                                    case 2: return model.email || ""
-                                    case 3: return model.address || ""
-                                    case 4: return formatDate(model.created_at)
+                                    case 0: return parent.rowData.full_name || ""
+                                    case 1: return parent.rowData.phone || ""
+                                    case 2: return parent.rowData.email || ""
+                                    case 3: return parent.rowData.address || ""
+                                    case 4: return formatDate(parent.rowData.created_at)
                                     default: return ""
                                 }
                             }
@@ -139,15 +144,16 @@ Page {
         }
 
         // Кнопки справа снизу
-        ColumnLayout {
+        RowLayout {
             Layout.alignment: Qt.AlignRight
+            spacing: 10
 
             Button {
                 id: newCustomerButton
                 text: "➕ Добавить покупателя"
                 font.bold: true
                 padding: 12
-                Layout.preferredWidth: 180
+                Layout.preferredWidth: 200
                 background: Rectangle {
                     color: newCustomerButton.down ? "#27ae60" : "#2ecc71"
                     radius: 8
@@ -191,17 +197,16 @@ Page {
         return date.toLocaleDateString(Qt.locale(), "dd.MM.yyyy HH:mm")
     }
 
-    // Остальной код диалогов остается без изменений...
-    // Диалог для добавления нового пользователя
     Dialog {
         id: customerAddDialog
         modal: true
         title: "👤 Добавить нового покупателя"
 
-        width: 500
-        height: 520
+        width: Math.min(500, parent.width * 0.8)
+        height: Math.min(520, parent.height * 0.8)
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -212,7 +217,7 @@ Page {
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: 20
-            spacing: 12
+            spacing: 15
 
             Label {
                 Layout.fillWidth: true
@@ -224,7 +229,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Центрируем форму по горизонтали
+            // Центрируем форму
             ColumnLayout {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
@@ -236,24 +241,26 @@ Page {
                     spacing: 6
 
                     Label {
+                        Layout.fillWidth: true
                         text: "👤 ФИО:"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
-                        Layout.alignment: Qt.AlignHCenter
+                        horizontalAlignment: Text.AlignHCenter
                     }
                     TextField {
                         id: addNameField
                         Layout.fillWidth: true
                         placeholderText: "Введите полное имя"
                         font.pixelSize: 14
-                        padding: 10
+                        padding: 12
+                        horizontalAlignment: Text.AlignHCenter
                         background: Rectangle {
                             color: "#f8f9fa"
-                            radius: 6
+                            radius: 8
                             border.color: addNameField.activeFocus ? "#3498db" : "#dce0e3"
+                            border.width: 2
                         }
-                        onTextChanged: customerAddDialog.validateForm()
                     }
                 }
 
@@ -262,23 +269,26 @@ Page {
                     spacing: 6
 
                     Label {
+                        Layout.fillWidth: true
                         text: "📞 Телефон:"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
-                        Layout.alignment: Qt.AlignHCenter
+                        horizontalAlignment: Text.AlignHCenter
                     }
                     TextField {
                         id: addPhoneField
                         Layout.fillWidth: true
                         placeholderText: "+7-XXX-XXX-XX-XX"
                         font.pixelSize: 14
-                        padding: 10
+                        padding: 12
                         inputMethodHints: Qt.ImhDialableCharactersOnly
+                        horizontalAlignment: Text.AlignHCenter
                         background: Rectangle {
                             color: "#f8f9fa"
-                            radius: 6
+                            radius: 8
                             border.color: addPhoneField.activeFocus ? "#3498db" : "#dce0e3"
+                            border.width: 2
                         }
                     }
                 }
@@ -288,25 +298,27 @@ Page {
                     spacing: 6
 
                     Label {
+                        Layout.fillWidth: true
                         text: "📧 Email:"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
-                        Layout.alignment: Qt.AlignHCenter
+                        horizontalAlignment: Text.AlignHCenter
                     }
                     TextField {
                         id: addEmailField
                         Layout.fillWidth: true
                         placeholderText: "example@mail.ru"
                         font.pixelSize: 14
-                        padding: 10
+                        padding: 12
                         inputMethodHints: Qt.ImhEmailCharactersOnly
+                        horizontalAlignment: Text.AlignHCenter
                         background: Rectangle {
                             color: "#f8f9fa"
-                            radius: 6
+                            radius: 8
                             border.color: addEmailField.activeFocus ? "#3498db" : "#dce0e3"
+                            border.width: 2
                         }
-                        onTextChanged: customerAddDialog.validateForm()
                     }
                 }
 
@@ -315,33 +327,27 @@ Page {
                     spacing: 6
 
                     Label {
+                        Layout.fillWidth: true
                         text: "🏠 Адрес:"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
-                        Layout.alignment: Qt.AlignHCenter
+                        horizontalAlignment: Text.AlignHCenter
                     }
                     TextField {
                         id: addAddressField
                         Layout.fillWidth: true
                         placeholderText: "Введите полный адрес"
                         font.pixelSize: 14
-                        padding: 10
+                        padding: 12
+                        horizontalAlignment: Text.AlignHCenter
                         background: Rectangle {
                             color: "#f8f9fa"
-                            radius: 6
+                            radius: 8
                             border.color: addAddressField.activeFocus ? "#3498db" : "#dce0e3"
+                            border.width: 2
                         }
-                        onTextChanged: customerAddDialog.validateForm()
                     }
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 1
-                    color: "#e0e0e0"
-                    Layout.topMargin: 5
-                    Layout.bottomMargin: 5
                 }
 
                 Label {
@@ -351,20 +357,19 @@ Page {
                     color: "#e74c3c"
                     visible: false
                     wrapMode: Text.WordWrap
-                    font.pixelSize: 12
-                    padding: 8
+                    font.pixelSize: 13
+                    padding: 10
+                    horizontalAlignment: Text.AlignHCenter
                     background: Rectangle {
                         color: "#fdf2f2"
-                        radius: 6
+                        radius: 8
                         border.color: "#e74c3c"
                         border.width: 1
                     }
-                    Layout.alignment: Qt.AlignHCenter
                 }
             }
         }
 
-        // Кастомные кнопки для диалога
         footer: DialogButtonBox {
             alignment: Qt.AlignCenter
             padding: 15
@@ -376,7 +381,7 @@ Page {
                 text: "❌ Отмена"
                 font.bold: true
                 padding: 12
-                width: 120
+                Layout.preferredWidth: 120
                 background: Rectangle {
                     color: parent.down ? "#7f8c8d" : "#95a5a6"
                     radius: 8
@@ -395,7 +400,7 @@ Page {
                 text: "✅ Добавить"
                 font.bold: true
                 padding: 12
-                width: 120
+                Layout.preferredWidth: 120
                 background: Rectangle {
                     color: parent.down ? "#27ae60" : "#2ecc71"
                     radius: 8
@@ -459,8 +464,6 @@ Page {
         }
     }
 
-    // Остальные диалоги (customerViewDialog, customerEditDialog, deleteConfirmDialog) остаются без изменений...
-    // Диалог для просмотра данных покупателя
     Dialog {
         id: customerViewDialog
         modal: true
@@ -470,10 +473,11 @@ Page {
         property var currentData: ({})
         property var customerOrders: ([])
 
-        width: 700
-        height: 700
+        width: Math.min(600, parent.width * 0.9)
+        height: Math.min(700, parent.height * 0.9)
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -488,7 +492,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "👀 Просмотр данных"
+                text: "👀 Просмотр данных покупателя"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -504,20 +508,18 @@ Page {
 
                 ColumnLayout {
                     width: parent.width
-                    spacing: 15
+                    spacing: 20
 
                     // Центрируем содержимое
                     ColumnLayout {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
-                        Layout.maximumWidth: 550
+                        Layout.maximumWidth: 500
                         spacing: 15
 
                         // ФИО
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.maximumWidth: 500
                             spacing: 5
 
                             Label {
@@ -532,10 +534,10 @@ Page {
                             Label {
                                 Layout.fillWidth: true
                                 text: customerViewDialog.currentData.full_name || "Не указано"
-                                wrapMode: Text.WrapAnywhere
+                                wrapMode: Text.Wrap
                                 color: "#2c3e50"
                                 font.pixelSize: 14
-                                padding: 10
+                                padding: 12
                                 horizontalAlignment: Text.AlignHCenter
                                 background: Rectangle {
                                     color: "#f8f9fa"
@@ -548,8 +550,6 @@ Page {
                         // Телефон
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.maximumWidth: 500
                             spacing: 5
 
                             Label {
@@ -564,10 +564,10 @@ Page {
                             Label {
                                 Layout.fillWidth: true
                                 text: customerViewDialog.currentData.phone || "Не указано"
-                                wrapMode: Text.WrapAnywhere
+                                wrapMode: Text.Wrap
                                 color: "#2c3e50"
                                 font.pixelSize: 14
-                                padding: 10
+                                padding: 12
                                 horizontalAlignment: Text.AlignHCenter
                                 background: Rectangle {
                                     color: "#f8f9fa"
@@ -580,8 +580,6 @@ Page {
                         // Email
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.maximumWidth: 500
                             spacing: 5
 
                             Label {
@@ -596,10 +594,10 @@ Page {
                             Label {
                                 Layout.fillWidth: true
                                 text: customerViewDialog.currentData.email || "Не указано"
-                                wrapMode: Text.WrapAnywhere
+                                wrapMode: Text.Wrap
                                 color: "#2c3e50"
                                 font.pixelSize: 14
-                                padding: 10
+                                padding: 12
                                 horizontalAlignment: Text.AlignHCenter
                                 background: Rectangle {
                                     color: "#f8f9fa"
@@ -612,8 +610,6 @@ Page {
                         // Адрес
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.maximumWidth: 500
                             spacing: 5
 
                             Label {
@@ -628,10 +624,10 @@ Page {
                             Label {
                                 Layout.fillWidth: true
                                 text: customerViewDialog.currentData.address || "Не указано"
-                                wrapMode: Text.WrapAnywhere
+                                wrapMode: Text.Wrap
                                 color: "#2c3e50"
                                 font.pixelSize: 14
-                                padding: 10
+                                padding: 12
                                 horizontalAlignment: Text.AlignHCenter
                                 background: Rectangle {
                                     color: "#f8f9fa"
@@ -640,160 +636,154 @@ Page {
                                 }
                             }
                         }
+                    }
 
-                        // Заказы покупателя
-                        ColumnLayout {
+                    // Заказы покупателя (тоже по центру)
+                    ColumnLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
+                        Layout.maximumWidth: 500
+                        spacing: 10
+
+                        Label {
                             Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.maximumWidth: 500
-                            spacing: 8
+                            text: "📦 Заказы покупателя:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 16
+                            padding: 5
+                            horizontalAlignment: Text.AlignHCenter
+                        }
 
-                            Label {
+                        Repeater {
+                            model: customerViewDialog.customerOrders
+
+                            Rectangle {
                                 Layout.fillWidth: true
-                                text: "📦 Заказы:"
-                                font.bold: true
-                                color: "#34495e"
-                                font.pixelSize: 16
-                                padding: 5
-                                horizontalAlignment: Text.AlignHCenter
-                            }
+                                height: orderLayout.implicitHeight + 20
+                                color: "#f8f9fa"
+                                radius: 8
+                                border.color: "#e9ecef"
 
-                            Repeater {
-                                model: customerViewDialog.customerOrders
+                                ColumnLayout {
+                                    id: orderLayout
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    spacing: 5
 
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: orderLayout.implicitHeight + 20
-                                    color: "#f8f9fa"
-                                    radius: 8
-                                    border.color: "#e9ecef"
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
 
-                                    ColumnLayout {
-                                        id: orderLayout
-                                        anchors.fill: parent
-                                        anchors.margins: 10
-                                        spacing: 5
-
-                                        RowLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 10
-
-                                            Label {
-                                                text: "№ заказа:"
-                                                font.bold: true
-                                                color: "#34495e"
-                                                font.pixelSize: 12
-                                                Layout.preferredWidth: 80
-                                            }
-                                            Label {
-                                                text: modelData.order_number || "Не указан"
-                                                Layout.fillWidth: true
-                                                color: "#2c3e50"
-                                                font.pixelSize: 12
-                                                horizontalAlignment: Text.AlignHCenter
-                                            }
+                                        Label {
+                                            text: "№ заказа:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                            font.pixelSize: 13
+                                            Layout.preferredWidth: 100
                                         }
-
-                                        RowLayout {
+                                        Label {
+                                            text: modelData.order_number || "Не указан"
                                             Layout.fillWidth: true
-                                            spacing: 10
-
-                                            Label {
-                                                text: "Тип:"
-                                                font.bold: true
-                                                color: "#34495e"
-                                                font.pixelSize: 12
-                                                Layout.preferredWidth: 80
-                                            }
-                                            Label {
-                                                text: getOrderTypeText(modelData.order_type)
-                                                Layout.fillWidth: true
-                                                color: "#2c3e50"
-                                                font.pixelSize: 12
-                                                horizontalAlignment: Text.AlignHCenter
-                                            }
+                                            color: "#2c3e50"
+                                            font.pixelSize: 13
                                         }
+                                    }
 
-                                        RowLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 10
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
 
-                                            Label {
-                                                text: "Статус:"
-                                                font.bold: true
-                                                color: "#34495e"
-                                                font.pixelSize: 12
-                                                Layout.preferredWidth: 80
-                                            }
-                                            Label {
-                                                text: getStatusText(modelData.status)
-                                                Layout.fillWidth: true
-                                                color: getStatusColor(modelData.status)
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                horizontalAlignment: Text.AlignHCenter
-                                            }
+                                        Label {
+                                            text: "Тип:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                            font.pixelSize: 13
+                                            Layout.preferredWidth: 100
                                         }
-
-                                        RowLayout {
+                                        Label {
+                                            text: getOrderTypeText(modelData.order_type)
                                             Layout.fillWidth: true
-                                            spacing: 10
-
-                                            Label {
-                                                text: "Сумма:"
-                                                font.bold: true
-                                                color: "#34495e"
-                                                font.pixelSize: 12
-                                                Layout.preferredWidth: 80
-                                            }
-                                            Label {
-                                                text: modelData.total_amount ? modelData.total_amount + " ₽" : "0 ₽"
-                                                Layout.fillWidth: true
-                                                color: "#2c3e50"
-                                                font.pixelSize: 12
-                                                horizontalAlignment: Text.AlignHCenter
-                                            }
+                                            color: "#2c3e50"
+                                            font.pixelSize: 13
                                         }
+                                    }
 
-                                        RowLayout {
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+
+                                        Label {
+                                            text: "Статус:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                            font.pixelSize: 13
+                                            Layout.preferredWidth: 100
+                                        }
+                                        Label {
+                                            text: getStatusText(modelData.status)
                                             Layout.fillWidth: true
-                                            spacing: 10
+                                            color: getStatusColor(modelData.status)
+                                            font.pixelSize: 13
+                                            font.bold: true
+                                        }
+                                    }
 
-                                            Label {
-                                                text: "Дата создания:"
-                                                font.bold: true
-                                                color: "#34495e"
-                                                font.pixelSize: 12
-                                                Layout.preferredWidth: 80
-                                            }
-                                            Label {
-                                                text: modelData.created_at || "Не указана"
-                                                Layout.fillWidth: true
-                                                color: "#2c3e50"
-                                                font.pixelSize: 12
-                                                horizontalAlignment: Text.AlignHCenter
-                                            }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+
+                                        Label {
+                                            text: "Сумма:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                            font.pixelSize: 13
+                                            Layout.preferredWidth: 100
+                                        }
+                                        Label {
+                                            text: modelData.total_amount ? modelData.total_amount + " ₽" : "0 ₽"
+                                            Layout.fillWidth: true
+                                            color: "#2c3e50"
+                                            font.pixelSize: 13
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+
+                                        Label {
+                                            text: "Дата создания:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                            font.pixelSize: 13
+                                            Layout.preferredWidth: 100
+                                        }
+                                        Label {
+                                            text: modelData.created_at ? formatDate(modelData.created_at) : "Не указана"
+                                            Layout.fillWidth: true
+                                            color: "#2c3e50"
+                                            font.pixelSize: 13
                                         }
                                     }
                                 }
                             }
+                        }
 
-                            Label {
-                                Layout.fillWidth: true
-                                text: customerViewDialog.customerOrders.length === 0 ? "Заказов нет" : ""
-                                horizontalAlignment: Text.AlignHCenter
-                                color: "#7f8c8d"
-                                font.pixelSize: 12
-                                font.italic: true
-                                padding: 10
-                            }
+                        Label {
+                            Layout.fillWidth: true
+                            text: customerViewDialog.customerOrders.length === 0 ? "Заказов нет" : ""
+                            horizontalAlignment: Text.AlignHCenter
+                            color: "#7f8c8d"
+                            font.pixelSize: 14
+                            font.italic: true
+                            padding: 20
                         }
                     }
                 }
             }
         }
 
-        // Кнопки для диалога просмотра
         footer: DialogButtonBox {
             alignment: Qt.AlignCenter
             padding: 15
@@ -805,7 +795,7 @@ Page {
                 text: "✏️ Изменить"
                 font.bold: true
                 padding: 12
-                width: 120
+                Layout.preferredWidth: 120
                 background: Rectangle {
                     color: parent.down ? "#2980b9" : "#3498db"
                     radius: 8
@@ -827,7 +817,7 @@ Page {
                 text: "🗑️ Удалить"
                 font.bold: true
                 padding: 12
-                width: 120
+                Layout.preferredWidth: 120
                 background: Rectangle {
                     color: parent.down ? "#c0392b" : "#e74c3c"
                     radius: 8
@@ -846,7 +836,7 @@ Page {
                 text: "❌ Закрыть"
                 font.bold: true
                 padding: 12
-                width: 120
+                Layout.preferredWidth: 120
                 background: Rectangle {
                     color: parent.down ? "#7f8c8d" : "#95a5a6"
                     radius: 8
@@ -909,8 +899,8 @@ Page {
         property int currentRow: -1
         property var currentData: ({})
 
-        width: 600
-        height: 600
+        width: Math.min(600, parent.width * 0.9)
+        height: Math.min(550, parent.height * 0.9)
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
 
@@ -927,7 +917,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "✏️ Редактирование данных"
+                text: "✏️ Редактирование данных покупателя"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -945,157 +935,132 @@ Page {
                     width: parent.width
                     spacing: 15
 
-                    // Центрируем содержимое
                     ColumnLayout {
-                        Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
-                        Layout.maximumWidth: 500
-                        spacing: 15
-
-                        // ФИО
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            spacing: 6
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "👤 ФИО:"
-                                font.bold: true
-                                color: "#34495e"
-                                font.pixelSize: 13
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            TextField {
-                                id: editNameField
-                                Layout.fillWidth: true
-                                placeholderText: "Введите ФИО"
-                                font.pixelSize: 14
-                                padding: 10
-                                horizontalAlignment: Text.AlignHCenter
-                                background: Rectangle {
-                                    color: "#f8f9fa"
-                                    radius: 8
-                                    border.color: editNameField.activeFocus ? "#3498db" : "#dce0e3"
-                                    border.width: 2
-                                }
-                            }
-                        }
-
-                        // Телефон
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            spacing: 6
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "📞 Телефон:"
-                                font.bold: true
-                                color: "#34495e"
-                                font.pixelSize: 13
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            TextField {
-                                id: editPhoneField
-                                Layout.fillWidth: true
-                                placeholderText: "+7-XXX-XXX-XX-XX"
-                                font.pixelSize: 14
-                                padding: 10
-                                inputMethodHints: Qt.ImhDialableCharactersOnly
-                                horizontalAlignment: Text.AlignHCenter
-                                background: Rectangle {
-                                    color: "#f8f9fa"
-                                    radius: 8
-                                    border.color: editPhoneField.activeFocus ? "#3498db" : "#dce0e3"
-                                    border.width: 2
-                                }
-                            }
-                        }
-
-                        // Email
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            spacing: 6
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "📧 Email:"
-                                font.bold: true
-                                color: "#34495e"
-                                font.pixelSize: 13
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            TextField {
-                                id: editEmailField
-                                Layout.fillWidth: true
-                                placeholderText: "example@mail.ru"
-                                font.pixelSize: 14
-                                padding: 10
-                                inputMethodHints: Qt.ImhEmailCharactersOnly
-                                horizontalAlignment: Text.AlignHCenter
-                                background: Rectangle {
-                                    color: "#f8f9fa"
-                                    radius: 8
-                                    border.color: editEmailField.activeFocus ? "#3498db" : "#dce0e3"
-                                    border.width: 2
-                                }
-                            }
-                        }
-
-                        // Адрес
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignHCenter
-                            spacing: 6
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "🏠 Адрес:"
-                                font.bold: true
-                                color: "#34495e"
-                                font.pixelSize: 13
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            TextField {
-                                id: editAddressField
-                                Layout.fillWidth: true
-                                placeholderText: "Введите адрес"
-                                font.pixelSize: 14
-                                padding: 10
-                                horizontalAlignment: Text.AlignHCenter
-                                background: Rectangle {
-                                    color: "#f8f9fa"
-                                    radius: 8
-                                    border.color: editAddressField.activeFocus ? "#3498db" : "#dce0e3"
-                                    border.width: 2
-                                }
-                            }
-                        }
+                        spacing: 6
 
                         Label {
-                            id: editValidationError
                             Layout.fillWidth: true
-                            Layout.preferredHeight: editValidationError.visible ? implicitHeight : 0
-                            color: "#e74c3c"
-                            visible: false
-                            wrapMode: Text.WordWrap
-                            font.pixelSize: 12
-                            padding: 8
-                            horizontalAlignment: Text.AlignHCenter
+                            text: "👤 ФИО:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 14
+                        }
+                        TextField {
+                            id: editNameField
+                            Layout.fillWidth: true
+                            placeholderText: "Введите ФИО"
+                            font.pixelSize: 14
+                            padding: 12
                             background: Rectangle {
-                                color: "#fdf2f2"
-                                radius: 6
-                                border.color: "#e74c3c"
+                                color: "#f8f9fa"
+                                radius: 8
+                                border.color: editNameField.activeFocus ? "#3498db" : "#dce0e3"
+                                border.width: 2
                             }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: "📞 Телефон:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 14
+                        }
+                        TextField {
+                            id: editPhoneField
+                            Layout.fillWidth: true
+                            placeholderText: "+7-XXX-XXX-XX-XX"
+                            font.pixelSize: 14
+                            padding: 12
+                            inputMethodHints: Qt.ImhDialableCharactersOnly
+                            background: Rectangle {
+                                color: "#f8f9fa"
+                                radius: 8
+                                border.color: editPhoneField.activeFocus ? "#3498db" : "#dce0e3"
+                                border.width: 2
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: "📧 Email:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 14
+                        }
+                        TextField {
+                            id: editEmailField
+                            Layout.fillWidth: true
+                            placeholderText: "example@mail.ru"
+                            font.pixelSize: 14
+                            padding: 12
+                            inputMethodHints: Qt.ImhEmailCharactersOnly
+                            background: Rectangle {
+                                color: "#f8f9fa"
+                                radius: 8
+                                border.color: editEmailField.activeFocus ? "#3498db" : "#dce0e3"
+                                border.width: 2
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: "🏠 Адрес:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 14
+                        }
+                        TextField {
+                            id: editAddressField
+                            Layout.fillWidth: true
+                            placeholderText: "Введите адрес"
+                            font.pixelSize: 14
+                            padding: 12
+                            background: Rectangle {
+                                color: "#f8f9fa"
+                                radius: 8
+                                border.color: editAddressField.activeFocus ? "#3498db" : "#dce0e3"
+                                border.width: 2
+                            }
+                        }
+                    }
+
+                    Label {
+                        id: editValidationError
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: editValidationError.visible ? implicitHeight : 0
+                        color: "#e74c3c"
+                        visible: false
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 13
+                        padding: 10
+                        background: Rectangle {
+                            color: "#fdf2f2"
+                            radius: 8
+                            border.color: "#e74c3c"
+                            border.width: 1
                         }
                     }
                 }
             }
         }
 
-        // Кнопки для диалога редактирования
         footer: DialogButtonBox {
             alignment: Qt.AlignCenter
             padding: 15
@@ -1107,7 +1072,7 @@ Page {
                 text: "💾 Сохранить"
                 font.bold: true
                 padding: 12
-                width: 120
+                Layout.preferredWidth: 120
                 background: Rectangle {
                     color: parent.down ? "#27ae60" : "#2ecc71"
                     radius: 8
@@ -1138,7 +1103,7 @@ Page {
                 text: "❌ Отмена"
                 font.bold: true
                 padding: 12
-                width: 120
+                Layout.preferredWidth: 120
                 background: Rectangle {
                     color: parent.down ? "#7f8c8d" : "#95a5a6"
                     radius: 8
@@ -1200,7 +1165,7 @@ Page {
         modal: true
         title: "⚠️ Подтверждение удаления"
 
-        width: 400
+        width: Math.min(450, parent.width * 0.8)
         height: 200
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
@@ -1220,7 +1185,7 @@ Page {
                 Layout.fillWidth: true
                 text: "🗑️ Вы уверены, что хотите удалить этого покупателя?"
                 wrapMode: Text.WordWrap
-                font.pixelSize: 14
+                font.pixelSize: 16
                 color: "#2c3e50"
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -1229,7 +1194,7 @@ Page {
                 Layout.fillWidth: true
                 text: "Это действие нельзя отменить."
                 wrapMode: Text.WordWrap
-                font.pixelSize: 12
+                font.pixelSize: 14
                 color: "#7f8c8d"
                 font.italic: true
                 horizontalAlignment: Text.AlignHCenter
@@ -1247,7 +1212,7 @@ Page {
                 text: "❌ Нет"
                 font.bold: true
                 padding: 12
-                width: 100
+                Layout.preferredWidth: 100
                 background: Rectangle {
                     color: parent.down ? "#7f8c8d" : "#95a5a6"
                     radius: 8
@@ -1266,7 +1231,7 @@ Page {
                 text: "✅ Да"
                 font.bold: true
                 padding: 12
-                width: 100
+                Layout.preferredWidth: 100
                 background: Rectangle {
                     color: parent.down ? "#c0392b" : "#e74c3c"
                     radius: 8
