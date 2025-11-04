@@ -25,7 +25,7 @@ Page {
 
         Label {
             Layout.fillWidth: true
-            text: "📋 Таблица покупателей"
+            text: "👥 Управление покупателями"
             font.bold: true
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
@@ -41,7 +41,7 @@ Page {
 
         Rectangle {
             Layout.fillWidth: true
-            height: 50
+            Layout.preferredHeight: 50
             color: "#3498db"
             radius: 8
 
@@ -51,16 +51,16 @@ Page {
                 spacing: 1
 
                 Repeater {
-                    model: tableview.columns
+                    model: ["ФИО", "Телефон", "Email", "Адрес", "Дата создания"]
 
                     Rectangle {
-                        width: tableview.width / tableview.columns
+                        width: tableview.width / 5
                         height: parent.height
                         color: "transparent"
 
                         Text {
                             anchors.centerIn: parent
-                            text: dbmanager.getColumnName(root.tableName, modelData)
+                            text: modelData
                             color: "white"
                             font.bold: true
                             font.pixelSize: 14
@@ -91,7 +91,7 @@ Page {
                     model: dbmanager.getTableModel(root.tableName)
 
                     columnWidthProvider: function(column) {
-                        return tableview.width / Math.max(tableview.columns, 1)
+                        return tableview.width / 5
                     }
 
                     delegate: Rectangle {
@@ -117,7 +117,16 @@ Page {
                         Text {
                             anchors.fill: parent
                             anchors.margins: 12
-                            text: model.display
+                            text: {
+                                switch(column) {
+                                    case 0: return model.display || ""
+                                    case 1: return model.phone || ""
+                                    case 2: return model.email || ""
+                                    case 3: return model.address || ""
+                                    case 4: return formatDate(model.created_at)
+                                    default: return ""
+                                }
+                            }
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
                             elide: Text.ElideRight
@@ -129,27 +138,60 @@ Page {
             }
         }
 
-        Button {
+        // Кнопки справа снизу
+        ColumnLayout {
             Layout.alignment: Qt.AlignRight
-            text: "➕ Добавить покупателя"
-            font.bold: true
-            font.pixelSize: 14
-            padding: 12
-            background: Rectangle {
-                color: parent.down ? "#27ae60" : "#2ecc71"
-                radius: 8
+
+            Button {
+                id: newCustomerButton
+                text: "➕ Добавить покупателя"
+                font.bold: true
+                padding: 12
+                Layout.preferredWidth: 180
+                background: Rectangle {
+                    color: newCustomerButton.down ? "#27ae60" : "#2ecc71"
+                    radius: 8
+                }
+                contentItem: Text {
+                    text: newCustomerButton.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font: newCustomerButton.font
+                }
+                onClicked: customerAddDialog.open()
             }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                font: parent.font
+
+            Button {
+                id: refreshButton
+                text: "🔄 Обновить"
+                font.bold: true
+                padding: 12
+                Layout.preferredWidth: 120
+                background: Rectangle {
+                    color: refreshButton.down ? "#2980b9" : "#3498db"
+                    radius: 8
+                }
+                contentItem: Text {
+                    text: refreshButton.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font: refreshButton.font
+                }
+                onClicked: tableview.model = dbmanager.getTableModel(root.tableName)
             }
-            onClicked: customerAddDialog.open()
         }
     }
 
+    // Функция форматирования даты
+    function formatDate(dateString) {
+        if (!dateString) return "Не указана"
+        var date = new Date(dateString)
+        return date.toLocaleDateString(Qt.locale(), "dd.MM.yyyy HH:mm")
+    }
+
+    // Остальной код диалогов остается без изменений...
     // Диалог для добавления нового пользователя
     Dialog {
         id: customerAddDialog
@@ -417,6 +459,7 @@ Page {
         }
     }
 
+    // Остальные диалоги (customerViewDialog, customerEditDialog, deleteConfirmDialog) остаются без изменений...
     // Диалог для просмотра данных покупателя
     Dialog {
         id: customerViewDialog
@@ -1249,5 +1292,3 @@ Page {
         if (visible) tableview.model = dbmanager.getTableModel(root.tableName)
     }
 }
-
-// Реализовать просмотр всех покупателей с их полными данными, совершивших покупку за указанный период.
