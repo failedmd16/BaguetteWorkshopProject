@@ -40,7 +40,6 @@ Page {
             }
         }
 
-        // Фильтры и поиск
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -57,20 +56,37 @@ Page {
                     id: statusFilter
                     Layout.preferredWidth: 200
                     model: ["Все статусы", "Новый", "В работе", "Готов", "Завершён", "Отменён"]
-                    background: Rectangle {
-                        color: "#f8f9fa"
-                        radius: 6
-                        border.color: "#dce0e3"
-                    }
+
                     contentItem: Text {
                         text: statusFilter.displayText
-                        color: "#2c3e50"
+                        color: "#000000"
                         font: statusFilter.font
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignLeft
                         elide: Text.ElideRight
                         leftPadding: 12
                     }
+
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 6
+                        border.color: "#dce0e3"
+                    }
+
+                    delegate: ItemDelegate {
+                        width: statusFilter.width
+                        contentItem: Text {
+                            text: modelData
+                            color: "#000000"
+                            font: statusFilter.font
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            color: parent.highlighted ? "#e3f2fd" : "transparent"
+                        }
+                    }
+
                     onCurrentTextChanged: refreshTable()
                 }
 
@@ -78,20 +94,37 @@ Page {
                     id: typeFilter
                     Layout.preferredWidth: 180
                     model: ["Все типы", "Изготовление рамки", "Продажа набора"]
-                    background: Rectangle {
-                        color: "#f8f9fa"
-                        radius: 6
-                        border.color: "#dce0e3"
-                    }
+
                     contentItem: Text {
                         text: typeFilter.displayText
-                        color: "#2c3e50"
+                        color: "#000000"
                         font: typeFilter.font
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignLeft
                         elide: Text.ElideRight
                         leftPadding: 12
                     }
+
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 6
+                        border.color: "#dce0e3"
+                    }
+
+                    delegate: ItemDelegate {
+                        width: typeFilter.width
+                        contentItem: Text {
+                            text: modelData
+                            color: "#000000"
+                            font: typeFilter.font
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            color: parent.highlighted ? "#e3f2fd" : "transparent"
+                        }
+                    }
+
                     onCurrentTextChanged: refreshTable()
                 }
 
@@ -140,7 +173,6 @@ Page {
             }
         }
 
-        // Таблица
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -170,6 +202,8 @@ Page {
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
 
+                        property var rowData: ordersModel.get(row)
+
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
@@ -189,22 +223,22 @@ Page {
                             anchors.fill: parent
                             anchors.margins: 12
                             text: {
-                                if (!model) return ""
+                                if (!parent.rowData) return ""
 
                                 switch(column) {
-                                    case 0: return model.order_number || ""
-                                    case 1: return model.customer_name || ""
-                                    case 2: return model.order_type || ""
-                                    case 3: return model.status || ""
-                                    case 4: return (model.total_amount || 0) + " ₽"
-                                    case 5: return formatDate(model.created_at)
+                                    case 0: return parent.rowData.order_number || ""
+                                    case 1: return parent.rowData.customer_name || ""
+                                    case 2: return parent.rowData.order_type || ""
+                                    case 3: return parent.rowData.status || ""
+                                    case 4: return (parent.rowData.total_amount || 0) + " ₽"
+                                    case 5: return formatDate(parent.rowData.created_at)
                                     default: return ""
                                 }
                             }
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
                             elide: Text.ElideRight
-                            color: column === 3 ? getStatusColor(model.status) : "#2c3e50"
+                            color: column === 3 ? getStatusColor(parent.rowData.status) : "#2c3e50"
                             font.pixelSize: 13
                             font.bold: column === 3
                         }
@@ -213,27 +247,29 @@ Page {
             }
         }
 
-        // Кнопки справа снизу
-        ColumnLayout {
+        RowLayout {
             Layout.alignment: Qt.AlignRight
+            spacing: 10
 
             Button {
                 id: newOrderButton
                 text: "➕ Новый заказ"
                 font.bold: true
+                font.pixelSize: 14
                 padding: 12
                 Layout.preferredWidth: 150
                 background: Rectangle {
-                    color: newOrderButton.down ? "#27ae60" : "#2ecc71"
+                    color: parent.down ? "#27ae60" : "#2ecc71"
                     radius: 8
                 }
                 contentItem: Text {
-                    text: newOrderButton.text
+                    text: parent.text
                     color: "white"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    font: newOrderButton.font
+                    font: parent.font
                 }
+
                 onClicked: orderAddDialog.open()
             }
 
@@ -244,15 +280,15 @@ Page {
                 padding: 12
                 Layout.preferredWidth: 120
                 background: Rectangle {
-                    color: refreshButton.down ? "#2980b9" : "#3498db"
+                    color: parent.down ? "#2980b9" : "#3498db"
                     radius: 8
                 }
                 contentItem: Text {
-                    text: refreshButton.text
+                    text: parent.text
                     color: "white"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    font: refreshButton.font
+                    font: parent.font
                 }
                 onClicked: refreshTable()
             }
@@ -271,7 +307,14 @@ Page {
         id: kitsModel
     }
 
-    // Функции для работы с данными
+    function formatDate(dateString) {
+        if (!dateString) return "Не указана"
+        var date = new Date(dateString)
+        if (isNaN(date.getTime())) return "Неверная дата"
+        return date.toLocaleDateString(Qt.locale("ru_RU"), "dd.MM.yyyy") + " " +
+               date.toLocaleTimeString(Qt.locale("ru_RU"), "HH:mm")
+    }
+
     function getStatusColor(status) {
         switch(status) {
             case 'Новый': return "#3498db"
@@ -283,38 +326,33 @@ Page {
         }
     }
 
-    function formatDate(dateString) {
-        if (!dateString) return "Не указана"
-        var date = new Date(dateString)
-        return date.toLocaleDateString(Qt.locale(), "dd.MM.yyyy HH:mm")
-    }
-
     function refreshTable() {
         ordersModel.clear()
         var ordersData = dbmanager.getOrdersData()
 
-        console.log("Raw orders data:", ordersData)
-
         for (var i = 0; i < ordersData.length; i++) {
             var orderData = ordersData[i]
 
-            // Применяем фильтры
             var statusFilterText = statusFilter.currentText
             var typeFilterText = typeFilter.currentText
-            var searchText = searchField.text.toLowerCase()
+            var searchText = searchField.text.toLowerCase().trim()
 
             if (statusFilterText !== "Все статусы" && orderData.status !== statusFilterText) continue
             if (typeFilterText !== "Все типы" && orderData.order_type !== typeFilterText) continue
-            if (searchText && !orderData.order_number.toLowerCase().includes(searchText) &&
-                !(orderData.customer_name && orderData.customer_name.toLowerCase().includes(searchText))) continue
+
+            if (searchText) {
+                var orderNumber = (orderData.order_number || "").toLowerCase()
+                var customerName = (orderData.customer_name || "").toLowerCase()
+
+                if (!orderNumber.includes(searchText) && !customerName.includes(searchText)) {
+                    continue
+                }
+            }
 
             ordersModel.append(orderData)
         }
-
-        console.log("Displaying", ordersModel.count, "filtered orders")
     }
 
-    // Функции для диалога создания заказа
     function toggleOrderTypeFields() {
         frameOrderFields.visible = orderTypeComboBox.currentText === "Изготовление рамки"
         kitOrderFields.visible = orderTypeComboBox.currentText === "Продажа набора"
@@ -401,29 +439,21 @@ Page {
     function createOrder() {
         if (!validateForm()) return
 
-        // Генерация номера заказа
         var orderNumber = "ORD-" + new Date().getTime()
-
-        // Определение типа заказа для БД
         var orderType = orderTypeComboBox.currentText
         var totalAmount = parseFloat(totalAmountField.text)
-
-        // Получение данных клиента
         var customerId = customersModel.get(customerComboBox.currentIndex).id
 
-        // Сохранение заказа в БД
         var success = dbmanager.createOrder(orderNumber, customerId, orderType, totalAmount, "Новый", notesField.text)
 
         if (success) {
             var orderId = dbmanager.getLastInsertedOrderId()
 
             if (orderType === "Изготовление рамки") {
-                // Сохраняем детали рамки
                 var width = parseFloat(frameWidthField.text)
                 var height = parseFloat(frameHeightField.text)
                 dbmanager.createFrameOrder(orderId, width, height, 1, 1, notesField.text)
             } else {
-                // Сохраняем детали набора
                 var kitData = kitsModel.get(kitComboBox.currentIndex)
                 var quantity = parseInt(kitQuantityField.text)
                 dbmanager.createOrderItem(orderId, kitData.id, "Готовый набор", quantity, kitData.price)
@@ -438,7 +468,6 @@ Page {
         }
     }
 
-    // Диалог для добавления нового заказа
     Dialog {
         id: orderAddDialog
         modal: true
@@ -446,8 +475,7 @@ Page {
 
         width: 600
         height: 700
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -486,7 +514,6 @@ Page {
                         Layout.maximumWidth: 500
                         spacing: 12
 
-                        // Клиент
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 6
@@ -498,30 +525,47 @@ Page {
                                 font.pixelSize: 13
                                 horizontalAlignment: Text.AlignHCenter
                             }
+
                             ComboBox {
                                 id: customerComboBox
                                 Layout.fillWidth: true
                                 model: customersModel
                                 textRole: "display"
-                                background: Rectangle {
-                                    color: "#f8f9fa"
-                                    radius: 6
-                                    border.color: customerComboBox.activeFocus ? "#3498db" : "#dce0e3"
-                                }
+
                                 contentItem: Text {
                                     text: customerComboBox.displayText
-                                    color: "#2c3e50"
+                                    color: "#000000"
                                     font: customerComboBox.font
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignLeft
                                     elide: Text.ElideRight
                                     leftPadding: 12
                                 }
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: customerComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                delegate: ItemDelegate {
+                                    width: customerComboBox.width
+                                    contentItem: Text {
+                                        text: model.display
+                                        color: "#000000"
+                                        font: customerComboBox.font
+                                        elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    background: Rectangle {
+                                        color: parent.highlighted ? "#e3f2fd" : "transparent"
+                                    }
+                                }
+
                                 onActivated: loadCustomerInfo()
                             }
                         }
 
-                        // Информация о клиенте
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 6
@@ -538,7 +582,7 @@ Page {
                             Label {
                                 id: customerPhoneLabel
                                 Layout.fillWidth: true
-                                text: "Телефон: " + (customerComboBox.currentIndex >= 0 ? customersModel.get(customerComboBox.currentIndex).phone : "Не указан")
+                                text: "Телефон: Не выбран"
                                 color: "#7f8c8d"
                                 font.pixelSize: 12
                                 padding: 8
@@ -552,7 +596,7 @@ Page {
                             Label {
                                 id: customerEmailLabel
                                 Layout.fillWidth: true
-                                text: "Email: " + (customerComboBox.currentIndex >= 0 ? customersModel.get(customerComboBox.currentIndex).email : "Не указан")
+                                text: "Email: Не выбран"
                                 color: "#7f8c8d"
                                 font.pixelSize: 12
                                 padding: 8
@@ -564,7 +608,6 @@ Page {
                             }
                         }
 
-                        // Тип заказа
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 6
@@ -576,29 +619,46 @@ Page {
                                 font.pixelSize: 13
                                 horizontalAlignment: Text.AlignHCenter
                             }
+
                             ComboBox {
                                 id: orderTypeComboBox
                                 Layout.fillWidth: true
                                 model: ["Изготовление рамки", "Продажа набора"]
-                                background: Rectangle {
-                                    color: "#f8f9fa"
-                                    radius: 6
-                                    border.color: orderTypeComboBox.activeFocus ? "#3498db" : "#dce0e3"
-                                }
+
                                 contentItem: Text {
                                     text: orderTypeComboBox.displayText
-                                    color: "#2c3e50"
+                                    color: "#000000"
                                     font: orderTypeComboBox.font
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignLeft
                                     elide: Text.ElideRight
                                     leftPadding: 12
                                 }
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: orderTypeComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                delegate: ItemDelegate {
+                                    width: orderTypeComboBox.width
+                                    contentItem: Text {
+                                        text: modelData
+                                        color: "#000000"
+                                        font: orderTypeComboBox.font
+                                        elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    background: Rectangle {
+                                        color: parent.highlighted ? "#e3f2fd" : "transparent"
+                                    }
+                                }
+
                                 onCurrentTextChanged: toggleOrderTypeFields()
                             }
                         }
 
-                        // Поля для заказа на рамку
                         ColumnLayout {
                             id: frameOrderFields
                             Layout.fillWidth: true
@@ -671,7 +731,6 @@ Page {
                             }
                         }
 
-                        // Поля для заказа набора
                         ColumnLayout {
                             id: kitOrderFields
                             Layout.fillWidth: true
@@ -691,11 +750,37 @@ Page {
                                 Layout.fillWidth: true
                                 model: kitsModel
                                 textRole: "display"
+
+                                contentItem: Text {
+                                    text: kitComboBox.displayText
+                                    color: "#000000"
+                                    font: kitComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
                                 background: Rectangle {
                                     color: "#f8f9fa"
                                     radius: 6
                                     border.color: kitComboBox.activeFocus ? "#3498db" : "#dce0e3"
                                 }
+
+                                delegate: ItemDelegate {
+                                    width: kitComboBox.width
+                                    contentItem: Text {
+                                        text: model.display
+                                        color: "#000000"
+                                        font: kitComboBox.font
+                                        elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    background: Rectangle {
+                                        color: parent.highlighted ? "#e3f2fd" : "transparent"
+                                    }
+                                }
+
                                 onActivated: calculateKitTotal()
                             }
 
@@ -758,7 +843,6 @@ Page {
                             }
                         }
 
-                        // Сумма заказа
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 6
@@ -820,7 +904,6 @@ Page {
                             }
                         }
 
-                        // Примечания
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 6
@@ -846,7 +929,6 @@ Page {
                             }
                         }
 
-                        // Ошибки валидации
                         Label {
                             id: addOrderValidationError
                             Layout.fillWidth: true
@@ -934,7 +1016,6 @@ Page {
         }
     }
 
-    // Вспомогательные функции для загрузки данных
     function loadCustomers() {
         customersModel.clear()
         var model = dbmanager.getCustomersModel()
@@ -953,7 +1034,7 @@ Page {
         var model = dbmanager.getEmbroideryKitsModel()
         for (var i = 0; i < model.rowCount(); i++) {
             kitsModel.append({
-                display: model.data(model.index(i, 1)) + " - " + model.data(model.index(i, 2)) + " ₽", // name + price
+                display: model.data(model.index(i, 1)) + " - " + model.data(model.index(i, 2)) + " ₽",
                 id: model.data(model.index(i, 0)),
                 name: model.data(model.index(i, 1)),
                 price: model.data(model.index(i, 2))
@@ -961,15 +1042,13 @@ Page {
         }
     }
 
-    // Сообщение об успешном создании заказа
     Dialog {
         id: orderCreatedMessage
         modal: true
         title: "✅ Заказ создан"
         width: 300
         height: 150
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        anchors.centerIn: parent
 
         Label {
             anchors.centerIn: parent
@@ -979,6 +1058,83 @@ Page {
         }
 
         standardButtons: Dialog.Ok
+    }
+
+    Dialog {
+        id: orderDetailsDialog
+        modal: true
+        title: "📦 Детали заказа"
+
+        property int currentRow: -1
+        property var currentData: ({})
+
+        width: Math.min(600, parent.width * 0.9)
+        height: Math.min(500, parent.height * 0.9)
+        anchors.centerIn: parent
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 15
+
+            Label {
+                Layout.fillWidth: true
+                text: "📦 Детали заказа"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#2c3e50"
+                padding: 10
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 12
+
+                    ColumnLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
+                        Layout.maximumWidth: 500
+                        spacing: 10
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: "Информация о заказе будет отображена здесь"
+                            horizontalAlignment: Text.AlignHCenter
+                            color: "#7f8c8d"
+                            font.italic: true
+                        }
+                    }
+                }
+            }
+        }
+
+        footer: DialogButtonBox {
+            alignment: Qt.AlignCenter
+            padding: 15
+
+            Button {
+                text: "❌ Закрыть"
+                font.bold: true
+                onClicked: orderDetailsDialog.close()
+            }
+        }
+
+        function openWithData(row) {
+            currentRow = row
+            open()
+        }
     }
 
     Component.onCompleted: {

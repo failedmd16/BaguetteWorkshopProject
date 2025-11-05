@@ -526,25 +526,6 @@ int DatabaseManager::getColumnCount(const QString &table)
     return record.count();
 }
 
-QSqlQueryModel* DatabaseManager::getCustomersByPeriod(const QString& startDate, const QString& endDate)
-{
-    QSqlQueryModel* model = new QSqlQueryModel(this);
-
-    QString queryStr = R"(
-        SELECT DISTINCT c.*
-        FROM customers c
-        JOIN orders o ON o.customer_id = c.id
-        WHERE date(o.created_at) BETWEEN date(')" + startDate + "') AND date('" + endDate + "')";
-
-    model->setQuery(queryStr, _database);
-
-    if (model->lastError().isValid()) {
-        qDebug() << "Error loading customers by period:" << model->lastError().text();
-    }
-
-    return model;
-}
-
 // Получить списком заказы покупателя для вывода в окне CustomersPage
 QVariantList DatabaseManager::getCustomerOrders(int customerId)
 {
@@ -659,24 +640,6 @@ bool DatabaseManager::createOrderItem(int orderId, int itemId, const QString &it
     return true;
 }
 
-// Получить заказы с информацией о клиентах
-QSqlQueryModel* DatabaseManager::getOrdersWithCustomers() {
-    QSqlQueryModel* model = new QSqlQueryModel(this);
-    QString query = "SELECT o.*, c.full_name as customer_name, c.phone as customer_phone, c.email as customer_email "
-                    "FROM orders o LEFT JOIN customers c ON o.customer_id = c.id ORDER BY o.created_at DESC";
-    model->setQuery(query, _database);
-    return model;
-}
-
-// Получить ID последнего вставленного заказа
-int DatabaseManager::getLastInsertedOrderId() {
-    QSqlQuery query("SELECT last_insert_rowid()");
-    if (query.exec() && query.next()) {
-        return query.value(0).toInt();
-    }
-    return -1;
-}
-
 // Получить заказы для мастера
 QSqlQueryModel* DatabaseManager::getMasterOrders() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
@@ -704,30 +667,6 @@ bool DatabaseManager::updateOrderStatus(int orderId, const QString &newStatus) {
         return false;
     }
     return true;
-}
-
-// Получить детали заказа
-QVariantMap DatabaseManager::getOrderDetails(int orderId) {
-    QVariantMap result;
-
-    QSqlQuery query;
-    query.prepare("SELECT o.*, c.full_name, c.phone, c.email, c.address, "
-                  "fo.width, fo.height, fo.frame_material_id, fo.component_furniture_id, "
-                  "fo.special_instructions, fo.production_cost, fo.selling_price "
-                  "FROM orders o "
-                  "LEFT JOIN customers c ON o.customer_id = c.id "
-                  "LEFT JOIN frame_orders fo ON o.id = fo.order_id "
-                  "WHERE o.id = ?");
-    query.addBindValue(orderId);
-
-    if (query.exec() && query.next()) {
-        QSqlRecord record = query.record();
-        for (int i = 0; i < record.count(); ++i) {
-            result[record.fieldName(i)] = record.value(i);
-        }
-    }
-
-    return result;
 }
 
 // Функции для материалов рамок
@@ -959,5 +898,176 @@ QVariantList DatabaseManager::getOrdersData() {
     }
 
     qDebug() << "Loaded" << result.size() << "orders";
+    return result;
+}
+
+// Получить данные наборов для вышивки
+QVariantList DatabaseManager::getEmbroideryKitsData() {
+    QVariantList result;
+
+    QSqlQuery query(_database);
+    QString queryStr = "SELECT id, name, description, price, stock_quantity FROM embroidery_kits WHERE is_active = 1 ORDER BY name";
+
+    if (!query.exec(queryStr)) {
+        qDebug() << "Error loading embroidery kits data:" << query.lastError().text();
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap rowData;
+        QSqlRecord record = query.record();
+        for (int i = 0; i < record.count(); ++i) {
+            rowData[record.fieldName(i)] = record.value(i);
+        }
+        result.append(rowData);
+    }
+
+    return result;
+}
+
+// Получить данные расходной фурнитуры
+QVariantList DatabaseManager::getConsumableFurnitureData() {
+    QVariantList result;
+
+    QSqlQuery query(_database);
+    QString queryStr = "SELECT id, name, type, price_per_unit, stock_quantity, unit FROM consumable_furniture ORDER BY name";
+
+    if (!query.exec(queryStr)) {
+        qDebug() << "Error loading consumable furniture data:" << query.lastError().text();
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap rowData;
+        QSqlRecord record = query.record();
+        for (int i = 0; i < record.count(); ++i) {
+            rowData[record.fieldName(i)] = record.value(i);
+        }
+        result.append(rowData);
+    }
+
+    return result;
+}
+
+// Получить данные покупателей
+QVariantList DatabaseManager::getCustomersData() {
+    QVariantList result;
+
+    QSqlQuery query(_database);
+    QString queryStr = "SELECT id, full_name, phone, email FROM customers ORDER BY full_name";
+
+    if (!query.exec(queryStr)) {
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap rowData;
+        QSqlRecord record = query.record();
+        for (int i = 0; i < record.count(); ++i) {
+            rowData[record.fieldName(i)] = record.value(i);
+        }
+        result.append(rowData);
+    }
+
+    return result;
+}
+
+// Обновление остатков наборов
+void DatabaseManager::updateEmbroideryKitStock(int id, int newQuantity) {
+    QSqlQuery query;
+    query.prepare("UPDATE embroidery_kits SET stock_quantity = ? WHERE id = ?");
+    query.addBindValue(newQuantity);
+    query.addBindValue(id);
+    query.exec();
+}
+
+// Обновление остатков фурнитуры
+void DatabaseManager::updateConsumableStock(int id, int newQuantity) {
+    QSqlQuery query;
+    query.prepare("UPDATE consumable_furniture SET stock_quantity = ? WHERE id = ?");
+    query.addBindValue(newQuantity);
+    query.addBindValue(id);
+    query.exec();
+}
+
+// Обновление набора
+void DatabaseManager::updateEmbroideryKit(int id, const QString &name, const QString &description,  double price, int stockQuantity) {
+    QSqlQuery query;
+    query.prepare("UPDATE embroidery_kits SET name = ?, description = ?, price = ?, stock_quantity = ? WHERE id = ?");
+    query.addBindValue(name);
+    query.addBindValue(description);
+    query.addBindValue(price);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(id);
+    query.exec();
+}
+
+// Обновление фурнитуры
+void DatabaseManager::updateConsumableFurniture(int id, const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit) {
+    QSqlQuery query;
+    query.prepare("UPDATE consumable_furniture SET name = ?, type = ?, price_per_unit = ?, stock_quantity = ?, unit = ? WHERE id = ?");
+    query.addBindValue(name);
+    query.addBindValue(type);
+    query.addBindValue(pricePerUnit);
+    query.addBindValue(stockQuantity);
+    query.addBindValue(unit);
+    query.addBindValue(id);
+    query.exec();
+}
+
+// Для наборов вышивки
+void DatabaseManager::deleteEmbroideryKit(int id) {
+    QSqlQuery query;
+    query.prepare("DELETE FROM embroidery_kits WHERE id = ?");
+    query.addBindValue(id);
+    if (!query.exec()) {
+        qDebug() << "Error deleting embroidery kit:" << query.lastError().text();
+    }
+}
+
+// Для расходной фурнитуры
+void DatabaseManager::deleteConsumableFurniture(int id) {
+    QSqlQuery query;
+    query.prepare("DELETE FROM consumable_furniture WHERE id = ?");
+    query.addBindValue(id);
+    if (!query.exec()) {
+        qDebug() << "Error deleting consumable furniture:" << query.lastError().text();
+    }
+}
+
+QVariantList DatabaseManager::getCustomersWithOrdersInPeriod(const QString &startDate, const QString &endDate)
+{
+    QVariantList result;
+
+    QSqlQuery query;
+    query.prepare(
+        "SELECT DISTINCT c.id, c.full_name, c.phone, c.email, c.address, "
+        "COUNT(o.id) as order_count, SUM(o.total_amount) as total_amount "
+        "FROM customers c "
+        "INNER JOIN orders o ON c.id = o.customer_id "
+        "WHERE o.created_at BETWEEN ? AND ? "
+        "GROUP BY c.id, c.full_name, c.phone, c.email, c.address "
+        "ORDER BY total_amount DESC"
+        );
+    query.addBindValue(startDate + " 00:00:00");
+    query.addBindValue(endDate + " 23:59:59");
+
+    if (!query.exec()) {
+        qDebug() << "Error getting customers with orders in period:" << query.lastError().text();
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap customer;
+        customer["id"] = query.value("id");
+        customer["full_name"] = query.value("full_name");
+        customer["phone"] = query.value("phone");
+        customer["email"] = query.value("email");
+        customer["address"] = query.value("address");
+        customer["order_count"] = query.value("order_count");
+        customer["total_amount"] = query.value("total_amount");
+        result.append(customer);
+    }
+
     return result;
 }

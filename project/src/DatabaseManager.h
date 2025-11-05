@@ -45,7 +45,8 @@ public slots:
     // Удаление покупателя
     Q_INVOKABLE void deleteCustomer(int row);
 
-    Q_INVOKABLE QSqlQueryModel* getCustomersByPeriod(const QString& startDate, const QString& endDate); // Получить модель со всеми покупателями за указанный период
+    Q_INVOKABLE QVariantList getCustomersWithOrdersInPeriod(const QString &startDate, const QString &endDate);
+
     Q_INVOKABLE QVariantList getCustomerOrders(int customerId); // Получить списком заказы покупателя для вывода в окне CustomersPage
 
     Q_INVOKABLE QSqlQueryModel* getCustomersModel(); // Получить всех клиентов для ComboBox
@@ -61,16 +62,9 @@ public slots:
     // Создать позицию заказа для набора
     Q_INVOKABLE bool createOrderItem(int orderId, int itemId, const QString &itemType, int quantity, double unitPrice);
 
-    // Получить заказы с информацией о клиентах
-    Q_INVOKABLE QSqlQueryModel* getOrdersWithCustomers();
-
-    // Получить ID последнего вставленного заказа
-    Q_INVOKABLE int getLastInsertedOrderId();
-
     // MastersOrdersPage функции
     Q_INVOKABLE QSqlQueryModel* getMasterOrders(); // Получить заказы для мастера
     Q_INVOKABLE bool updateOrderStatus(int orderId, const QString &newStatus); // Обновить статус заказа
-    Q_INVOKABLE QVariantMap getOrderDetails(int orderId); // Получить детали заказа
 
     // MastersProductsPage функции
     // Функции для материалов рамок
@@ -98,6 +92,24 @@ public slots:
     Q_INVOKABLE void addConsumableFurniture(const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit);
 
     Q_INVOKABLE QVariantList getOrdersData();
+
+    Q_INVOKABLE QVariantList getConsumableFurnitureData();
+    Q_INVOKABLE QVariantList getEmbroideryKitsData();
+
+    Q_INVOKABLE QVariantList getCustomersData();
+
+    // Новые методы для продаж и редактирования
+    Q_INVOKABLE void updateEmbroideryKitStock(int id, int newQuantity);
+
+    Q_INVOKABLE void updateConsumableStock(int id, int newQuantity);
+
+    Q_INVOKABLE void updateEmbroideryKit(int id, const QString &name, const QString &description,
+                                         double price, int stockQuantity);
+    Q_INVOKABLE void updateConsumableFurniture(int id, const QString &name, const QString &type,
+                                               double pricePerUnit, int stockQuantity, const QString &unit);
+
+    Q_INVOKABLE void deleteEmbroideryKit(int id);
+    Q_INVOKABLE void deleteConsumableFurniture(int id);
 
 private:
     QSqlDatabase _database;
