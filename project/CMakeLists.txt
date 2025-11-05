@@ -24,7 +24,6 @@ qt_add_qml_module(appproject
         pages/MastersProductsPage.qml
         pages/OrdersPage.qml
         pages/SalePage.qml
-        pages/ProductsPage.qml
     RESOURCES
         SOURCES src/DatabaseManager.h SOURCES src/DatabaseManager.cpp
 )

@@ -14,11 +14,6 @@ Page {
         anchors.fill: parent
         color: "#f8f9fa"
     }
-
-    ListModel {
-        id: productsModel
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
@@ -28,7 +23,6 @@ Page {
             id: dbmanager
         }
 
-        // Заголовок страницы
         Label {
             Layout.fillWidth: true
             text: "🛍️ Продажа наборов и расходной фурнитуры"
@@ -45,7 +39,6 @@ Page {
             }
         }
 
-        // Выбор типа товара
         Rectangle {
             Layout.fillWidth: true
             height: 60
@@ -67,24 +60,24 @@ Page {
 
                 ButtonGroup {
                     id: productTypeGroup
+                    onCheckedButtonChanged: updateProductList()
                 }
 
                 RadioButton {
+                    id: kitsRadio
                     text: "🎨 Наборы для вышивки"
                     checked: true
                     ButtonGroup.group: productTypeGroup
-                    onCheckedChanged: if (checked) updateProductList()
                 }
 
                 RadioButton {
+                    id: consumablesRadio
                     text: "🧵 Расходная фурнитура"
                     ButtonGroup.group: productTypeGroup
-                    onCheckedChanged: if (checked) updateProductList()
                 }
             }
         }
 
-        // Заголовок таблицы
         Rectangle {
             Layout.fillWidth: true
             height: 50
@@ -97,12 +90,12 @@ Page {
                 spacing: 1
 
                 Repeater {
-                    model: productTypeGroup.checkedButton.text.includes("Наборы") ?
+                    model: productTypeGroup.checkedButton === kitsRadio ?
                            ["ID", "Название", "Описание", "Цена", "В наличии"] :
                            ["ID", "Название", "Тип", "Цена за ед.", "В наличии", "Ед. изм."]
 
                     Rectangle {
-                        width: tableview.width / (productTypeGroup.checkedButton.text.includes("Наборы") ? 5 : 6)
+                        width: tableview.width / (productTypeGroup.checkedButton === kitsRadio ? 5 : 6)
                         height: parent.height
                         color: "transparent"
 
@@ -118,7 +111,6 @@ Page {
             }
         }
 
-        // Таблица товаров
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -132,16 +124,20 @@ Page {
                 anchors.margins: 2
                 clip: true
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 TableView {
                     id: tableview
                     anchors.fill: parent
                     clip: true
-                    model: productsModel
+                    model: productTypeGroup.checkedButton === kitsRadio ?
+                           dbmanager.getTableModel("embroidery_kits") :
+                           dbmanager.getTableModel("consumable_furniture")
+
+                    property int columnCount: productTypeGroup.checkedButton === kitsRadio ? 5 : 6
 
                     columnWidthProvider: function(column) {
-                        const colCount = productTypeGroup.checkedButton.text.includes("Наборы") ? 5 : 6
-                        return tableview.width / Math.max(colCount, 1)
+                        return tableview.width / columnCount
                     }
 
                     delegate: Rectangle {
@@ -149,17 +145,17 @@ Page {
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
 
+                        property var rowData: model ? (productTypeGroup.checkedButton === kitsRadio ?
+                                              dbmanager.getRowData("embroidery_kits", row) :
+                                              dbmanager.getRowData("consumable_furniture", row)) : ({})
+
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.selectedRow = row
-                                if (productTypeGroup.checkedButton.text.includes("Наборы")) {
-                                    kitViewDialog.openWithData(row)
-                                } else {
-                                    consumableViewDialog.openWithData(row)
-                                }
+                                productEditDialog.openWithData(row, productTypeGroup.checkedButton === kitsRadio)
                             }
 
                             Rectangle {
@@ -170,27 +166,27 @@ Page {
 
                         Text {
                             anchors.fill: parent
-                            anchors.margins: 12
+                            anchors.margins: 8
                             text: {
-                                if (!model) return ""
+                                if (!parent.rowData) return ""
 
-                                if (productTypeGroup.checkedButton.text.includes("Наборы")) {
+                                if (productTypeGroup.checkedButton === kitsRadio) {
                                     switch(column) {
-                                        case 0: return model.id || "—"
-                                        case 1: return model.name || "—"
-                                        case 2: return model.description || "—"
-                                        case 3: return model.price ? model.price + " ₽" : "—"
-                                        case 4: return model.stock_quantity || "0"
+                                        case 0: return parent.rowData.id || "—"
+                                        case 1: return parent.rowData.name || "—"
+                                        case 2: return parent.rowData.description || "—"
+                                        case 3: return parent.rowData.price ? parent.rowData.price + " ₽" : "—"
+                                        case 4: return parent.rowData.stock_quantity || "0"
                                         default: return ""
                                     }
                                 } else {
                                     switch(column) {
-                                        case 0: return model.id || "—"
-                                        case 1: return model.name || "—"
-                                        case 2: return model.type || "—"
-                                        case 3: return model.price_per_unit ? model.price_per_unit + " ₽" : "—"
-                                        case 4: return model.stock_quantity || "0"
-                                        case 5: return model.unit || "—"
+                                        case 0: return parent.rowData.id || "—"
+                                        case 1: return parent.rowData.name || "—"
+                                        case 2: return parent.rowData.type || "—"
+                                        case 3: return parent.rowData.price_per_unit ? parent.rowData.price_per_unit + " ₽" : "—"
+                                        case 4: return parent.rowData.stock_quantity || "0"
+                                        case 5: return parent.rowData.unit || "—"
                                         default: return ""
                                     }
                                 }
@@ -206,103 +202,575 @@ Page {
             }
         }
 
-        // Кнопки действий
         RowLayout {
             Layout.fillWidth: true
-            spacing: 10
+            spacing: 20
 
-            Button {
-                text: "➕ Добавить товар"
-                font.bold: true
-                font.pixelSize: 14
-                padding: 12
+            Item {
                 Layout.fillWidth: true
-                background: Rectangle {
-                    color: parent.down ? "#27ae60" : "#2ecc71"
-                    radius: 8
+            }
+
+            RowLayout {
+                spacing: 10
+                Layout.alignment: Qt.AlignRight
+
+                Button {
+                    text: "➕ Добавить товар"
+                    font.bold: true
+                    font.pixelSize: 14
+                    padding: 12
+                    Layout.preferredWidth: 200
+                    background: Rectangle {
+                        color: parent.down ? "#27ae60" : "#2ecc71"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    onClicked: {
+                        if (productTypeGroup.checkedButton === kitsRadio) {
+                            kitAddDialog.open()
+                        } else {
+                            consumableAddDialog.open()
+                        }
+                    }
                 }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
+
+                Button {
+                    text: "🛒 Оформить продажу"
+                    font.bold: true
+                    font.pixelSize: 14
+                    padding: 12
+                    Layout.preferredWidth: 200
+                    background: Rectangle {
+                        color: parent.down ? "#2980b9" : "#3498db"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    onClicked: saleDialog.open()
                 }
-                onClicked: {
-                    if (productTypeGroup.checkedButton.text.includes("Наборы")) {
-                        kitAddDialog.open()
-                    } else {
-                        consumableAddDialog.open()
+            }
+        }
+    }
+
+    Dialog {
+        id: productEditDialog
+        modal: true
+        title: "✏️ Редактирование товара"
+
+        property int currentRow: -1
+        property bool isKit: true
+        property var currentData: ({})
+
+        width: 500
+        height: 550
+        anchors.centerIn: parent
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 15
+
+            Label {
+                Layout.fillWidth: true
+                text: productEditDialog.isKit ? "🎨 Редактирование набора" : "🧵 Редактирование фурнитуры"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#2c3e50"
+                padding: 10
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            ColumnLayout {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                Layout.maximumWidth: 400
+                spacing: 12
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Label {
+                        text: "Название:"
+                        font.bold: true
+                        color: "#34495e"
+                        font.pixelSize: 13
+                    }
+                    TextField {
+                        id: editNameField
+                        Layout.fillWidth: true
+                        placeholderText: "Введите название"
+                        font.pixelSize: 14
+                        padding: 10
+                        background: Rectangle {
+                            color: "#f8f9fa"
+                            radius: 6
+                            border.color: editNameField.activeFocus ? "#3498db" : "#dce0e3"
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    visible: productEditDialog.isKit
+
+                    Label {
+                        text: "Описание:"
+                        font.bold: true
+                        color: "#34495e"
+                        font.pixelSize: 13
+                    }
+                    TextArea {
+                        id: editDescriptionField
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 80
+                        placeholderText: "Введите описание набора"
+                        font.pixelSize: 14
+                        padding: 10
+                        wrapMode: TextArea.Wrap
+                        background: Rectangle {
+                            color: "#f8f9fa"
+                            radius: 6
+                            border.color: editDescriptionField.activeFocus ? "#3498db" : "#dce0e3"
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 15
+                    visible: !productEditDialog.isKit
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            text: "Тип:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 13
+                        }
+                        ComboBox {
+                            id: editTypeField
+                            Layout.fillWidth: true
+                            model: ["инструменты", "материалы", "аксессуары", "прочее"]
+
+                            contentItem: Text {
+                                text: editTypeField.displayText
+                                color: "#000000"
+                                font: editTypeField.font
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignLeft
+                                elide: Text.ElideRight
+                                leftPadding: 12
+                            }
+
+                            background: Rectangle {
+                                color: "#f8f9fa"
+                                radius: 6
+                                border.color: editTypeField.activeFocus ? "#3498db" : "#dce0e3"
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            text: "Ед. измерения:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 13
+                        }
+                        ComboBox {
+                            id: editUnitField
+                            Layout.fillWidth: true
+                            model: ["шт", "набор", "метр", "упаковка"]
+
+                            contentItem: Text {
+                                text: editUnitField.displayText
+                                color: "#000000"
+                                font: editUnitField.font
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignLeft
+                                elide: Text.ElideRight
+                                leftPadding: 12
+                            }
+
+                            background: Rectangle {
+                                color: "#f8f9fa"
+                                radius: 6
+                                border.color: editUnitField.activeFocus ? "#3498db" : "#dce0e3"
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 15
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            text: productEditDialog.isKit ? "Цена (₽):" : "Цена за ед. (₽):"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 13
+                        }
+                        TextField {
+                            id: editPriceField
+                            Layout.fillWidth: true
+                            placeholderText: "0.00"
+                            font.pixelSize: 14
+                            padding: 10
+                            validator: DoubleValidator { bottom: 0; decimals: 2 }
+                            background: Rectangle {
+                                color: "#f8f9fa"
+                                radius: 6
+                                border.color: editPriceField.activeFocus ? "#3498db" : "#dce0e3"
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            text: "Количество:"
+                            font.bold: true
+                            color: "#34495e"
+                            font.pixelSize: 13
+                        }
+                        SpinBox {
+                            id: editQuantityField
+                            Layout.fillWidth: true
+                            from: 0
+                            to: 10000
+                            value: 0
+                        }
+                    }
+                }
+
+                Label {
+                    id: editValidationError
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: editValidationError.visible ? implicitHeight : 0
+                    color: "#e74c3c"
+                    visible: false
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 12
+                    padding: 8
+                    background: Rectangle {
+                        color: "#fdf2f2"
+                        radius: 6
+                        border.color: "#e74c3c"
+                    }
+                }
+            }
+        }
+
+        footer: Rectangle {
+                implicitHeight: 80
+                color: "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 15
+                    spacing: 10
+
+                    // Кнопка удаления (слева)
+                    Button {
+                        text: "🗑️ Удалить"
+                        font.bold: true
+                        padding: 12
+                        Layout.preferredWidth: 120
+                        background: Rectangle {
+                            color: parent.down ? "#c0392b" : "#e74c3c"
+                            radius: 8
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font: parent.font
+                        }
+                        onClicked: {
+                            deleteConfirmationDialog.open()
+                        }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    // Кнопки отмены и сохранения (справа)
+                    RowLayout {
+                        spacing: 10
+
+                        Button {
+                            text: "❌ Отмена"
+                            font.bold: true
+                            padding: 12
+                            Layout.preferredWidth: 120
+                            background: Rectangle {
+                                color: parent.down ? "#7f8c8d" : "#95a5a6"
+                                radius: 8
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font: parent.font
+                            }
+                            onClicked: productEditDialog.reject()
+                        }
+
+                        Button {
+                            text: "💾 Сохранить"
+                            font.bold: true
+                            padding: 12
+                            Layout.preferredWidth: 120
+                            background: Rectangle {
+                                color: parent.down ? "#27ae60" : "#2ecc71"
+                                radius: 8
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: "white"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font: parent.font
+                            }
+                            onClicked: {
+                                if (productEditDialog.validateForm()) {
+                                    if (productEditDialog.isKit) {
+                                        dbmanager.updateEmbroideryKit(
+                                            productEditDialog.currentData.id,
+                                            editNameField.text,
+                                            editDescriptionField.text,
+                                            parseFloat(editPriceField.text),
+                                            editQuantityField.value
+                                        )
+                                    } else {
+                                        dbmanager.updateConsumableFurniture(
+                                            productEditDialog.currentData.id,
+                                            editNameField.text,
+                                            editTypeField.currentText,
+                                            parseFloat(editPriceField.text),
+                                            editQuantityField.value,
+                                            editUnitField.currentText
+                                        )
+                                    }
+                                    updateProductList()
+                                    productEditDialog.close()
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            Button {
-                text: "🛒 Оформить продажу"
-                font.bold: true
-                font.pixelSize: 14
-                padding: 12
-                Layout.fillWidth: true
-                background: Rectangle {
-                    color: parent.down ? "#2980b9" : "#3498db"
-                    radius: 8
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
-                }
-                onClicked: saleDialog.open()
+        function validateForm() {
+            const errors = []
+
+            if (editNameField.text.trim().length < 2) {
+                errors.push("• Название должно содержать минимум 2 символа")
             }
 
-            Button {
-                text: "📊 Отчет по продажам"
-                font.bold: true
-                font.pixelSize: 14
-                padding: 12
+            if (parseFloat(editPriceField.text) <= 0) {
+                errors.push("• Цена должна быть больше 0")
+            }
+
+            if (editQuantityField.value < 0) {
+                errors.push("• Количество не может быть отрицательным")
+            }
+
+            if (errors.length > 0) {
+                editValidationError.text = errors.join("\n")
+                editValidationError.visible = true
+                return false
+            }
+
+            editValidationError.visible = false
+            return true
+        }
+
+        function openWithData(row, isKit) {
+            productEditDialog.currentRow = row
+            productEditDialog.isKit = isKit
+
+            productEditDialog.currentData = isKit ?
+                dbmanager.getRowData("embroidery_kits", row) :
+                dbmanager.getRowData("consumable_furniture", row)
+
+            if (productEditDialog.currentData) {
+                loadCurrentData()
+                open()
+            }
+        }
+
+        function loadCurrentData() {
+            editNameField.text = productEditDialog.currentData.name || ""
+            editPriceField.text = productEditDialog.isKit ?
+                (productEditDialog.currentData.price || "") :
+                (productEditDialog.currentData.price_per_unit || "")
+            editQuantityField.value = productEditDialog.currentData.stock_quantity || 0
+
+            if (productEditDialog.isKit) {
+                editDescriptionField.text = productEditDialog.currentData.description || ""
+            } else {
+                var typeIndex = ["инструменты", "материалы", "аксессуары", "прочее"].indexOf(productEditDialog.currentData.type || "")
+                editTypeField.currentIndex = typeIndex >= 0 ? typeIndex : 0
+
+                var unitIndex = ["шт", "набор", "метр", "упаковка"].indexOf(productEditDialog.currentData.unit || "")
+                editUnitField.currentIndex = unitIndex >= 0 ? unitIndex : 0
+            }
+        }
+
+        onOpened: {
+            editValidationError.visible = false
+        }
+    }
+
+    Dialog {
+        id: deleteConfirmationDialog
+        modal: true
+        title: "🗑️ Удаление товара"
+        width: 400
+        height: 200
+        anchors.centerIn: parent
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 15
+
+            Label {
                 Layout.fillWidth: true
-                background: Rectangle {
-                    color: parent.down ? "#8e44ad" : "#9b59b6"
-                    radius: 8
+                text: "Вы уверены, что хотите удалить этот товар?"
+                wrapMode: Text.WordWrap
+                font.pixelSize: 16
+                color: "#2c3e50"
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: "Товар: " + (productEditDialog.currentData ? productEditDialog.currentData.name : "")
+                wrapMode: Text.WordWrap
+                font.pixelSize: 14
+                color: "#e74c3c"
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: "Это действие нельзя отменить!"
+                wrapMode: Text.WordWrap
+                font.pixelSize: 12
+                color: "#7f8c8d"
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+
+        // ЗАМЕНИТЕ footer НА ЭТОТ КОД:
+        footer: Rectangle {
+            implicitHeight: 80
+            color: "transparent"
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 15
+                spacing: 20
+
+                Item {
+                    Layout.fillWidth: true
                 }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
+
+                Button {
+                    text: "❌ Отмена"
+                    font.bold: true
+                    padding: 12
+                    Layout.preferredWidth: 120
+                    background: Rectangle {
+                        color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    onClicked: deleteConfirmationDialog.reject()
                 }
-                onClicked: salesReportDialog.open()
+
+                Button {
+                    text: "🗑️ Удалить"
+                    font.bold: true
+                    padding: 12
+                    Layout.preferredWidth: 120
+                    background: Rectangle {
+                        color: parent.down ? "#c0392b" : "#e74c3c"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    onClicked: {
+                        if (productEditDialog.isKit) {
+                            // Используем удаление вместо деактивации
+                            dbmanager.deleteEmbroideryKit(productEditDialog.currentData.id)
+                        } else {
+                            dbmanager.deleteConsumableFurniture(productEditDialog.currentData.id)
+                        }
+                        updateProductList()
+                        deleteConfirmationDialog.close()
+                        productEditDialog.close()
+                    }
+                }
             }
         }
     }
 
-    function updateProductList() {
-        productsModel.clear()
-
-        console.log("Updating product list for:", productTypeGroup.checkedButton.text)
-
-        var productData = []
-        if (productTypeGroup.checkedButton.text.includes("Наборы")) {
-            productData = dbmanager.getEmbroideryKitsData()
-            root.tableName = "embroidery_kits"
-        } else {
-            productData = dbmanager.getConsumableFurnitureData()
-            root.tableName = "consumable_furniture"
-        }
-
-        console.log("Raw product data:", productData)
-
-        for (var i = 0; i < productData.length; i++) {
-            productsModel.append(productData[i])
-        }
-
-        console.log("Loaded", productsModel.count, "products from", root.tableName)
-    }
-
-    // Диалог оформления продажи
     Dialog {
         id: saleDialog
         modal: true
@@ -310,11 +778,12 @@ Page {
 
         property double unitPrice: 0
         property int availableStock: 0
+        property int productId: -1
+        property bool isKit: true
 
         width: 600
-        height: 550
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        height: 500
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -337,57 +806,12 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Выбор покупателя
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 8
 
                 Label {
-                    text: "👤 Покупатель:"
-                    font.bold: true
-                    color: "#34495e"
-                    font.pixelSize: 14
-                }
-
-                ComboBox {
-                    id: customerComboBox
-                    Layout.fillWidth: true
-                    model: dbmanager.getCustomersModel()
-                    textRole: "full_name"
-                    delegate: ItemDelegate {
-                        width: customerComboBox.width
-                        contentItem: Column {
-                            spacing: 2
-                            Text {
-                                text: model.full_name
-                                font.pixelSize: 14
-                                color: "#2c3e50"
-                            }
-                            Text {
-                                text: model.phone + " • " + model.email
-                                font.pixelSize: 11
-                                color: "#7f8c8d"
-                            }
-                        }
-                    }
-                    displayText: {
-                        if (currentIndex >= 0) {
-                            var name = model.data(model.index(currentIndex, 1))
-                            var phone = model.data(model.index(currentIndex, 2))
-                            return name + " • " + phone
-                        }
-                        return "Выберите покупателя"
-                    }
-                }
-            }
-
-            // Выбор товара
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                Label {
-                    text: productTypeGroup.checkedButton.text.includes("Наборы") ? "🎨 Товар:" : "🧵 Товар:"
+                    text: productTypeGroup.checkedButton === kitsRadio ? "🎨 Товар:" : "🧵 Товар:"
                     font.bold: true
                     color: "#34495e"
                     font.pixelSize: 14
@@ -396,15 +820,35 @@ Page {
                 ComboBox {
                     id: productComboBox
                     Layout.fillWidth: true
-                    model: productTypeGroup.checkedButton.text.includes("Наборы") ?
-                           dbmanager.getEmbroideryKitsModel() : dbmanager.getConsumableFurnitureModel()
-                    textRole: "name"
-                    displayText: currentIndex >= 0 ? currentText : "Выберите товар"
-                    onCurrentIndexChanged: updateProductInfo()
+                    model: ListModel {
+                        id: productsComboModel
+                    }
+                    textRole: "display"
+
+                    onActivated: {
+                        saleDialog.updateProductInfo()
+                    }
+
+                    contentItem: Text {
+                        text: productComboBox.displayText
+                        color: "#000000"
+                        font: productComboBox.font
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignLeft
+                        elide: Text.ElideRight
+                        leftPadding: 12
+                    }
+
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 6
+                        border.color: productComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                    }
+
+                    onCurrentIndexChanged: saleDialog.updateProductInfo()
                 }
             }
 
-            // Информация о товаре
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 15
@@ -429,7 +873,7 @@ Page {
                         }
 
                         Label {
-                            text: saleDialog.unitPrice + " ₽"
+                            text: saleDialog.unitPrice.toFixed(2) + " ₽"
                             font.bold: true
                             font.pixelSize: 14
                             color: "#2ecc71"
@@ -465,7 +909,6 @@ Page {
                 }
             }
 
-            // Количество
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 8
@@ -483,11 +926,10 @@ Page {
                     from: 1
                     to: 1000
                     value: 1
-                    onValueChanged: updateTotalAmount()
+                    onValueChanged: saleDialog.updateTotalAmount()
                 }
             }
 
-            // Итоговая сумма
             Rectangle {
                 Layout.fillWidth: true
                 height: 70
@@ -575,24 +1017,21 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                     font: parent.font
                 }
-                onClicked: processSale()
+                onClicked: saleDialog.processSale()
             }
         }
 
         function updateProductInfo() {
             if (productComboBox.currentIndex >= 0) {
-                var price = productTypeGroup.checkedButton.text.includes("Наборы") ?
-                           productComboBox.model.data(productComboBox.model.index(productComboBox.currentIndex, 2)) :
-                           productComboBox.model.data(productComboBox.model.index(productComboBox.currentIndex, 3))
-
-                var stock = productTypeGroup.checkedButton.text.includes("Наборы") ?
-                           productComboBox.model.data(productComboBox.model.index(productComboBox.currentIndex, 3)) :
-                           productComboBox.model.data(productComboBox.model.index(productComboBox.currentIndex, 4))
-
-                saleDialog.unitPrice = price || 0
-                saleDialog.availableStock = stock || 0
-                quantitySpinBox.to = saleDialog.availableStock
-                updateTotalAmount()
+                var currentItem = productsComboModel.get(productComboBox.currentIndex)
+                if (currentItem) {
+                    saleDialog.unitPrice = currentItem.price || 0
+                    saleDialog.availableStock = currentItem.stock_quantity || 0
+                    saleDialog.productId = currentItem.id || -1
+                    saleDialog.isKit = productTypeGroup.checkedButton === kitsRadio
+                    quantitySpinBox.to = Math.max(saleDialog.availableStock, 1)
+                    updateTotalAmount()
+                }
             }
         }
 
@@ -602,15 +1041,19 @@ Page {
         }
 
         function processSale() {
-            if (validateSaleForm()) {
-                var customerId = customerComboBox.model.data(customerComboBox.model.index(customerComboBox.currentIndex, 0))
-                var productId = productComboBox.model.data(productComboBox.model.index(productComboBox.currentIndex, 0))
-                var productName = productComboBox.currentText
+            if (saleDialog.validateSaleForm()) {
+                var productItem = productsComboModel.get(productComboBox.currentIndex)
+                var productId = productItem ? productItem.id : -1
+                var productName = productItem ? productItem.name : ""
                 var quantity = quantitySpinBox.value
                 var totalAmount = saleDialog.unitPrice * quantity
 
-                // Здесь должна быть логика сохранения продажи в БД
-                // dbmanager.createSale(customerId, productId, productName, quantity, totalAmount, productTypeGroup.checkedButton.text.includes("Наборы") ? "kit" : "consumable")
+                var newStock = saleDialog.availableStock - quantity
+                if (saleDialog.isKit) {
+                    dbmanager.updateEmbroideryKitStock(productId, newStock)
+                } else {
+                    dbmanager.updateConsumableStock(productId, newStock)
+                }
 
                 saleDialog.close()
                 saleSuccessDialog.openWithData(productName, quantity, totalAmount)
@@ -619,10 +1062,6 @@ Page {
 
         function validateSaleForm() {
             const errors = []
-
-            if (customerComboBox.currentIndex < 0) {
-                errors.push("• Выберите покупателя")
-            }
 
             if (productComboBox.currentIndex < 0) {
                 errors.push("• Выберите товар")
@@ -649,11 +1088,39 @@ Page {
         onOpened: {
             saleValidationError.visible = false
             quantitySpinBox.value = 1
+
+            productsComboModel.clear()
+
+            var tableName = productTypeGroup.checkedButton === kitsRadio ? "embroidery_kits" : "consumable_furniture"
+            var rowCount = dbmanager.getRowCount(tableName)
+
+            for (var i = 0; i < rowCount; i++) {
+                var item = dbmanager.getRowData(tableName, i)
+                if (item) {
+                    if (productTypeGroup.checkedButton === kitsRadio) {
+                        productsComboModel.append({
+                            id: item.id,
+                            name: item.name,
+                            display: item.name + " - " + (item.price || 0) + " ₽",
+                            price: item.price,
+                            stock_quantity: item.stock_quantity
+                        })
+                    } else {
+                        productsComboModel.append({
+                            id: item.id,
+                            name: item.name,
+                            display: item.name + " - " + (item.price_per_unit || 0) + " ₽",
+                            price: item.price_per_unit,
+                            stock_quantity: item.stock_quantity
+                        })
+                    }
+                }
+            }
+
             updateProductInfo()
         }
     }
 
-    // Диалог успешной продажи
     Dialog {
         id: saleSuccessDialog
         modal: true
@@ -665,8 +1132,7 @@ Page {
 
         width: 450
         height: 250
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -776,16 +1242,14 @@ Page {
         }
     }
 
-    // Диалог добавления набора
     Dialog {
         id: kitAddDialog
         modal: true
         title: "🎨 Добавить набор для вышивки"
 
         width: 500
-        height: 500
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        height: 450
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -974,9 +1438,9 @@ Page {
                     font: parent.font
                 }
                 onClicked: {
-                    if (validateKitForm()) {
-                        // dbmanager.addEmbroideryKit(addKitNameField.text, addKitDescriptionField.text, parseFloat(addKitPriceField.text), addKitQuantityField.value)
-                        tableview.model = dbmanager.getTableModel(root.tableName)
+                    if (kitAddDialog.validateKitForm()) {
+                        dbmanager.addEmbroideryKit(addKitNameField.text, addKitDescriptionField.text, parseFloat(addKitPriceField.text), addKitQuantityField.value)
+                        updateProductList()
                         kitAddDialog.close()
                     }
                 }
@@ -1018,16 +1482,14 @@ Page {
         }
     }
 
-    // Диалог добавления расходной фурнитуры
     Dialog {
         id: consumableAddDialog
         modal: true
         title: "🧵 Добавить расходную фурнитуру"
 
         width: 500
-        height: 550
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        height: 500
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -1094,6 +1556,22 @@ Page {
                         id: addConsumableTypeField
                         Layout.fillWidth: true
                         model: ["инструменты", "материалы", "аксессуары", "прочее"]
+
+                        contentItem: Text {
+                            text: addConsumableTypeField.displayText
+                            color: "#000000"
+                            font: addConsumableTypeField.font
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignLeft
+                            elide: Text.ElideRight
+                            leftPadding: 12
+                        }
+
+                        background: Rectangle {
+                            color: "#f8f9fa"
+                            radius: 6
+                            border.color: addConsumableTypeField.activeFocus ? "#3498db" : "#dce0e3"
+                        }
                     }
                 }
 
@@ -1140,6 +1618,22 @@ Page {
                             id: addConsumableUnitField
                             Layout.fillWidth: true
                             model: ["шт", "набор", "метр", "упаковка"]
+
+                            contentItem: Text {
+                                text: addConsumableUnitField.displayText
+                                color: "#000000"
+                                font: addConsumableUnitField.font
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignLeft
+                                elide: Text.ElideRight
+                                leftPadding: 12
+                            }
+
+                            background: Rectangle {
+                                color: "#f8f9fa"
+                                radius: 6
+                                border.color: addConsumableUnitField.activeFocus ? "#3498db" : "#dce0e3"
+                            }
                         }
                     }
                 }
@@ -1224,9 +1718,9 @@ Page {
                     font: parent.font
                 }
                 onClicked: {
-                    if (validateConsumableForm()) {
-                        // dbmanager.addConsumableFurniture(addConsumableNameField.text, addConsumableTypeField.currentText, parseFloat(addConsumablePriceField.text), addConsumableQuantityField.value, addConsumableUnitField.currentText)
-                        tableview.model = dbmanager.getTableModel(root.tableName)
+                    if (consumableAddDialog.validateConsumableForm()) {
+                        dbmanager.addConsumableFurniture(addConsumableNameField.text, addConsumableTypeField.currentText, parseFloat(addConsumablePriceField.text), addConsumableQuantityField.value, addConsumableUnitField.currentText)
+                        updateProductList()
                         consumableAddDialog.close()
                     }
                 }
@@ -1269,701 +1763,10 @@ Page {
         }
     }
 
-    // Диалог просмотра набора
-    Dialog {
-        id: kitViewDialog
-        modal: true
-        title: "🎨 Просмотр набора"
-
-        property int currentRow: -1
-        property var currentData: ({})
-
-        width: 500
-        height: 400
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-
-        background: Rectangle {
-            color: "#ffffff"
-            radius: 12
-            border.color: "#e0e0e0"
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
-
-            Label {
-                Layout.fillWidth: true
-                text: "🎨 Информация о наборе"
-                font.bold: true
-                font.pixelSize: 18
-                color: "#2c3e50"
-                padding: 10
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            ColumnLayout {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.fillWidth: true
-                Layout.maximumWidth: 400
-                spacing: 12
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 5
-
-                    Label {
-                        text: "Название:"
-                        font.bold: true
-                        color: "#34495e"
-                        font.pixelSize: 14
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        text: kitViewDialog.currentData.name || "Не указано"
-                        wrapMode: Text.Wrap
-                        color: "#2c3e50"
-                        font.pixelSize: 14
-                        padding: 10
-                        background: Rectangle {
-                            color: "#f8f9fa"
-                            radius: 8
-                            border.color: "#e9ecef"
-                        }
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 5
-
-                    Label {
-                        text: "Описание:"
-                        font.bold: true
-                        color: "#34495e"
-                        font.pixelSize: 14
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        text: kitViewDialog.currentData.description || "Не указано"
-                        wrapMode: Text.Wrap
-                        color: "#2c3e50"
-                        font.pixelSize: 14
-                        padding: 10
-                        Layout.preferredHeight: 60
-                        background: Rectangle {
-                            color: "#f8f9fa"
-                            radius: 8
-                            border.color: "#e9ecef"
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 15
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 5
-
-                        Label {
-                            text: "Цена:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 14
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: (kitViewDialog.currentData.price ? kitViewDialog.currentData.price + " ₽" : "Не указано")
-                            color: "#27ae60"
-                            font.pixelSize: 14
-                            font.bold: true
-                            padding: 10
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: "#e9ecef"
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 5
-
-                        Label {
-                            text: "В наличии:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 14
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: kitViewDialog.currentData.stock_quantity || "0"
-                            color: "#2c3e50"
-                            font.pixelSize: 14
-                            padding: 10
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: "#e9ecef"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        footer: DialogButtonBox {
-            alignment: Qt.AlignCenter
-            padding: 15
-            background: Rectangle {
-                color: "transparent"
-            }
-
-            Button {
-                text: "❌ Закрыть"
-                font.bold: true
-                padding: 12
-                width: 120
-                background: Rectangle {
-                    color: parent.down ? "#7f8c8d" : "#95a5a6"
-                    radius: 8
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
-                }
-                onClicked: kitViewDialog.close()
-            }
-        }
-
-        function openWithData(row) {
-            currentRow = row
-            currentData = dbmanager.getRowData("embroidery_kits", row)
-            open()
-        }
-    }
-
-    // Диалог просмотра фурнитуры
-    Dialog {
-        id: consumableViewDialog
-        modal: true
-        title: "🧵 Просмотр фурнитуры"
-
-        property int currentRow: -1
-        property var currentData: ({})
-
-        width: 500
-        height: 400
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-
-        background: Rectangle {
-            color: "#ffffff"
-            radius: 12
-            border.color: "#e0e0e0"
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
-
-            Label {
-                Layout.fillWidth: true
-                text: "🧵 Информация о фурнитуре"
-                font.bold: true
-                font.pixelSize: 18
-                color: "#2c3e50"
-                padding: 10
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            ColumnLayout {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.fillWidth: true
-                Layout.maximumWidth: 400
-                spacing: 12
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 5
-
-                    Label {
-                        text: "Название:"
-                        font.bold: true
-                        color: "#34495e"
-                        font.pixelSize: 14
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        text: consumableViewDialog.currentData.name || "Не указано"
-                        wrapMode: Text.Wrap
-                        color: "#2c3e50"
-                        font.pixelSize: 14
-                        padding: 10
-                        background: Rectangle {
-                            color: "#f8f9fa"
-                            radius: 8
-                            border.color: "#e9ecef"
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 15
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 5
-
-                        Label {
-                            text: "Тип:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 14
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: consumableViewDialog.currentData.type || "Не указано"
-                            color: "#2c3e50"
-                            font.pixelSize: 14
-                            padding: 10
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: "#e9ecef"
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 5
-
-                        Label {
-                            text: "Ед. измерения:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 14
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: consumableViewDialog.currentData.unit || "Не указано"
-                            color: "#2c3e50"
-                            font.pixelSize: 14
-                            padding: 10
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: "#e9ecef"
-                            }
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 15
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 5
-
-                        Label {
-                            text: "Цена за ед.:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 14
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: (consumableViewDialog.currentData.price_per_unit ? consumableViewDialog.currentData.price_per_unit + " ₽" : "Не указано")
-                            color: "#27ae60"
-                            font.pixelSize: 14
-                            font.bold: true
-                            padding: 10
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: "#e9ecef"
-                            }
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 5
-
-                        Label {
-                            text: "В наличии:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 14
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: consumableViewDialog.currentData.stock_quantity || "0"
-                            color: "#2c3e50"
-                            font.pixelSize: 14
-                            padding: 10
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: "#e9ecef"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        footer: DialogButtonBox {
-            alignment: Qt.AlignCenter
-            padding: 15
-            background: Rectangle {
-                color: "transparent"
-            }
-
-            Button {
-                text: "❌ Закрыть"
-                font.bold: true
-                padding: 12
-                width: 120
-                background: Rectangle {
-                    color: parent.down ? "#7f8c8d" : "#95a5a6"
-                    radius: 8
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
-                }
-                onClicked: consumableViewDialog.close()
-            }
-        }
-
-        function openWithData(row) {
-            currentRow = row
-            currentData = dbmanager.getRowData("consumable_furniture", row)
-            open()
-        }
-    }
-
-    // Диалог отчета по продажам
-    Dialog {
-        id: salesReportDialog
-        modal: true
-        title: "📊 Отчет по продажам"
-
-        width: 700
-        height: 600
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-
-        background: Rectangle {
-            color: "#ffffff"
-            radius: 12
-            border.color: "#e0e0e0"
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
-
-            Label {
-                Layout.fillWidth: true
-                text: "📊 Отчет по продажам"
-                font.bold: true
-                font.pixelSize: 18
-                color: "#2c3e50"
-                padding: 10
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            // Период отчета
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 10
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 5
-
-                    Label {
-                        text: "Дата начала:"
-                        font.bold: true
-                        color: "#34495e"
-                        font.pixelSize: 12
-                    }
-                    TextField {
-                        id: reportStartDate
-                        Layout.fillWidth: true
-                        placeholderText: "ГГГГ-ММ-ДД"
-                        text: new Date().toISOString().slice(0,10)
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 5
-
-                    Label {
-                        text: "Дата окончания:"
-                        font.bold: true
-                        color: "#34495e"
-                        font.pixelSize: 12
-                    }
-                    TextField {
-                        id: reportEndDate
-                        Layout.fillWidth: true
-                        placeholderText: "ГГГГ-ММ-ДД"
-                        text: new Date().toISOString().slice(0,10)
-                    }
-                }
-
-                Button {
-                    text: "📈 Сформировать"
-                    font.bold: true
-                    padding: 8
-                    background: Rectangle {
-                        color: parent.down ? "#2980b9" : "#3498db"
-                        radius: 6
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font: parent.font
-                    }
-                    onClicked: generateReport()
-                }
-            }
-
-            // Статистика
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 2
-                rowSpacing: 10
-                columnSpacing: 10
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 80
-                    color: "#e8f5e8"
-                    radius: 8
-                    border.color: "#27ae60"
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-
-                        Label {
-                            text: "💰 Общая выручка"
-                            font.bold: true
-                            color: "#27ae60"
-                            font.pixelSize: 12
-                        }
-                        Label {
-                            text: "15,240 ₽"
-                            font.bold: true
-                            font.pixelSize: 16
-                            color: "#2ecc71"
-                        }
-                    }
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 80
-                    color: "#e3f2fd"
-                    radius: 8
-                    border.color: "#3498db"
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-
-                        Label {
-                            text: "📦 Продано товаров"
-                            font.bold: true
-                            color: "#3498db"
-                            font.pixelSize: 12
-                        }
-                        Label {
-                            text: "42 шт"
-                            font.bold: true
-                            font.pixelSize: 16
-                            color: "#2980b9"
-                        }
-                    }
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 80
-                    color: "#fff3cd"
-                    radius: 8
-                    border.color: "#ffc107"
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-
-                        Label {
-                            text: "🎨 Наборы"
-                            font.bold: true
-                            color: "#e67e22"
-                            font.pixelSize: 12
-                        }
-                        Label {
-                            text: "18 шт"
-                            font.bold: true
-                            font.pixelSize: 16
-                            color: "#d35400"
-                        }
-                    }
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 80
-                    color: "#f4ecf7"
-                    radius: 8
-                    border.color: "#9b59b6"
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-
-                        Label {
-                            text: "🧵 Фурнитура"
-                            font.bold: true
-                            color: "#9b59b6"
-                            font.pixelSize: 12
-                        }
-                        Label {
-                            text: "24 шт"
-                            font.bold: true
-                            font.pixelSize: 16
-                            color: "#8e44ad"
-                        }
-                    }
-                }
-            }
-
-            // Детализация продаж
-            Label {
-                text: "📋 Детализация продаж:"
-                font.bold: true
-                color: "#34495e"
-                font.pixelSize: 14
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                color: "#f8f9fa"
-                radius: 8
-                border.color: "#e9ecef"
-
-                ScrollView {
-                    anchors.fill: parent
-                    anchors.margins: 5
-                    clip: true
-
-                    ListView {
-                        anchors.fill: parent
-                        model: 10
-                        delegate: Rectangle {
-                            width: ListView.view.width
-                            height: 40
-                            color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 5
-                                spacing: 10
-
-                                Text {
-                                    text: "2024-01-" + (index + 10)
-                                    color: "#2c3e50"
-                                    font.pixelSize: 12
-                                    Layout.preferredWidth: 80
-                                }
-
-                                Text {
-                                    text: "Набор 'Цветочная композиция'"
-                                    color: "#2c3e50"
-                                    font.pixelSize: 12
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    text: "2 шт"
-                                    color: "#2c3e50"
-                                    font.pixelSize: 12
-                                    Layout.preferredWidth: 40
-                                }
-
-                                Text {
-                                    text: "2,400 ₽"
-                                    color: "#27ae60"
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                    Layout.preferredWidth: 70
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        footer: DialogButtonBox {
-            alignment: Qt.AlignCenter
-            padding: 15
-            background: Rectangle {
-                color: "transparent"
-            }
-
-            Button {
-                text: "❌ Закрыть"
-                font.bold: true
-                padding: 12
-                width: 120
-                background: Rectangle {
-                    color: parent.down ? "#7f8c8d" : "#95a5a6"
-                    radius: 8
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
-                }
-                onClicked: salesReportDialog.close()
-            }
-        }
-
-        function generateReport() {
-            // Здесь должна быть логика генерации отчета из БД
-            console.log("Генерация отчета с", reportStartDate.text, "по", reportEndDate.text)
-        }
+    function updateProductList() {
+        tableview.model = productTypeGroup.checkedButton === kitsRadio ?
+               dbmanager.getTableModel("embroidery_kits") :
+               dbmanager.getTableModel("consumable_furniture")
     }
 
     onVisibleChanged: {

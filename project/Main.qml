@@ -102,7 +102,7 @@ ApplicationWindow {
             // Кнопки для продавца
             Button {
                 visible: sellerLogged
-                width: (tabRow.width - (3 * tabRow.spacing)) / 4
+                width: (tabRow.width - (3 * tabRow.spacing)) / 3
                 height: parent.height
 
                 background: Rectangle {
@@ -129,7 +129,7 @@ ApplicationWindow {
 
             Button {
                 visible: sellerLogged
-                width: (tabRow.width - (3 * tabRow.spacing)) / 4
+                width: (tabRow.width - (3 * tabRow.spacing)) / 3
                 height: parent.height
 
                 background: Rectangle {
@@ -156,7 +156,7 @@ ApplicationWindow {
 
             Button {
                 visible: sellerLogged
-                width: (tabRow.width - (3 * tabRow.spacing)) / 4
+                width: (tabRow.width - (3 * tabRow.spacing)) / 3
                 height: parent.height
 
                 background: Rectangle {
@@ -178,33 +178,6 @@ ApplicationWindow {
                 onClicked: {
                     stack.push("pages/SalePage.qml")
                     headerLabel.text = "Продажа"
-                }
-            }
-
-            Button {
-                visible: sellerLogged
-                width: (tabRow.width - (3 * tabRow.spacing)) / 4
-                height: parent.height
-
-                background: Rectangle {
-                    color: parent.down ? "#3498db" : "#34495e"
-                    radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
-                }
-
-                contentItem: Text {
-                    text: "🛍️ Продукция"
-                    color: "white"
-                    font.pixelSize: 14
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                onClicked: {
-                    stack.push("pages/ProductsPage.qml")
-                    headerLabel.text = "Продукция мастерской"
                 }
             }
 
