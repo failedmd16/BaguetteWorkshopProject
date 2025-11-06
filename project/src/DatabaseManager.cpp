@@ -592,18 +592,41 @@ bool DatabaseManager::createOrderItem(int orderId, int itemId, const QString &it
     return true;
 }
 
-QSqlQueryModel* DatabaseManager::getMasterOrders() {
-    QSqlQueryModel* model = new QSqlQueryModel(this);
-    QString query = "SELECT o.id, o.order_number, o.order_type, o.status, o.total_amount, "
-                    "o.created_at, c.full_name as customer_name, "
-                    "fo.width, fo.height, fo.special_instructions "
-                    "FROM orders o "
-                    "LEFT JOIN customers c ON o.customer_id = c.id "
-                    "LEFT JOIN frame_orders fo ON o.id = fo.order_id "
-                    "WHERE o.order_type = 'Изготовление рамки' "
-                    "ORDER BY o.created_at DESC";
-    model->setQuery(query, _database);
-    return model;
+QVariantList DatabaseManager::getMasterOrders() {
+    QVariantList result;
+
+    QSqlQuery query;
+    QString queryStr = "SELECT o.id, o.order_number, o.order_type, o.status, o.total_amount, "
+                       "o.created_at, c.full_name as customer_name, "
+                       "fo.width, fo.height, fo.special_instructions "
+                       "FROM orders o "
+                       "LEFT JOIN customers c ON o.customer_id = c.id "
+                       "LEFT JOIN frame_orders fo ON o.id = fo.order_id "
+                       "WHERE o.order_type = 'Изготовление рамки' "
+                       "ORDER BY o.created_at DESC";
+
+    if (!query.exec(queryStr)) {
+        qDebug() << "Error getting master orders:" << query.lastError().text();
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap rowData;
+        rowData["id"] = query.value("id");
+        rowData["order_number"] = query.value("order_number");
+        rowData["order_type"] = query.value("order_type");
+        rowData["status"] = query.value("status");
+        rowData["total_amount"] = query.value("total_amount");
+        rowData["created_at"] = query.value("created_at");
+        rowData["customer_name"] = query.value("customer_name");
+        rowData["width"] = query.value("width");
+        rowData["height"] = query.value("height");
+        rowData["special_instructions"] = query.value("special_instructions");
+
+        result.append(rowData);
+    }
+
+    return result;
 }
 
 bool DatabaseManager::updateOrderStatus(int orderId, const QString &newStatus) {
@@ -869,6 +892,7 @@ QVariantList DatabaseManager::getOrdersData() {
         result.append(rowData);
     }
 
+    qDebug() << "Loaded" << result.size() << "orders from database";
     return result;
 }
 

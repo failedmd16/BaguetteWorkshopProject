@@ -133,6 +133,7 @@ Page {
                 anchors.margins: 2
                 clip: true
                 ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 TableView {
                     id: tableview
@@ -148,6 +149,8 @@ Page {
                         implicitHeight: 45
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
+
+                        property var rowData: ordersModel.get(row)
 
                         MouseArea {
                             anchors.fill: parent
@@ -168,20 +171,22 @@ Page {
                             anchors.fill: parent
                             anchors.margins: 12
                             text: {
+                                if (!parent.rowData) return ""
+
                                 switch(column) {
-                                    case 0: return model.order_number || ""
-                                    case 1: return model.customer_name || ""
-                                    case 2: return (model.width || 0) + "x" + (model.height || 0) + " см"
-                                    case 3: return model.status || ""
-                                    case 4: return (model.total_amount || 0) + " ₽"
-                                    case 5: return formatDate(model.created_at)
+                                    case 0: return parent.rowData.order_number || ""
+                                    case 1: return parent.rowData.customer_name || ""
+                                    case 2: return (parent.rowData.width || 0) + "x" + (parent.rowData.height || 0) + " см"
+                                    case 3: return parent.rowData.status || ""
+                                    case 4: return (parent.rowData.total_amount || 0) + " ₽"
+                                    case 5: return formatDate(parent.rowData.created_at)
                                     default: return ""
                                 }
                             }
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment: Text.AlignLeft
                             elide: Text.ElideRight
-                            color: column === 3 ? getStatusColor(model.status) : "#2c3e50"
+                            color: column === 3 ? getStatusColor(parent.rowData.status) : "#2c3e50"
                             font.pixelSize: 13
                             font.bold: column === 3
                         }
@@ -207,7 +212,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 font: parent.font
-                }
+            }
             onClicked: refreshTable()
         }
     }
@@ -237,33 +242,50 @@ Page {
     function refreshTable() {
         ordersModel.clear()
 
-        var model = dbmanager.getMasterOrders()
-        if (!model) return
+        // Получаем данные через отдельную функцию в DatabaseManager
+        var ordersData = dbmanager.getOrdersData()
+        if (!ordersData || ordersData.length === 0) {
+            console.log("No orders data received")
+            return
+        }
 
-        for (var i = 0; i < model.rowCount(); i++) {
-            var orderData = {
-                id: model.data(model.index(i, 0)),
-                order_number: model.data(model.index(i, 1)),
-                order_type: model.data(model.index(i, 2)),
-                status: model.data(model.index(i, 3)),
-                total_amount: model.data(model.index(i, 4)),
-                created_at: model.data(model.index(i, 5)),
-                customer_name: model.data(model.index(i, 6)),
-                width: model.data(model.index(i, 7)),
-                height: model.data(model.index(i, 8)),
-                special_instructions: model.data(model.index(i, 9))
-            }
+        console.log("Received orders data:", ordersData.length, "items")
+
+        for (var i = 0; i < ordersData.length; i++) {
+            var order = ordersData[i]
+
+            // Фильтруем только заказы на изготовление рамок
+            if (order.order_type !== "Изготовление рамки") continue
 
             // Применяем фильтры
             var statusFilterText = statusFilter.currentText
             var searchText = searchField.text.toLowerCase()
 
-            if (statusFilterText !== "Все статусы" && orderData.status !== statusFilterText) continue
-            if (searchText && !orderData.order_number.toLowerCase().includes(searchText) &&
-                !orderData.customer_name.toLowerCase().includes(searchText)) continue
+            if (statusFilterText !== "Все статусы" && order.status !== statusFilterText) continue
+            if (searchText && !order.order_number.toLowerCase().includes(searchText) &&
+                !order.customer_name.toLowerCase().includes(searchText)) continue
 
+            // Получаем детали заказа рамки
+            var frameDetails = dbmanager.getOrderDetails(order.id)
+
+            var orderData = {
+                id: order.id,
+                order_number: order.order_number,
+                order_type: order.order_type,
+                status: order.status,
+                total_amount: order.total_amount,
+                created_at: order.created_at,
+                customer_name: order.customer_name,
+                width: frameDetails.width || 0,
+                height: frameDetails.height || 0,
+                special_instructions: frameDetails.special_instructions || ""
+            }
+
+            console.log("Adding order:", orderData.order_number)
             ordersModel.append(orderData)
         }
+
+        console.log("Table refreshed, total items:", ordersModel.count)
     }
 
     // Диалог деталей заказа
@@ -384,11 +406,6 @@ Page {
                                 radius: 6
                                 border.color: statusComboBox.activeFocus ? "#3498db" : "#dce0e3"
                             }
-                            Component.onCompleted: {
-                                if (orderDetailsDialog.currentData.status) {
-                                    currentIndex = model.indexOf(orderDetailsDialog.currentData.status)
-                                }
-                            }
                         }
 
                         Button {
@@ -449,6 +466,11 @@ Page {
         function openWithData(row) {
             currentRow = row
             currentData = ordersModel.get(row)
+
+            // Устанавливаем текущий статус в комбобокс
+            if (currentData.status) {
+                statusComboBox.currentIndex = statusComboBox.model.indexOf(currentData.status)
+            }
             open()
         }
     }
@@ -473,9 +495,15 @@ Page {
         standardButtons: Dialog.Ok
     }
 
-    Component.onCompleted: refreshTable()
+    Component.onCompleted: {
+        console.log("MastersOrdersPage component completed")
+        refreshTable()
+    }
 
     onVisibleChanged: {
-        if (visible) refreshTable()
+        if (visible) {
+            console.log("MastersOrdersPage became visible")
+            refreshTable()
+        }
     }
 }
