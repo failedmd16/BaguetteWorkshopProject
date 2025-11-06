@@ -41,6 +41,7 @@ Page {
 
         TextField {
             id: loginTF
+            color: "black"
             placeholderText: "Логин"
             font.pixelSize: 14
             Layout.fillWidth: true
@@ -53,6 +54,7 @@ Page {
 
         TextField {
             id: passwordTF
+            color: "black"
             placeholderText: "Пароль"
             echoMode: TextInput.Password
             font.pixelSize: 14
