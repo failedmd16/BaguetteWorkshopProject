@@ -35,8 +35,10 @@ public slots:
 
     // Добавление нового покупателя
     Q_INVOKABLE void addCustomer(const QString &name, const QString &email, const QString &phone, const QString &address);
+
     // Редактирование информации о покупателе
     Q_INVOKABLE void updateCustomer(int row, const QString &name, const QString &email, const QString &phone, const QString &address);
+
     // Удаление покупателя
     Q_INVOKABLE void deleteCustomer(int row);
 
@@ -57,26 +59,27 @@ public slots:
     // Создать позицию заказа для набора
     Q_INVOKABLE bool createOrderItem(int orderId, int itemId, const QString &itemType, int quantity, double unitPrice);
 
-    // MastersOrdersPage функции
     Q_INVOKABLE bool updateOrderStatus(int orderId, const QString &newStatus); // Обновить статус заказа
 
-    // MastersProductsPage функции
-    // Функции для материалов рамок
     Q_INVOKABLE QSqlQueryModel* getFrameMaterialsModel();
+
     Q_INVOKABLE void addFrameMaterial(const QString &name, const QString &type, double pricePerMeter,
                                       double stockQuantity, const QString &color, double width);
+
     Q_INVOKABLE void updateFrameMaterial(int row, const QString &name, const QString &type,
                                          double pricePerMeter, double stockQuantity, const QString &color, double width);
+
     Q_INVOKABLE void deleteFrameMaterial(int row);
 
-    // Функции для комплектующей фурнитуры
     Q_INVOKABLE QSqlQueryModel* getComponentFurnitureModel();
+
     Q_INVOKABLE void addComponentFurniture(const QString &name, const QString &type,
                                            double pricePerUnit, int stockQuantity);
+
     Q_INVOKABLE void updateComponentFurniture(int row, const QString &name, const QString &type,
                                               double pricePerUnit, int stockQuantity);
-    Q_INVOKABLE void deleteComponentFurniture(int row);
 
+    Q_INVOKABLE void deleteComponentFurniture(int row);
 
     Q_INVOKABLE void addEmbroideryKit(const QString &name, const QString &description, double price, int stockQuantity);
 
@@ -84,17 +87,18 @@ public slots:
 
     Q_INVOKABLE QVariantList getOrdersData();
 
-    // Новые методы для продаж и редактирования
     Q_INVOKABLE void updateEmbroideryKitStock(int id, int newQuantity);
 
     Q_INVOKABLE void updateConsumableStock(int id, int newQuantity);
 
     Q_INVOKABLE void updateEmbroideryKit(int id, const QString &name, const QString &description,
                                          double price, int stockQuantity);
+
     Q_INVOKABLE void updateConsumableFurniture(int id, const QString &name, const QString &type,
                                                double pricePerUnit, int stockQuantity, const QString &unit);
 
     Q_INVOKABLE void deleteEmbroideryKit(int id);
+
     Q_INVOKABLE void deleteConsumableFurniture(int id);
 
     Q_INVOKABLE int getLastInsertedOrderId();

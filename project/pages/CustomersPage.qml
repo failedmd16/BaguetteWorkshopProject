@@ -14,33 +14,32 @@ Page {
         color: "#f8f9fa"
     }
 
-
     function getOrderTypeText(type) {
         switch(type) {
-            case 'frame_production': return "Изготовление рамки"
-            case 'kit_sale': return "Продажа набора"
+            case 'Изготовление рамки': return "Изготовление рамки"
+            case 'Продажа набора': return "Продажа набора"
             default: return type || "Не указан"
         }
     }
 
     function getStatusText(status) {
         switch(status) {
-            case 'new': return "Новый"
-            case 'in_progress': return "В работе"
-            case 'ready': return "Готов"
-            case 'completed': return "Завершен"
-            case 'cancelled': return "Отменен"
+            case 'Новый': return "Новый"
+            case 'В работе': return "В работе"
+            case 'Готов': return "Готов"
+            case 'Завершён': return "Завершен"
+            case 'Отменён': return "Отменен"
             default: return status || "Не указан"
         }
     }
 
     function getStatusColor(status) {
         switch(status) {
-            case 'new': return "#3498db"
-            case 'in_progress': return "#f39c12"
-            case 'ready': return "#27ae60"
-            case 'completed': return "#2ecc71"
-            case 'cancelled': return "#e74c3c"
+            case 'Новый': return "#3498db"
+            case 'В работе': return "#f39c12"
+            case 'Готов': return "#27ae60"
+            case 'Завершён': return "#2ecc71"
+            case 'Отменён': return "#e74c3c"
             default: return "#7f8c8d"
         }
     }

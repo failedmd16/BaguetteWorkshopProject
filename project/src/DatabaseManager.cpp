@@ -461,6 +461,10 @@ QVariantList DatabaseManager::getCustomerOrders(int customerId)
     query.prepare("SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC");
     query.addBindValue(customerId);
 
+    if (!query.exec()) {
+        return orders;
+    }
+
     while (query.next()) {
         QVariantMap order;
         QSqlRecord record = query.record();
@@ -469,6 +473,7 @@ QVariantList DatabaseManager::getCustomerOrders(int customerId)
         }
         orders.append(order);
     }
+
     return orders;
 }
 
