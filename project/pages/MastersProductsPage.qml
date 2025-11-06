@@ -87,7 +87,7 @@ Page {
                 }
 
                 Button {
-                    text: "🔩 Комплектующая"
+                    text: "🔩 Комплектующая фурнитура"
                     font.bold: true
                     Layout.fillWidth: true
                     background: Rectangle {

@@ -12,10 +12,6 @@ DatabaseManager::~DatabaseManager()
     if (_database.isOpen()) {
         _database.close();
     }
-
-    QString connectionName = _database.connectionName();
-
-    QSqlDatabase::removeDatabase(connectionName);
 }
 
 bool DatabaseManager::initializeDatabase() {
@@ -211,8 +207,6 @@ void DatabaseManager::insertTestData() {
         query.addBindValue("password123");
         query.addBindValue("Мастер производства");
         query.exec();
-
-        qDebug() << "Test users inserted successfully";
     }
 
     query.exec("SELECT COUNT(*) FROM frame_materials");
@@ -330,8 +324,6 @@ void DatabaseManager::insertTestData() {
             query.addBindValue(sellerId);
             query.exec();
         }
-
-        qDebug() << "Test data inserted successfully";
     }
 }
 
@@ -354,35 +346,27 @@ bool DatabaseManager::loginUser(const QString &login, const QString &password) {
         return true;
     }
 
-    qDebug() << "Login failed: invalid credentials";
     return false;
 }
 
-// Получить роль текущего пользователя
 QString DatabaseManager::getCurrentUserRole() const {
     return currentUserRole;
 }
 
-// Получить ID текущего пользователя
 int DatabaseManager::getCurrentUserId() const {
     return currentUserId;
 }
 
-// Проверить, является ли пользователь продавцом
 bool DatabaseManager::isSeller() const {
     return currentUserRole == "Продавец";
 }
 
-// Проверить, является ли пользователь мастером
 bool DatabaseManager::isMaster() const {
     return currentUserRole == "Мастер производства";
 }
 
-// Получение модели таблицы
 QSqlQueryModel* DatabaseManager::getTableModel(const QString &name) {
     QSqlQueryModel *model = new QSqlQueryModel(this);
-
-    qDebug() << "Loading table:" << name;
 
     QString queryStr = "SELECT * FROM " + name;
     model->setQuery(queryStr, _database);
@@ -390,21 +374,14 @@ QSqlQueryModel* DatabaseManager::getTableModel(const QString &name) {
     if (model->lastError().isValid()) {
         qDebug() << "Error loading table" << name << ":" << model->lastError().text();
     } else {
-        qDebug() << "Table" << name << "loaded successfully, rows:" << model->rowCount();
-
         if (model->rowCount() > 0) {
             QSqlRecord record = model->record(0);
-            qDebug() << "Table columns:";
-            for (int i = 0; i < record.count(); ++i) {
-                qDebug() << " -" << record.fieldName(i) << ":" << record.value(i);
-            }
         }
     }
 
     return model;
 }
 
-// Получение имен столбцов в таблице
 QString DatabaseManager::getColumnName(const QString &name, int index) {
     QSqlRecord record = _database.record(name);
     if (index >= 0 && index < record.count()) {
@@ -413,7 +390,6 @@ QString DatabaseManager::getColumnName(const QString &name, int index) {
     return "";
 }
 
-// Получение данных конкретной строки по индексу модели
 QVariantMap DatabaseManager::getRowData(const QString &table, int row)
 {
     QVariantMap result;
@@ -426,16 +402,11 @@ QVariantMap DatabaseManager::getRowData(const QString &table, int row)
             QVariant value = record.value(i);
             result[fieldName] = value;
         }
-
-        qDebug() << "Row data for table" << table << "row" << row << ":" << result;
-    } else {
-        qDebug() << "Invalid row or model for getRowData, table:" << table << "row:" << row;
     }
 
     return result;
 }
 
-// Добавление нового покупателя
 void DatabaseManager::addCustomer(const QString &name, const QString &phone, const QString &email, const QString &address)
 {
     QSqlQuery query;
@@ -450,11 +421,8 @@ void DatabaseManager::addCustomer(const QString &name, const QString &phone, con
         qDebug() << "Error adding customer:" << query.lastError().text();
         return;
     }
-
-    qDebug() << "Customer added successfully by user ID:" << currentUserId;
 }
 
-// Редактирование информации о покупателе
 void DatabaseManager::updateCustomer(int row, const QString &name, const QString &phone, const QString &email, const QString &address)
 {
     QSqlQueryModel *model = getTableModel("customers");
@@ -478,11 +446,8 @@ void DatabaseManager::updateCustomer(int row, const QString &name, const QString
         qDebug() << "Error updating customer:" << query.lastError().text();
         return;
     }
-
-    qDebug() << "Customer updated successfully";
 }
 
-// Удаление покупателя
 void DatabaseManager::deleteCustomer(int row)
 {
     QSqlQueryModel *model = getTableModel("customers");
@@ -502,11 +467,8 @@ void DatabaseManager::deleteCustomer(int row)
         qDebug() << "Error deleting customer:" << query.lastError().text();
         return;
     }
-
-    qDebug() << "Customer deleted successfully";
 }
 
-// Количество записей в таблице
 int DatabaseManager::getRowCount(const QString &table)
 {
     QSqlQuery query;
@@ -519,14 +481,12 @@ int DatabaseManager::getRowCount(const QString &table)
     return 0;
 }
 
-// Количество столбцов в таблице
 int DatabaseManager::getColumnCount(const QString &table)
 {
     QSqlRecord record = _database.record(table);
     return record.count();
 }
 
-// Получить списком заказы покупателя для вывода в окне CustomersPage
 QVariantList DatabaseManager::getCustomerOrders(int customerId)
 {
     QVariantList orders;
@@ -548,26 +508,21 @@ QVariantList DatabaseManager::getCustomerOrders(int customerId)
         }
         orders.append(order);
     }
-
-    qDebug() << "Found" << orders.size() << "orders for customer ID:" << customerId;
     return orders;
 }
 
-// Получить модель клиентов для ComboBox
 QSqlQueryModel* DatabaseManager::getCustomersModel() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
     model->setQuery("SELECT id, full_name, phone, email FROM customers ORDER BY full_name", _database);
     return model;
 }
 
-// Получить модель наборов для вышивки
 QSqlQueryModel* DatabaseManager::getEmbroideryKitsModel() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
     model->setQuery("SELECT id, name, price FROM embroidery_kits WHERE is_active = 1 ORDER BY name", _database);
     return model;
 }
 
-// Создать новый заказ
 bool DatabaseManager::createOrder(const QString &orderNumber, int customerId, const QString &orderType,
                                   double totalAmount, const QString &status, const QString &notes) {
     QSqlQuery query;
@@ -585,11 +540,9 @@ bool DatabaseManager::createOrder(const QString &orderNumber, int customerId, co
         return false;
     }
 
-    qDebug() << "Order created successfully:" << orderNumber;
     return true;
 }
 
-// Создать заказ на рамку
 bool DatabaseManager::createFrameOrder(int orderId, double width, double height,
                                        int frameMaterialId, int componentFurnitureId,
                                        const QString &specialInstructions) {
@@ -604,9 +557,8 @@ bool DatabaseManager::createFrameOrder(int orderId, double width, double height,
     query.addBindValue(componentFurnitureId);
     query.addBindValue(specialInstructions);
 
-    // Расчет стоимости (упрощенный)
-    double productionCost = (width * height / 10000) * 500; // 500 руб за кв.м
-    double sellingPrice = productionCost * 1.3; // Наценка 30%
+    double productionCost = (width * height / 10000) * 500;
+    double sellingPrice = productionCost * 1.3;
 
     query.addBindValue(productionCost);
     query.addBindValue(sellingPrice);
@@ -619,7 +571,6 @@ bool DatabaseManager::createFrameOrder(int orderId, double width, double height,
     return true;
 }
 
-// Создать позицию заказа для набора
 bool DatabaseManager::createOrderItem(int orderId, int itemId, const QString &itemType,
                                       int quantity, double unitPrice) {
     QSqlQuery query;
@@ -640,7 +591,6 @@ bool DatabaseManager::createOrderItem(int orderId, int itemId, const QString &it
     return true;
 }
 
-// Получить заказы для мастера
 QSqlQueryModel* DatabaseManager::getMasterOrders() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
     QString query = "SELECT o.id, o.order_number, o.order_type, o.status, o.total_amount, "
@@ -655,7 +605,6 @@ QSqlQueryModel* DatabaseManager::getMasterOrders() {
     return model;
 }
 
-// Обновить статус заказа
 bool DatabaseManager::updateOrderStatus(int orderId, const QString &newStatus) {
     QSqlQuery query;
     query.prepare("UPDATE orders SET status = ? WHERE id = ?");
@@ -669,7 +618,6 @@ bool DatabaseManager::updateOrderStatus(int orderId, const QString &newStatus) {
     return true;
 }
 
-// Функции для материалов рамок
 QSqlQueryModel* DatabaseManager::getFrameMaterialsModel() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
     model->setQuery("SELECT * FROM frame_materials ORDER BY name", _database);
@@ -732,11 +680,8 @@ void DatabaseManager::deleteFrameMaterial(int row) {
     query.prepare("DELETE FROM frame_materials WHERE id = ?");
     query.addBindValue(id);
 
-    if (!query.exec()) {
+    if (!query.exec())
         qDebug() << "Error deleting frame material:" << query.lastError().text();
-    } else {
-        qDebug() << "Frame material deleted successfully, ID:" << id;
-    }
 }
 
 QVariantMap DatabaseManager::getFrameMaterialRowData(int row) {
@@ -756,7 +701,6 @@ QVariantMap DatabaseManager::getFrameMaterialRowData(int row) {
     return result;
 }
 
-// Функции для комплектующей фурнитуры
 QSqlQueryModel* DatabaseManager::getComponentFurnitureModel() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
     model->setQuery("SELECT * FROM component_furniture ORDER BY name", _database);
@@ -813,11 +757,8 @@ void DatabaseManager::deleteComponentFurniture(int row) {
     query.prepare("DELETE FROM component_furniture WHERE id = ?");
     query.addBindValue(id);
 
-    if (!query.exec()) {
+    if (!query.exec())
         qDebug() << "Error deleting component furniture:" << query.lastError().text();
-    } else {
-        qDebug() << "Component furniture deleted successfully, ID:" << id;
-    }
 }
 
 QVariantMap DatabaseManager::getComponentFurnitureRowData(int row) {
@@ -835,14 +776,12 @@ QVariantMap DatabaseManager::getComponentFurnitureRowData(int row) {
     return result;
 }
 
-// Получить модель расходной фурнитуры
 QSqlQueryModel* DatabaseManager::getConsumableFurnitureModel() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
     model->setQuery("SELECT id, name, type, price_per_unit, stock_quantity, unit FROM consumable_furniture ORDER BY name", _database);
     return model;
 }
 
-// Добавить набор для вышивки
 void DatabaseManager::addEmbroideryKit(const QString &name, const QString &description, double price, int stockQuantity) {
     QSqlQuery query;
     query.prepare("INSERT INTO embroidery_kits (name, description, price, stock_quantity, created_by) VALUES (?, ?, ?, ?, ?)");
@@ -857,7 +796,6 @@ void DatabaseManager::addEmbroideryKit(const QString &name, const QString &descr
     }
 }
 
-// Добавить расходную фурнитуру
 void DatabaseManager::addConsumableFurniture(const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit) {
     QSqlQuery query;
     query.prepare("INSERT INTO consumable_furniture (name, type, price_per_unit, stock_quantity, unit, created_by) VALUES (?, ?, ?, ?, ?, ?)");
@@ -877,10 +815,14 @@ QVariantList DatabaseManager::getOrdersData() {
     QVariantList result;
 
     QSqlQuery query(_database);
-    QString queryStr = "SELECT o.*, c.full_name as customer_name, c.phone as customer_phone, c.email as customer_email "
-                       "FROM orders o LEFT JOIN customers c ON o.customer_id = c.id ORDER BY o.created_at DESC";
-
-    qDebug() << "Executing orders query:" << queryStr;
+    QString queryStr = "SELECT "
+                       "o.id, o.order_number, o.order_type, o.status, o.total_amount, o.created_at, "
+                       "c.full_name as customer_name, c.phone as customer_phone, "
+                       "u.login as created_by_user "
+                       "FROM orders o "
+                       "LEFT JOIN customers c ON o.customer_id = c.id "
+                       "LEFT JOIN users u ON o.created_by = u.id "
+                       "ORDER BY o.created_at DESC";
 
     if (!query.exec(queryStr)) {
         qDebug() << "Error loading orders data:" << query.lastError().text();
@@ -894,14 +836,11 @@ QVariantList DatabaseManager::getOrdersData() {
             rowData[record.fieldName(i)] = record.value(i);
         }
         result.append(rowData);
-        qDebug() << "Order row:" << rowData;
     }
 
-    qDebug() << "Loaded" << result.size() << "orders";
     return result;
 }
 
-// Получить данные наборов для вышивки
 QVariantList DatabaseManager::getEmbroideryKitsData() {
     QVariantList result;
 
@@ -925,7 +864,6 @@ QVariantList DatabaseManager::getEmbroideryKitsData() {
     return result;
 }
 
-// Получить данные расходной фурнитуры
 QVariantList DatabaseManager::getConsumableFurnitureData() {
     QVariantList result;
 
@@ -949,7 +887,6 @@ QVariantList DatabaseManager::getConsumableFurnitureData() {
     return result;
 }
 
-// Получить данные покупателей
 QVariantList DatabaseManager::getCustomersData() {
     QVariantList result;
 
@@ -972,7 +909,6 @@ QVariantList DatabaseManager::getCustomersData() {
     return result;
 }
 
-// Обновление остатков наборов
 void DatabaseManager::updateEmbroideryKitStock(int id, int newQuantity) {
     QSqlQuery query;
     query.prepare("UPDATE embroidery_kits SET stock_quantity = ? WHERE id = ?");
@@ -981,7 +917,6 @@ void DatabaseManager::updateEmbroideryKitStock(int id, int newQuantity) {
     query.exec();
 }
 
-// Обновление остатков фурнитуры
 void DatabaseManager::updateConsumableStock(int id, int newQuantity) {
     QSqlQuery query;
     query.prepare("UPDATE consumable_furniture SET stock_quantity = ? WHERE id = ?");
@@ -990,7 +925,6 @@ void DatabaseManager::updateConsumableStock(int id, int newQuantity) {
     query.exec();
 }
 
-// Обновление набора
 void DatabaseManager::updateEmbroideryKit(int id, const QString &name, const QString &description,  double price, int stockQuantity) {
     QSqlQuery query;
     query.prepare("UPDATE embroidery_kits SET name = ?, description = ?, price = ?, stock_quantity = ? WHERE id = ?");
@@ -1002,7 +936,6 @@ void DatabaseManager::updateEmbroideryKit(int id, const QString &name, const QSt
     query.exec();
 }
 
-// Обновление фурнитуры
 void DatabaseManager::updateConsumableFurniture(int id, const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit) {
     QSqlQuery query;
     query.prepare("UPDATE consumable_furniture SET name = ?, type = ?, price_per_unit = ?, stock_quantity = ?, unit = ? WHERE id = ?");
@@ -1015,7 +948,6 @@ void DatabaseManager::updateConsumableFurniture(int id, const QString &name, con
     query.exec();
 }
 
-// Для наборов вышивки
 void DatabaseManager::deleteEmbroideryKit(int id) {
     QSqlQuery query;
     query.prepare("DELETE FROM embroidery_kits WHERE id = ?");
@@ -1025,7 +957,6 @@ void DatabaseManager::deleteEmbroideryKit(int id) {
     }
 }
 
-// Для расходной фурнитуры
 void DatabaseManager::deleteConsumableFurniture(int id) {
     QSqlQuery query;
     query.prepare("DELETE FROM consumable_furniture WHERE id = ?");
@@ -1070,4 +1001,16 @@ QVariantList DatabaseManager::getCustomersWithOrdersInPeriod(const QString &star
     }
 
     return result;
+}
+
+int DatabaseManager::getLastInsertedOrderId() {
+    QSqlQuery query;
+    query.prepare("SELECT last_insert_rowid()");
+
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+
+    qDebug() << "Error getting last inserted order ID:" << query.lastError().text();
+    return -1;
 }

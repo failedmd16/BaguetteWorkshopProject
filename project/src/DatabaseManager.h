@@ -111,6 +111,8 @@ public slots:
     Q_INVOKABLE void deleteEmbroideryKit(int id);
     Q_INVOKABLE void deleteConsumableFurniture(int id);
 
+    Q_INVOKABLE int getLastInsertedOrderId();
+
 private:
     QSqlDatabase _database;
     int currentUserId = -1;

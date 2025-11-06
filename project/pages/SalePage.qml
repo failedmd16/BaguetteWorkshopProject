@@ -78,6 +78,7 @@ Page {
             }
         }
 
+        // Заголовки таблицы
         Rectangle {
             Layout.fillWidth: true
             height: 50
@@ -111,6 +112,7 @@ Page {
             }
         }
 
+        // Таблица товаров
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -192,7 +194,7 @@ Page {
                                 }
                             }
                             verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
+                            horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
                             color: "#2c3e50"
                             font.pixelSize: 13
@@ -494,22 +496,71 @@ Page {
         }
 
         footer: Rectangle {
-                implicitHeight: 80
-                color: "transparent"
+            implicitHeight: 80
+            color: "transparent"
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 15
+                spacing: 10
+
+                Button {
+                    text: "🗑️ Удалить"
+                    font.bold: true
+                    font.pixelSize: 14
+                    padding: 12
+                    Layout.preferredWidth: 120
+                    background: Rectangle {
+                        color: parent.down ? "#c0392b" : "#e74c3c"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    onClicked: {
+                        deleteConfirmationDialog.open()
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 15
                     spacing: 10
 
-                    // Кнопка удаления (слева)
                     Button {
-                        text: "🗑️ Удалить"
+                        text: "❌ Отмена"
                         font.bold: true
+                        font.pixelSize: 14
                         padding: 12
                         Layout.preferredWidth: 120
                         background: Rectangle {
-                            color: parent.down ? "#c0392b" : "#e74c3c"
+                            color: parent.down ? "#7f8c8d" : "#95a5a6"
+                            radius: 8
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font: parent.font
+                        }
+                        onClicked: productEditDialog.reject()
+                    }
+
+                    Button {
+                        text: "💾 Сохранить"
+                        font.bold: true
+                        font.pixelSize: 14
+                        padding: 12
+                        Layout.preferredWidth: 120
+                        background: Rectangle {
+                            color: parent.down ? "#27ae60" : "#2ecc71"
                             radius: 8
                         }
                         contentItem: Text {
@@ -520,81 +571,33 @@ Page {
                             font: parent.font
                         }
                         onClicked: {
-                            deleteConfirmationDialog.open()
-                        }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    // Кнопки отмены и сохранения (справа)
-                    RowLayout {
-                        spacing: 10
-
-                        Button {
-                            text: "❌ Отмена"
-                            font.bold: true
-                            padding: 12
-                            Layout.preferredWidth: 120
-                            background: Rectangle {
-                                color: parent.down ? "#7f8c8d" : "#95a5a6"
-                                radius: 8
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                font: parent.font
-                            }
-                            onClicked: productEditDialog.reject()
-                        }
-
-                        Button {
-                            text: "💾 Сохранить"
-                            font.bold: true
-                            padding: 12
-                            Layout.preferredWidth: 120
-                            background: Rectangle {
-                                color: parent.down ? "#27ae60" : "#2ecc71"
-                                radius: 8
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                font: parent.font
-                            }
-                            onClicked: {
-                                if (productEditDialog.validateForm()) {
-                                    if (productEditDialog.isKit) {
-                                        dbmanager.updateEmbroideryKit(
-                                            productEditDialog.currentData.id,
-                                            editNameField.text,
-                                            editDescriptionField.text,
-                                            parseFloat(editPriceField.text),
-                                            editQuantityField.value
-                                        )
-                                    } else {
-                                        dbmanager.updateConsumableFurniture(
-                                            productEditDialog.currentData.id,
-                                            editNameField.text,
-                                            editTypeField.currentText,
-                                            parseFloat(editPriceField.text),
-                                            editQuantityField.value,
-                                            editUnitField.currentText
-                                        )
-                                    }
-                                    updateProductList()
-                                    productEditDialog.close()
+                            if (productEditDialog.validateForm()) {
+                                if (productEditDialog.isKit) {
+                                    dbmanager.updateEmbroideryKit(
+                                        productEditDialog.currentData.id,
+                                        editNameField.text,
+                                        editDescriptionField.text,
+                                        parseFloat(editPriceField.text),
+                                        editQuantityField.value
+                                    )
+                                } else {
+                                    dbmanager.updateConsumableFurniture(
+                                        productEditDialog.currentData.id,
+                                        editNameField.text,
+                                        editTypeField.currentText,
+                                        parseFloat(editPriceField.text),
+                                        editQuantityField.value,
+                                        editUnitField.currentText
+                                    )
                                 }
+                                updateProductList()
+                                productEditDialog.close()
                             }
                         }
                     }
                 }
             }
+        }
 
         function validateForm() {
             const errors = []
@@ -706,7 +709,6 @@ Page {
             }
         }
 
-        // ЗАМЕНИТЕ footer НА ЭТОТ КОД:
         footer: Rectangle {
             implicitHeight: 80
             color: "transparent"
@@ -723,6 +725,7 @@ Page {
                 Button {
                     text: "❌ Отмена"
                     font.bold: true
+                    font.pixelSize: 14
                     padding: 12
                     Layout.preferredWidth: 120
                     background: Rectangle {
@@ -742,6 +745,7 @@ Page {
                 Button {
                     text: "🗑️ Удалить"
                     font.bold: true
+                    font.pixelSize: 14
                     padding: 12
                     Layout.preferredWidth: 120
                     background: Rectangle {
@@ -757,7 +761,6 @@ Page {
                     }
                     onClicked: {
                         if (productEditDialog.isKit) {
-                            // Используем удаление вместо деактивации
                             dbmanager.deleteEmbroideryKit(productEditDialog.currentData.id)
                         } else {
                             dbmanager.deleteConsumableFurniture(productEditDialog.currentData.id)
@@ -985,6 +988,7 @@ Page {
             Button {
                 text: "❌ Отмена"
                 font.bold: true
+                font.pixelSize: 14
                 padding: 12
                 width: 120
                 background: Rectangle {
@@ -1004,6 +1008,7 @@ Page {
             Button {
                 text: "✅ Оформить"
                 font.bold: true
+                font.pixelSize: 14
                 padding: 12
                 width: 120
                 background: Rectangle {
@@ -1405,6 +1410,7 @@ Page {
             Button {
                 text: "❌ Отмена"
                 font.bold: true
+                font.pixelSize: 14
                 padding: 12
                 width: 120
                 background: Rectangle {
@@ -1424,6 +1430,7 @@ Page {
             Button {
                 text: "✅ Добавить"
                 font.bold: true
+                font.pixelSize: 14
                 padding: 12
                 width: 120
                 background: Rectangle {
