@@ -1576,7 +1576,7 @@ Page {
         title: "❌ Ошибка"
         anchors.centerIn: parent
         width: 350
-        height: 220
+        height: 150
 
         background: Rectangle {
             color: "#ffffff"
@@ -1590,23 +1590,15 @@ Page {
             spacing: 10
             anchors.margins: 10
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 80
-                color: "#e74c3c"
-                radius: 8
-
-                Label {
-                    anchors.fill: parent
-                    anchors.margins: 15
-                    font.pixelSize: 14
-                    text: "Введите корректные даты для фильтрации"
-                    wrapMode: Text.Wrap
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    color: "white"
-                    font.bold: true
-                }
+            Label {
+                Layout.alignment: Qt.AlignCenter
+                font.pixelSize: 14
+                text: "Введите корректные даты для фильтрации"
+                wrapMode: Text.Wrap
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                color: "black"
+                font.bold: true
             }
 
             Item {

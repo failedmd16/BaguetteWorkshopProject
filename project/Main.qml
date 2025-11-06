@@ -10,7 +10,7 @@ ApplicationWindow {
     property bool sellerLogged: false
     property bool masterLogged: false
 
-    // Стилизация приложения
+    // Стилизация
     palette {
         button: "#3498db"
         buttonText: "white"

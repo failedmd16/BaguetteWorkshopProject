@@ -342,28 +342,15 @@ bool DatabaseManager::loginUser(const QString &login, const QString &password) {
     if (query.next()) {
         currentUserId = query.value(0).toInt();
         currentUserRole = query.value(1).toString();
-        qDebug() << "✅ Login successful. User ID: " << currentUserId << "Role: " << currentUserRole;
+        qDebug() << "Login successful. User ID: " << currentUserId << "Role: " << currentUserRole;
         return true;
     }
 
-    qDebug() << "❌ Login failed: invalid credentials";
     return false;
 }
 
 QString DatabaseManager::getCurrentUserRole() const {
     return currentUserRole;
-}
-
-int DatabaseManager::getCurrentUserId() const {
-    return currentUserId;
-}
-
-bool DatabaseManager::isSeller() const {
-    return currentUserRole == "Продавец";
-}
-
-bool DatabaseManager::isMaster() const {
-    return currentUserRole == "Мастер производства";
 }
 
 QSqlQueryModel* DatabaseManager::getTableModel(const QString &name) {
@@ -381,14 +368,6 @@ QSqlQueryModel* DatabaseManager::getTableModel(const QString &name) {
     }
 
     return model;
-}
-
-QString DatabaseManager::getColumnName(const QString &name, int index) {
-    QSqlRecord record = _database.record(name);
-    if (index >= 0 && index < record.count()) {
-        return record.fieldName(index);
-    }
-    return "";
 }
 
 QVariantMap DatabaseManager::getRowData(const QString &table, int row)
@@ -427,10 +406,6 @@ void DatabaseManager::addCustomer(const QString &name, const QString &phone, con
 void DatabaseManager::updateCustomer(int row, const QString &name, const QString &phone, const QString &email, const QString &address)
 {
     QSqlQueryModel *model = getTableModel("customers");
-    if (!model || row < 0 || row >= model->rowCount()) {
-        qDebug() << "Invalid row for update:" << row;
-        return;
-    }
 
     QSqlRecord record = model->record(row);
     int id = record.value("id").toInt();
@@ -452,10 +427,6 @@ void DatabaseManager::updateCustomer(int row, const QString &name, const QString
 void DatabaseManager::deleteCustomer(int row)
 {
     QSqlQueryModel *model = getTableModel("customers");
-    if (!model || row < 0 || row >= model->rowCount()) {
-        qDebug() << "Invalid row for deletion:" << row;
-        return;
-    }
 
     QSqlRecord record = model->record(row);
     int id = record.value("id").toInt();
@@ -482,12 +453,6 @@ int DatabaseManager::getRowCount(const QString &table)
     return 0;
 }
 
-int DatabaseManager::getColumnCount(const QString &table)
-{
-    QSqlRecord record = _database.record(table);
-    return record.count();
-}
-
 QVariantList DatabaseManager::getCustomerOrders(int customerId)
 {
     QVariantList orders;
@@ -495,11 +460,6 @@ QVariantList DatabaseManager::getCustomerOrders(int customerId)
     QSqlQuery query;
     query.prepare("SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC");
     query.addBindValue(customerId);
-
-    if (!query.exec()) {
-        qDebug() << "Error getting customer orders:" << query.lastError().text();
-        return orders;
-    }
 
     while (query.next()) {
         QVariantMap order;
@@ -592,43 +552,6 @@ bool DatabaseManager::createOrderItem(int orderId, int itemId, const QString &it
     return true;
 }
 
-QVariantList DatabaseManager::getMasterOrders() {
-    QVariantList result;
-
-    QSqlQuery query;
-    QString queryStr = "SELECT o.id, o.order_number, o.order_type, o.status, o.total_amount, "
-                       "o.created_at, c.full_name as customer_name, "
-                       "fo.width, fo.height, fo.special_instructions "
-                       "FROM orders o "
-                       "LEFT JOIN customers c ON o.customer_id = c.id "
-                       "LEFT JOIN frame_orders fo ON o.id = fo.order_id "
-                       "WHERE o.order_type = 'Изготовление рамки' "
-                       "ORDER BY o.created_at DESC";
-
-    if (!query.exec(queryStr)) {
-        qDebug() << "Error getting master orders:" << query.lastError().text();
-        return result;
-    }
-
-    while (query.next()) {
-        QVariantMap rowData;
-        rowData["id"] = query.value("id");
-        rowData["order_number"] = query.value("order_number");
-        rowData["order_type"] = query.value("order_type");
-        rowData["status"] = query.value("status");
-        rowData["total_amount"] = query.value("total_amount");
-        rowData["created_at"] = query.value("created_at");
-        rowData["customer_name"] = query.value("customer_name");
-        rowData["width"] = query.value("width");
-        rowData["height"] = query.value("height");
-        rowData["special_instructions"] = query.value("special_instructions");
-
-        result.append(rowData);
-    }
-
-    return result;
-}
-
 bool DatabaseManager::updateOrderStatus(int orderId, const QString &newStatus) {
     QSqlQuery query;
     query.prepare("UPDATE orders SET status = ? WHERE id = ?");
@@ -648,12 +571,6 @@ QSqlQueryModel* DatabaseManager::getFrameMaterialsModel() {
     qDebug() << "Executing query:" << queryStr;
     model->setQuery(queryStr, _database);
 
-    if (model->lastError().isValid()) {
-        qDebug() << "❌ Error in getFrameMaterialsModel:" << model->lastError().text();
-    } else {
-        qDebug() << "✅ Frame materials model loaded, rows:" << model->rowCount();
-    }
-
     return model;
 }
 
@@ -670,22 +587,6 @@ void DatabaseManager::addFrameMaterial(const QString &name, const QString &type,
     query.addBindValue(color);
     query.addBindValue(width);
     query.addBindValue(currentUserId);
-
-    qDebug() << "=== ADDING FRAME MATERIAL ===";
-    qDebug() << "Name:" << name;
-    qDebug() << "Type:" << type;
-    qDebug() << "Price:" << pricePerMeter;
-    qDebug() << "Stock:" << stockQuantity;
-    qDebug() << "Color:" << color;
-    qDebug() << "Width:" << width;
-    qDebug() << "User ID:" << currentUserId;
-
-    if (!query.exec()) {
-        qDebug() << "❌ ERROR adding frame material:" << query.lastError().text();
-    } else {
-        qDebug() << "✅ Frame material added successfully, ID:" << query.lastInsertId().toInt();
-    }
-    qDebug() << "=============================";
 }
 
 void DatabaseManager::updateFrameMaterial(int row, const QString &name, const QString &type,
@@ -715,7 +616,6 @@ void DatabaseManager::updateFrameMaterial(int row, const QString &name, const QS
 void DatabaseManager::deleteFrameMaterial(int row) {
     QSqlQueryModel *model = getFrameMaterialsModel();
     if (!model || row < 0 || row >= model->rowCount()) {
-        qDebug() << "Invalid row for deletion:" << row;
         return;
     }
 
@@ -727,32 +627,6 @@ void DatabaseManager::deleteFrameMaterial(int row) {
 
     if (!query.exec())
         qDebug() << "Error deleting frame material:" << query.lastError().text();
-}
-
-QVariantMap DatabaseManager::getFrameMaterialRowData(int row) {
-    QVariantMap result;
-    QSqlQueryModel *model = getFrameMaterialsModel();
-
-    qDebug() << "=== GETTING FRAME MATERIAL ROW DATA ===";
-    qDebug() << "Requested row:" << row;
-    qDebug() << "Model row count:" << (model ? model->rowCount() : 0);
-
-    if (model && row >= 0 && row < model->rowCount()) {
-        result["id"] = model->data(model->index(row, 0));
-        result["name"] = model->data(model->index(row, 1));
-        result["type"] = model->data(model->index(row, 2));
-        result["price_per_meter"] = model->data(model->index(row, 3));
-        result["stock_quantity"] = model->data(model->index(row, 4));
-        result["color"] = model->data(model->index(row, 5));
-        result["width"] = model->data(model->index(row, 6));
-
-        qDebug() << "Row data:" << result;
-    } else {
-        qDebug() << "❌ Invalid row or model";
-    }
-    qDebug() << "=====================================";
-
-    return result;
 }
 
 QSqlQueryModel* DatabaseManager::getComponentFurnitureModel() {
@@ -815,27 +689,6 @@ void DatabaseManager::deleteComponentFurniture(int row) {
         qDebug() << "Error deleting component furniture:" << query.lastError().text();
 }
 
-QVariantMap DatabaseManager::getComponentFurnitureRowData(int row) {
-    QVariantMap result;
-    QSqlQueryModel *model = getComponentFurnitureModel();
-
-    if (model && row >= 0 && row < model->rowCount()) {
-        result["id"] = model->data(model->index(row, 0));
-        result["name"] = model->data(model->index(row, 1));
-        result["type"] = model->data(model->index(row, 2));
-        result["price_per_unit"] = model->data(model->index(row, 3));
-        result["stock_quantity"] = model->data(model->index(row, 4));
-    }
-
-    return result;
-}
-
-QSqlQueryModel* DatabaseManager::getConsumableFurnitureModel() {
-    QSqlQueryModel* model = new QSqlQueryModel(this);
-    model->setQuery("SELECT id, name, type, price_per_unit, stock_quantity, unit FROM consumable_furniture ORDER BY name", _database);
-    return model;
-}
-
 void DatabaseManager::addEmbroideryKit(const QString &name, const QString &description, double price, int stockQuantity) {
     QSqlQuery query;
     query.prepare("INSERT INTO embroidery_kits (name, description, price, stock_quantity, created_by) VALUES (?, ?, ?, ?, ?)");
@@ -891,76 +744,6 @@ QVariantList DatabaseManager::getOrdersData() {
         }
         result.append(rowData);
     }
-
-    qDebug() << "Loaded" << result.size() << "orders from database";
-    return result;
-}
-
-QVariantList DatabaseManager::getEmbroideryKitsData() {
-    QVariantList result;
-
-    QSqlQuery query(_database);
-    QString queryStr = "SELECT id, name, description, price, stock_quantity FROM embroidery_kits WHERE is_active = 1 ORDER BY name";
-
-    if (!query.exec(queryStr)) {
-        qDebug() << "Error loading embroidery kits data:" << query.lastError().text();
-        return result;
-    }
-
-    while (query.next()) {
-        QVariantMap rowData;
-        QSqlRecord record = query.record();
-        for (int i = 0; i < record.count(); ++i) {
-            rowData[record.fieldName(i)] = record.value(i);
-        }
-        result.append(rowData);
-    }
-
-    return result;
-}
-
-QVariantList DatabaseManager::getConsumableFurnitureData() {
-    QVariantList result;
-
-    QSqlQuery query(_database);
-    QString queryStr = "SELECT id, name, type, price_per_unit, stock_quantity, unit FROM consumable_furniture ORDER BY name";
-
-    if (!query.exec(queryStr)) {
-        qDebug() << "Error loading consumable furniture data:" << query.lastError().text();
-        return result;
-    }
-
-    while (query.next()) {
-        QVariantMap rowData;
-        QSqlRecord record = query.record();
-        for (int i = 0; i < record.count(); ++i) {
-            rowData[record.fieldName(i)] = record.value(i);
-        }
-        result.append(rowData);
-    }
-
-    return result;
-}
-
-QVariantList DatabaseManager::getCustomersData() {
-    QVariantList result;
-
-    QSqlQuery query(_database);
-    QString queryStr = "SELECT id, full_name, phone, email FROM customers ORDER BY full_name";
-
-    if (!query.exec(queryStr)) {
-        return result;
-    }
-
-    while (query.next()) {
-        QVariantMap rowData;
-        QSqlRecord record = query.record();
-        for (int i = 0; i < record.count(); ++i) {
-            rowData[record.fieldName(i)] = record.value(i);
-        }
-        result.append(rowData);
-    }
-
     return result;
 }
 
@@ -1068,4 +851,35 @@ int DatabaseManager::getLastInsertedOrderId() {
 
     qDebug() << "Error getting last inserted order ID:" << query.lastError().text();
     return -1;
+}
+
+QVariantList DatabaseManager::getMasterOrdersData() {
+    QVariantList result;
+
+    QSqlQuery query(_database);
+    QString queryStr = "SELECT "
+                       "o.id, o.order_number, o.order_type, o.status, o.total_amount, o.created_at, "
+                       "c.full_name as customer_name, c.phone as customer_phone, "
+                       "fo.width, fo.height, fo.special_instructions "
+                       "FROM orders o "
+                       "LEFT JOIN customers c ON o.customer_id = c.id "
+                       "LEFT JOIN frame_orders fo ON o.id = fo.order_id "
+                       "WHERE o.order_type = 'Изготовление рамки' "  // Фильтр для мастера
+                       "ORDER BY o.created_at DESC";
+
+    if (!query.exec(queryStr)) {
+        qDebug() << "Error loading master orders data:" << query.lastError().text();
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap rowData;
+        QSqlRecord record = query.record();
+        for (int i = 0; i < record.count(); ++i) {
+            rowData[record.fieldName(i)] = record.value(i);
+        }
+        result.append(rowData);
+    }
+
+    return result;
 }
