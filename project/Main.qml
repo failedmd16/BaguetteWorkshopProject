@@ -249,13 +249,13 @@ ApplicationWindow {
 
         background: Rectangle {
             color: parent.down ? "#c0392b" : "#e74c3c"
-            radius: 10
+            radius: 8
         }
 
         contentItem: Text {
             text: parent.text
             color: "white"
-            font.pixelSize: 16
+            font.pixelSize: 14
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter

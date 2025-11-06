@@ -80,21 +80,24 @@ Page {
             border.width: 1
 
             Row {
-                anchors.fill: parent
+                anchors.left: parent.left
                 anchors.margins: 10
                 spacing: 8
+                anchors.verticalCenter: parent.verticalCenter
 
                 Label {
                     text: "🔍 Фильтр покупателей по периоду заказов"
                     font.bold: true
                     color: "#2c3e50"
                     font.pixelSize: 14
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Label {
                     text: "С:"
                     color: "#34495e"
                     font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
                 TextField {
@@ -102,6 +105,7 @@ Page {
                     width: 150
                     height: 40
                     placeholderText: "дд.мм.гггг"
+                    verticalAlignment: TextField.AlignVCenter
                     font.pixelSize: 14
                     padding: 12
                     background: Rectangle {
@@ -116,6 +120,7 @@ Page {
                     text: "По:"
                     color: "#34495e"
                     font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
                 TextField {
@@ -123,6 +128,7 @@ Page {
                     width: 150
                     height: 40
                     placeholderText: "дд.мм.гггг"
+                    verticalAlignment: TextField.AlignVCenter
                     font.pixelSize: 14
                     padding: 12
                     background: Rectangle {
@@ -191,6 +197,7 @@ Page {
             }
         }
 
+        // Заголовки таблицы
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -222,6 +229,7 @@ Page {
             }
         }
 
+        // Таблица с покупателями
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -285,7 +293,7 @@ Page {
                                 }
                             }
                             verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignLeft
+                            horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
                             color: "#2c3e50"
                             font.pixelSize: 13
@@ -324,6 +332,7 @@ Page {
                 id: refreshButton
                 text: "🔄 Обновить"
                 font.bold: true
+                font.pixelSize: 14
                 padding: 12
                 Layout.preferredWidth: 120
                 background: Rectangle {
@@ -375,8 +384,8 @@ Page {
         id: customerAddDialog
         modal: true
         title: "👤 Добавить нового покупателя"
-        width: 500
-        height: 500
+        width: 400
+        height: 400
         anchors.centerIn: parent
         padding: 0
 
@@ -407,7 +416,7 @@ Page {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
 
-                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 Column {
@@ -533,7 +542,6 @@ Page {
                 }
             }
 
-            // Footer with buttons
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 70
@@ -662,7 +670,6 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Content
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -720,6 +727,7 @@ Page {
                                 height: parent.height
                                 text: modelData.full_name || ""
                                 verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
                                 color: "#2c3e50"
                                 font.pixelSize: 12
@@ -731,6 +739,7 @@ Page {
                                 height: parent.height
                                 text: modelData.phone || ""
                                 verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
                                 color: "#2c3e50"
                                 font.pixelSize: 12
@@ -742,6 +751,7 @@ Page {
                                 height: parent.height
                                 text: modelData.email || ""
                                 verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
                                 elide: Text.ElideRight
                                 color: "#2c3e50"
                                 font.pixelSize: 12
@@ -753,7 +763,7 @@ Page {
                                 height: parent.height
                                 text: modelData.order_count || "0"
                                 verticalAlignment: Text.AlignVCenter
-                                horizontalAlignment: Text.AlignCenter
+                                horizontalAlignment: Text.AlignHCenter
                                 color: "#2c3e50"
                                 font.pixelSize: 12
                                 font.bold: true
@@ -765,7 +775,7 @@ Page {
                                 height: parent.height
                                 text: (modelData.total_amount || "0") + " ₽"
                                 verticalAlignment: Text.AlignVCenter
-                                horizontalAlignment: Text.AlignCenter
+                                horizontalAlignment: Text.AlignHCenter
                                 color: "#27ae60"
                                 font.pixelSize: 12
                                 font.bold: true
@@ -787,7 +797,6 @@ Page {
                 }
             }
 
-            // Footer
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 70
@@ -825,7 +834,7 @@ Page {
         id: customerViewDialog
         modal: true
         title: "👤 Данные покупателя"
-        width: 500
+        width: 350
         height: 600
         anchors.centerIn: parent
         padding: 0
@@ -855,21 +864,23 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Content
             ScrollView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.margins: 15
                 clip: true
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.margins: 15
+
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 Column {
                     width: parent.width
                     spacing: 15
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 10
 
                     Column {
-                        width: 300
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -879,21 +890,21 @@ Page {
                             color: "#34495e"
                         }
                         Label {
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             text: customerViewDialog.currentData.full_name || "Не указано"
                             wrapMode: Text.Wrap
                             color: "#2c3e50"
-                            padding: 8
+                            padding: 12
                             background: Rectangle {
                                 color: "#f8f9fa"
-                                radius: 4
+                                radius: 8
                             }
                         }
                     }
 
                     Column {
-                        width: 300
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -903,21 +914,21 @@ Page {
                             color: "#34495e"
                         }
                         Label {
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             text: customerViewDialog.currentData.phone || "Не указано"
                             wrapMode: Text.Wrap
                             color: "#2c3e50"
-                            padding: 8
+                            padding: 12
                             background: Rectangle {
                                 color: "#f8f9fa"
-                                radius: 4
+                                radius: 8
                             }
                         }
                     }
 
                     Column {
-                        width: 300
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -927,21 +938,21 @@ Page {
                             color: "#34495e"
                         }
                         Label {
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             text: customerViewDialog.currentData.email || "Не указано"
                             wrapMode: Text.Wrap
                             color: "#2c3e50"
-                            padding: 8
+                            padding: 12
                             background: Rectangle {
                                 color: "#f8f9fa"
-                                radius: 4
+                                radius: 8
                             }
                         }
                     }
 
                     Column {
-                        width: 300
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -951,20 +962,21 @@ Page {
                             color: "#34495e"
                         }
                         Label {
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             text: customerViewDialog.currentData.address || "Не указано"
                             wrapMode: Text.Wrap
                             color: "#2c3e50"
-                            padding: 8
+                            padding: 12
                             background: Rectangle {
                                 color: "#f8f9fa"
-                                radius: 4
+                                radius: 8
                             }
                         }
                     }
 
                     Label {
-                        width: 300
+                        width: parent.width
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "📦 Заказы покупателя:"
                         font.bold: true
@@ -974,91 +986,117 @@ Page {
                     Repeater {
                         model: customerViewDialog.customerOrders
 
-                        Rectangle {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            height: 140
-                            color: "#f8f9fa"
-                            radius: 8
+                        Column {
+                            width: parent.width
+                            spacing: 0
 
-                            Column {
-                                width: parent.width - 20
-                                anchors.centerIn: parent
-                                spacing: 5
+                            Rectangle {
+                                width: 300
+                                height: 140
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                color: "#f8f9fa"
+                                radius: 8
 
-                                Row {
-                                    width: parent.width
-                                    spacing: 10
-                                    Label {
-                                        text: "№ заказа:"
-                                        font.bold: true
-                                        color: "#34495e"
-                                    }
-                                    Label {
-                                        text: modelData.order_number || "Не указан"
-                                        wrapMode: Text.Wrap
-                                        color: "#2c3e50"
-                                    }
-                                }
+                                Column {
+                                    width: 280  // Фиксированная ширина для центрирования
+                                    anchors.centerIn: parent
+                                    spacing: 5
 
-                                Row {
-                                    width: parent.width
-                                    spacing: 10
-                                    Label {
-                                        text: "Тип:"
-                                        font.bold: true
-                                        color: "#34495e"
-                                    }
-                                    Label {
-                                        text: getOrderTypeText(modelData.order_type)
-                                        wrapMode: Text.Wrap
-                                        color: "#2c3e50"
-                                    }
-                                }
+                                    // Центрируем каждую строку
+                                    Row {
+                                        width: parent.width
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        spacing: 10
 
-                                Row {
-                                    width: parent.width
-                                    spacing: 10
-                                    Label {
-                                        text: "Статус:"
-                                        font.bold: true
-                                        color: "#34495e"
+                                        Label {
+                                            width: 100
+                                            text: "№ заказа:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                        }
+                                        Label {
+                                            width: 170
+                                            text: modelData.order_number || "Не указан"
+                                            wrapMode: Text.Wrap
+                                            color: "#2c3e50"
+                                        }
                                     }
-                                    Label {
-                                        text: getStatusText(modelData.status)
-                                        wrapMode: Text.Wrap
-                                        color: getStatusColor(modelData.status)
-                                        font.bold: true
-                                    }
-                                }
 
-                                Row {
-                                    width: parent.width
-                                    spacing: 10
-                                    Label {
-                                        text: "Сумма:"
-                                        font.bold: true
-                                        color: "#34495e"
-                                    }
-                                    Label {
-                                        text: modelData.total_amount ? modelData.total_amount + " ₽" : "0 ₽"
-                                        wrapMode: Text.Wrap
-                                        color: "#2c3e50"
-                                    }
-                                }
+                                    Row {
+                                        width: parent.width
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        spacing: 10
 
-                                Row {
-                                    width: parent.width
-                                    spacing: 10
-                                    Label {
-                                        text: "Дата создания:"
-                                        font.bold: true
-                                        color: "#34495e"
+                                        Label {
+                                            width: 100
+                                            text: "Тип:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                        }
+                                        Label {
+                                            width: 170
+                                            text: getOrderTypeText(modelData.order_type)
+                                            wrapMode: Text.Wrap
+                                            color: "#2c3e50"
+                                        }
                                     }
-                                    Label {
-                                        text: modelData.created_at ? formatDate(modelData.created_at) : "Не указана"
-                                        wrapMode: Text.Wrap
-                                        color: "#2c3e50"
+
+                                    Row {
+                                        width: parent.width
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        spacing: 10
+
+                                        Label {
+                                            width: 100
+                                            text: "Статус:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                        }
+                                        Label {
+                                            width: 170
+                                            text: getStatusText(modelData.status)
+                                            wrapMode: Text.Wrap
+                                            color: getStatusColor(modelData.status)
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    Row {
+                                        width: parent.width
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        spacing: 10
+
+                                        Label {
+                                            width: 100
+                                            text: "Сумма:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                        }
+                                        Label {
+                                            width: 170
+                                            text: modelData.total_amount ? modelData.total_amount + " ₽" : "0 ₽"
+                                            wrapMode: Text.Wrap
+                                            color: "#2c3e50"
+                                        }
+                                    }
+
+                                    Row {
+                                        width: parent.width
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        spacing: 10
+
+                                        Label {
+                                            width: 100
+                                            text: "Дата создания:"
+                                            font.bold: true
+                                            color: "#34495e"
+                                        }
+                                        Label {
+                                            width: 170
+                                            text: modelData.created_at ? formatDate(modelData.created_at) : "Не указана"
+                                            wrapMode: Text.Wrap
+                                            color: "#2c3e50"
+                                        }
                                     }
                                 }
                             }
@@ -1078,7 +1116,6 @@ Page {
                 }
             }
 
-            // Footer with buttons
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 70
@@ -1161,8 +1198,8 @@ Page {
         id: customerEditDialog
         modal: true
         title: "✏️ Редактирование данных покупателя"
-        width: 500
-        height: 500
+        width: 400
+        height: 450
         anchors.centerIn: parent
         padding: 0
 
@@ -1190,22 +1227,24 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Content
             ScrollView {
-                Layout.fillWidth: true
+                clip: true
                 Layout.fillHeight: true
+                Layout.fillWidth: true
                 Layout.topMargin: 10
                 Layout.bottomMargin: 10
-                clip: true
+
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 Column {
-                    width: 400
+                    width: parent.width
                     spacing: 15
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 10
 
                     Column {
-                        width: 400
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -1216,7 +1255,8 @@ Page {
                         }
                         TextField {
                             id: editNameField
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             placeholderText: "Введите ФИО"
                             font.pixelSize: 14
                             padding: 12
@@ -1230,8 +1270,7 @@ Page {
                     }
 
                     Column {
-                        width: 400
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -1242,7 +1281,8 @@ Page {
                         }
                         TextField {
                             id: editPhoneField
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             placeholderText: "+7-XXX-XXX-XX-XX"
                             font.pixelSize: 14
                             padding: 12
@@ -1256,8 +1296,7 @@ Page {
                     }
 
                     Column {
-                        width: 400
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -1268,7 +1307,8 @@ Page {
                         }
                         TextField {
                             id: editEmailField
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             placeholderText: "example@mail.ru"
                             font.pixelSize: 14
                             padding: 12
@@ -1282,8 +1322,7 @@ Page {
                     }
 
                     Column {
-                        width: 400
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         spacing: 5
 
                         Label {
@@ -1294,7 +1333,8 @@ Page {
                         }
                         TextField {
                             id: editAddressField
-                            width: parent.width
+                            width: 300
+                            anchors.horizontalCenter: parent.horizontalCenter
                             placeholderText: "Введите адрес"
                             font.pixelSize: 14
                             padding: 12
@@ -1309,7 +1349,7 @@ Page {
 
                     Label {
                         id: editValidationError
-                        width: 400
+                        width: 300
                         anchors.horizontalCenter: parent.horizontalCenter
                         color: "#e74c3c"
                         visible: false
@@ -1320,7 +1360,6 @@ Page {
                 }
             }
 
-            // Footer with buttons
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 70
@@ -1358,6 +1397,33 @@ Page {
                                 customerEditDialog.close()
                             }
                         }
+
+                        function validateEditForm() {
+                            const errors = []
+                            const name = editNameField.text.trim()
+                            const phone = editPhoneField.text.trim()
+                            const email = editEmailField.text.trim()
+                            const address = editAddressField.text.trim()
+
+                            if (name.length < 2) errors.push("• ФИО должно содержать минимум 2 символа")
+
+                            const phoneRegex = /^\+7-[0-9]{3}-[0-9]{3}-[0-9]{2}-[0-9]{2}$/
+                            if (!phoneRegex.test(phone)) errors.push("• Введите корректный номер телефона в формате +7-XXX-XXX-XX-XX")
+
+                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                            if (!emailRegex.test(email)) errors.push("• Введите корректный email адрес")
+
+                            if (address.length < 5) errors.push("• Адрес должен содержать минимум 5 символов")
+
+                            if (errors.length > 0) {
+                                editValidationError.text = errors.join("\n")
+                                editValidationError.visible = true
+                                return false
+                            }
+
+                            editValidationError.visible = false
+                            return true
+                        }
                     }
 
                     Button {
@@ -1380,34 +1446,6 @@ Page {
                 }
             }
         }
-
-        function validateEditForm() {
-            const errors = []
-            const name = editNameField.text.trim()
-            const phone = editPhoneField.text.trim()
-            const email = editEmailField.text.trim()
-            const address = editAddressField.text.trim()
-
-            if (name.length < 2) errors.push("• ФИО должно содержать минимум 2 символа")
-
-            const phoneRegex = /^\+7-[0-9]{3}-[0-9]{3}-[0-9]{2}-[0-9]{2}$/
-            if (!phoneRegex.test(phone)) errors.push("• Введите корректный номер телефона в формате +7-XXX-XXX-XX-XX")
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            if (!emailRegex.test(email)) errors.push("• Введите корректный email адрес")
-
-            if (address.length < 5) errors.push("• Адрес должен содержать минимум 5 символов")
-
-            if (errors.length > 0) {
-                editValidationError.text = errors.join("\n")
-                editValidationError.visible = true
-                return false
-            }
-
-            editValidationError.visible = false
-            return true
-        }
-
         function openWithData(row, data) {
             currentRow = row
             currentData = data
@@ -1442,23 +1480,16 @@ Page {
             anchors.fill: parent
             spacing: 0
 
-            // Header
-            Rectangle {
+            Label {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 50
-                color: "#e74c3c"
-                radius: 12
-
-                Label {
-                    anchors.centerIn: parent
-                    text: "⚠️ Подтверждение удаления"
-                    font.bold: true
-                    font.pixelSize: 16
-                    color: "white"
-                }
+                text: "⚠️ Подтверждение удаления"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#2c3e50"
+                padding: 10
+                horizontalAlignment: Text.AlignHCenter
             }
 
-            // Content
             Column {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -1485,7 +1516,6 @@ Page {
                 }
             }
 
-            // Footer with buttons
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 60
@@ -1540,15 +1570,13 @@ Page {
         }
     }
 
-    // Диалог сообщения
     Dialog {
         id: messageDialog
         modal: true
         title: "❌ Ошибка"
-        standardButtons: Dialog.Ok
         anchors.centerIn: parent
-        width: 300
-        height: 150
+        width: 350
+        height: 220
 
         background: Rectangle {
             color: "#ffffff"
@@ -1559,23 +1587,54 @@ Page {
 
         ColumnLayout {
             anchors.fill: parent
-            spacing: 0
+            spacing: 10
+            anchors.margins: 10
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 50
-                color: "red"
-                radius: 12
+                Layout.preferredHeight: 80
+                color: "#e74c3c"
+                radius: 8
 
                 Label {
-                    anchors.centerIn: parent
+                    anchors.fill: parent
+                    anchors.margins: 15
                     font.pixelSize: 14
                     text: "Введите корректные даты для фильтрации"
                     wrapMode: Text.Wrap
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     color: "white"
+                    font.bold: true
                 }
+            }
+
+            Item {
+                Layout.fillHeight: true
+                Layout.minimumHeight: 10
+            }
+
+            Button {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 120
+                Layout.preferredHeight: 40
+                Layout.bottomMargin: 10
+
+                text: "✅ OK"
+                background: Rectangle {
+                    color: parent.down ? "#27ae60" : "#2ecc71"
+                    radius: 8
+                    border.color: "#27ae60"
+                    border.width: 1
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.bold: true
+                }
+                onClicked: messageDialog.accept()
             }
         }
     }
@@ -1583,7 +1642,6 @@ Page {
     onVisibleChanged: {
         if (visible) {
             tableview.model = dbmanager.getTableModel(root.tableName)
-            // Устанавливаем даты по умолчанию (последние 30 дней)
             var endDate = new Date()
             var startDate = new Date()
             startDate.setDate(startDate.getDate() - 30)

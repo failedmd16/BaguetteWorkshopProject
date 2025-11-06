@@ -2,7 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.LocalStorage
-import databasemanager // подключение cpp класса к QML
+import databasemanager
 
 Page {
     signal loginSellerSuccess()
@@ -14,7 +14,6 @@ Page {
     property color lightGrayColor: "#D3D3D3"
     property color darkGrayColor: "#404040"
 
-    // создается объект класса DatabaseManager, вызывается конструктор, где происходит инициализация БД
     DatabaseManager {
         id: dbmanager
     }
@@ -99,13 +98,13 @@ Page {
                     return
                 }
 
-                if (dbmanager.loginUser(user_name, user_password)) { // проверка входа пользователя при помощи метода из cpp
+                if (dbmanager.loginUser(user_name, user_password)) {
                     infoLbl.text = "Вход успешен"
                     infoLbl.color = "green"
 
-                    if (dbmanager.getCurrentUserRole() === "Продавец") // проверяем роль пользователя и перебрасываем в осн. окно
+                    if (dbmanager.getCurrentUserRole() === "Продавец")
                         loginSellerSuccess()
-                        else if (dbmanager.getCurrentUserRole() === "Мастер производства") // проверяем роль пользователя и перебрасываем в осн. окно
+                        else if (dbmanager.getCurrentUserRole() === "Мастер производства")
                         loginMasterSuccess()
                 } else {
                     infoLbl.text = "Неверный логин или пароль"
