@@ -342,10 +342,11 @@ bool DatabaseManager::loginUser(const QString &login, const QString &password) {
     if (query.next()) {
         currentUserId = query.value(0).toInt();
         currentUserRole = query.value(1).toString();
-        qDebug() << "Login successful. User ID: " << currentUserId << "Role: " << currentUserRole;
+        qDebug() << "✅ Login successful. User ID: " << currentUserId << "Role: " << currentUserRole;
         return true;
     }
 
+    qDebug() << "❌ Login failed: invalid credentials";
     return false;
 }
 
@@ -620,7 +621,16 @@ bool DatabaseManager::updateOrderStatus(int orderId, const QString &newStatus) {
 
 QSqlQueryModel* DatabaseManager::getFrameMaterialsModel() {
     QSqlQueryModel* model = new QSqlQueryModel(this);
-    model->setQuery("SELECT * FROM frame_materials ORDER BY name", _database);
+    QString queryStr = "SELECT * FROM frame_materials ORDER BY name";
+    qDebug() << "Executing query:" << queryStr;
+    model->setQuery(queryStr, _database);
+
+    if (model->lastError().isValid()) {
+        qDebug() << "❌ Error in getFrameMaterialsModel:" << model->lastError().text();
+    } else {
+        qDebug() << "✅ Frame materials model loaded, rows:" << model->rowCount();
+    }
+
     return model;
 }
 
@@ -638,9 +648,21 @@ void DatabaseManager::addFrameMaterial(const QString &name, const QString &type,
     query.addBindValue(width);
     query.addBindValue(currentUserId);
 
+    qDebug() << "=== ADDING FRAME MATERIAL ===";
+    qDebug() << "Name:" << name;
+    qDebug() << "Type:" << type;
+    qDebug() << "Price:" << pricePerMeter;
+    qDebug() << "Stock:" << stockQuantity;
+    qDebug() << "Color:" << color;
+    qDebug() << "Width:" << width;
+    qDebug() << "User ID:" << currentUserId;
+
     if (!query.exec()) {
-        qDebug() << "Error adding frame material:" << query.lastError().text();
+        qDebug() << "❌ ERROR adding frame material:" << query.lastError().text();
+    } else {
+        qDebug() << "✅ Frame material added successfully, ID:" << query.lastInsertId().toInt();
     }
+    qDebug() << "=============================";
 }
 
 void DatabaseManager::updateFrameMaterial(int row, const QString &name, const QString &type,
@@ -688,6 +710,10 @@ QVariantMap DatabaseManager::getFrameMaterialRowData(int row) {
     QVariantMap result;
     QSqlQueryModel *model = getFrameMaterialsModel();
 
+    qDebug() << "=== GETTING FRAME MATERIAL ROW DATA ===";
+    qDebug() << "Requested row:" << row;
+    qDebug() << "Model row count:" << (model ? model->rowCount() : 0);
+
     if (model && row >= 0 && row < model->rowCount()) {
         result["id"] = model->data(model->index(row, 0));
         result["name"] = model->data(model->index(row, 1));
@@ -696,7 +722,12 @@ QVariantMap DatabaseManager::getFrameMaterialRowData(int row) {
         result["stock_quantity"] = model->data(model->index(row, 4));
         result["color"] = model->data(model->index(row, 5));
         result["width"] = model->data(model->index(row, 6));
+
+        qDebug() << "Row data:" << result;
+    } else {
+        qDebug() << "❌ Invalid row or model";
     }
+    qDebug() << "=====================================";
 
     return result;
 }
