@@ -509,32 +509,6 @@ Page {
                             }
                         }
                     }
-
-                    // Информация о создании
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📅 Дата создания:"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        Label {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: productViewDialog.currentData.created_at ?
-                                  formatDate(productViewDialog.currentData.created_at) : "Не указана"
-                            wrapMode: Text.Wrap
-                            color: "#7f8c8d"
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                            }
-                        }
-                    }
                 }
             }
 
@@ -1001,8 +975,7 @@ Page {
 
         width: 500
         height: root.currentTable === "frame_materials" ? 600 : 450
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        anchors.centerIn: parent
 
         background: Rectangle {
             color: "#ffffff"
@@ -1017,6 +990,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignHCenter
                 text: "📝 Заполните информацию"
                 font.bold: true
                 font.pixelSize: 16
@@ -1043,9 +1017,11 @@ Page {
                         // Общие поля
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             spacing: 6
 
                             Label {
+                                Layout.alignment: Qt.AlignHCenter
                                 text: "Название:"
                                 font.bold: true
                                 color: "#34495e"
@@ -1054,6 +1030,7 @@ Page {
                             TextField {
                                 id: addNameField
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignHCenter
                                 placeholderText: "Введите название"
                                 background: Rectangle {
                                     color: "#f8f9fa"
@@ -1065,9 +1042,11 @@ Page {
 
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             spacing: 6
 
                             Label {
+                                Layout.alignment: Qt.AlignHCenter
                                 text: "Тип:"
                                 font.bold: true
                                 color: "#34495e"
@@ -1076,6 +1055,7 @@ Page {
                             TextField {
                                 id: addTypeField
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignHCenter
                                 placeholderText: "Введите тип"
                                 background: Rectangle {
                                     color: "#f8f9fa"
@@ -1087,9 +1067,11 @@ Page {
 
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             spacing: 6
 
                             Label {
+                                Layout.alignment: Qt.AlignHCenter
                                 text: root.currentTable === "frame_materials" ? "Цена за метр (₽):" : "Цена за шт (₽):"
                                 font.bold: true
                                 color: "#34495e"
@@ -1098,6 +1080,7 @@ Page {
                             TextField {
                                 id: addPriceField
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignHCenter
                                 placeholderText: "0.00"
                                 validator: DoubleValidator { bottom: 0.01 }
                                 background: Rectangle {
@@ -1110,9 +1093,11 @@ Page {
 
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             spacing: 6
 
                             Label {
+                                Layout.alignment: Qt.AlignHCenter
                                 text: root.currentTable === "frame_materials" ? "Количество на складе (м):" : "Количество на складе (шт):"
                                 font.bold: true
                                 color: "#34495e"
@@ -1121,6 +1106,7 @@ Page {
                             TextField {
                                 id: addStockField
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignHCenter
                                 placeholderText: root.currentTable === "frame_materials" ? "0.0" : "0"
                                 validator: root.currentTable === "frame_materials" ? doubleValidator : intValidator
                                 background: Rectangle {
@@ -1134,10 +1120,12 @@ Page {
                         // Поля только для материалов рамок
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             spacing: 6
                             visible: root.currentTable === "frame_materials"
 
                             Label {
+                                Layout.alignment: Qt.AlignHCenter
                                 text: "Цвет:"
                                 font.bold: true
                                 color: "#34495e"
@@ -1146,6 +1134,7 @@ Page {
                             TextField {
                                 id: addColorField
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignHCenter
                                 placeholderText: "Введите цвет"
                                 background: Rectangle {
                                     color: "#f8f9fa"
@@ -1157,10 +1146,12 @@ Page {
 
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             spacing: 6
                             visible: root.currentTable === "frame_materials"
 
                             Label {
+                                Layout.alignment: Qt.AlignHCenter
                                 text: "Ширина (см):"
                                 font.bold: true
                                 color: "#34495e"
@@ -1169,6 +1160,7 @@ Page {
                             TextField {
                                 id: addWidthField
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignHCenter
                                 placeholderText: "0.0"
                                 validator: DoubleValidator { bottom: 0.1 }
                                 background: Rectangle {
@@ -1182,12 +1174,14 @@ Page {
                         Label {
                             id: addValidationError
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             Layout.preferredHeight: addValidationError.visible ? implicitHeight : 0
                             color: "#e74c3c"
                             visible: false
                             wrapMode: Text.WordWrap
                             font.pixelSize: 12
                             padding: 8
+                            horizontalAlignment: Text.AlignHCenter
                             background: Rectangle {
                                 color: "#fdf2f2"
                                 radius: 6
@@ -1197,115 +1191,114 @@ Page {
                     }
                 }
             }
-        }
 
-        footer: DialogButtonBox {
-            alignment: Qt.AlignCenter
-            padding: 15
-            background: Rectangle {
-                color: "transparent"
-            }
+            // Кнопки внизу диалога
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 15
 
-            Button {
-                text: "❌ Отмена"
-                font.bold: true
-                padding: 12
-                width: 120
-                background: Rectangle {
-                    color: parent.down ? "#7f8c8d" : "#95a5a6"
-                    radius: 8
+                Button {
+                    text: "❌ Отмена"
+                    font.bold: true
+                    padding: 12
+                    Layout.preferredWidth: 120
+                    background: Rectangle {
+                        color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    onClicked: productAddDialog.reject()
                 }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
-                }
-                onClicked: productAddDialog.reject()
-            }
 
-            Button {
-                text: "✅ Добавить"
-                font.bold: true
-                padding: 12
-                width: 120
-                background: Rectangle {
-                    color: parent.down ? "#27ae60" : "#2ecc71"
-                    radius: 8
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font: parent.font
-                }
-                onClicked: {
-                    console.log("Кнопка Добавить нажата")
-                    if (validateAddForm()) {
-                        console.log("Валидация пройдена")
-                        if (root.currentTable === "frame_materials") {
-                            console.log("Добавляем материал рамки:", addNameField.text, addTypeField.text, addPriceField.text, addStockField.text, addColorField.text, addWidthField.text)
-                            dbmanager.addFrameMaterial(
-                                addNameField.text.trim(),
-                                addTypeField.text.trim(),
-                                parseFloat(addPriceField.text) || 0,
-                                parseFloat(addStockField.text) || 0,
-                                addColorField.text.trim(),
-                                parseFloat(addWidthField.text) || 0
-                            )
+                Button {
+                    text: "✅ Добавить"
+                    font.bold: true
+                    padding: 12
+                    Layout.preferredWidth: 120
+                    background: Rectangle {
+                        color: parent.down ? "#27ae60" : "#2ecc71"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    onClicked: {
+                        console.log("Кнопка Добавить нажата")
+                        if (validateAddForm()) {
+                            console.log("Валидация пройдена")
+                            if (root.currentTable === "frame_materials") {
+                                console.log("Добавляем материал рамки:", addNameField.text, addTypeField.text, addPriceField.text, addStockField.text, addColorField.text, addWidthField.text)
+                                dbmanager.addFrameMaterial(
+                                    addNameField.text.trim(),
+                                    addTypeField.text.trim(),
+                                    parseFloat(addPriceField.text) || 0,
+                                    parseFloat(addStockField.text) || 0,
+                                    addColorField.text.trim(),
+                                    parseFloat(addWidthField.text) || 0
+                                )
+                            } else {
+                                console.log("Добавляем комплектующую:", addNameField.text, addTypeField.text, addPriceField.text, addStockField.text)
+                                dbmanager.addComponentFurniture(
+                                    addNameField.text.trim(),
+                                    addTypeField.text.trim(),
+                                    parseFloat(addPriceField.text) || 0,
+                                    parseInt(addStockField.text) || 0
+                                )
+                            }
+                            refreshTable()
+                            productAddDialog.close()
+                            console.log("Диалог закрыт")
                         } else {
-                            console.log("Добавляем комплектующую:", addNameField.text, addTypeField.text, addPriceField.text, addStockField.text)
-                            dbmanager.addComponentFurniture(
-                                addNameField.text.trim(),
-                                addTypeField.text.trim(),
-                                parseFloat(addPriceField.text) || 0,
-                                parseInt(addStockField.text) || 0
-                            )
+                            console.log("Валидация не пройдена")
                         }
-                        refreshTable()
-                        productAddDialog.close()
-                        console.log("Диалог закрыт")
-                    } else {
-                        console.log("Валидация не пройдена")
-                    }
-                }
-
-                function validateAddForm() {
-                    var errors = []
-
-                    if (!addNameField.text.trim()) errors.push("• Введите название")
-                    if (!addTypeField.text.trim()) errors.push("• Введите тип")
-
-                    // Проверка цены
-                    var price = parseFloat(addPriceField.text)
-                    if (isNaN(price) || price <= 0) errors.push("• Введите корректную цену")
-
-                    // Проверка количества
-                    if (root.currentTable === "frame_materials") {
-                        var stock = parseFloat(addStockField.text)
-                        if (isNaN(stock) || stock < 0) errors.push("• Введите корректное количество")
-                    } else {
-                        var stockInt = parseInt(addStockField.text)
-                        if (isNaN(stockInt) || stockInt < 0) errors.push("• Введите корректное количество")
                     }
 
-                    if (root.currentTable === "frame_materials") {
-                        if (!addColorField.text.trim()) errors.push("• Введите цвет")
+                    function validateAddForm() {
+                        var errors = []
 
-                        var width = parseFloat(addWidthField.text)
-                        if (isNaN(width) || width <= 0) errors.push("• Введите корректную ширину")
+                        if (!addNameField.text.trim()) errors.push("• Введите название")
+                        if (!addTypeField.text.trim()) errors.push("• Введите тип")
+
+                        // Проверка цены
+                        var price = parseFloat(addPriceField.text)
+                        if (isNaN(price) || price <= 0) errors.push("• Введите корректную цену")
+
+                        // Проверка количества
+                        if (root.currentTable === "frame_materials") {
+                            var stock = parseFloat(addStockField.text)
+                            if (isNaN(stock) || stock < 0) errors.push("• Введите корректное количество")
+                        } else {
+                            var stockInt = parseInt(addStockField.text)
+                            if (isNaN(stockInt) || stockInt < 0) errors.push("• Введите корректное количество")
+                        }
+
+                        if (root.currentTable === "frame_materials") {
+                            if (!addColorField.text.trim()) errors.push("• Введите цвет")
+
+                            var width = parseFloat(addWidthField.text)
+                            if (isNaN(width) || width <= 0) errors.push("• Введите корректную ширину")
+                        }
+
+                        if (errors.length > 0) {
+                            addValidationError.text = errors.join("\n")
+                            addValidationError.visible = true
+                            return false
+                        }
+
+                        addValidationError.visible = false
+                        return true
                     }
-
-                    if (errors.length > 0) {
-                        addValidationError.text = errors.join("\n")
-                        addValidationError.visible = true
-                        return false
-                    }
-
-                    addValidationError.visible = false
-                    return true
                 }
             }
         }

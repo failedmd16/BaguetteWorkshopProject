@@ -63,7 +63,7 @@ public slots:
     Q_INVOKABLE bool createOrderItem(int orderId, int itemId, const QString &itemType, int quantity, double unitPrice);
 
     // MastersOrdersPage функции
-    Q_INVOKABLE QSqlQueryModel* getMasterOrders(); // Получить заказы для мастера
+    Q_INVOKABLE QVariantList getMasterOrders(); // Получить заказы для мастера
     Q_INVOKABLE bool updateOrderStatus(int orderId, const QString &newStatus); // Обновить статус заказа
 
     // MastersProductsPage функции
