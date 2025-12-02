@@ -427,8 +427,6 @@ Page {
             }
         }
 
-        calculatedAmountLabel.text = "Расчетная сумма: " + total.toFixed(2) + " ₽"
-        calculatedAmountLabel.visible = total > 0
         totalAmountField.text = total > 0 ? total.toFixed(2) : ""
     }
 
@@ -869,26 +867,6 @@ Page {
                                         radius: 6
                                         border.color: totalAmountField.activeFocus ? "#3498db" : "#dce0e3"
                                     }
-                                }
-
-                                Button {
-                                    width: 200
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    text: "📊 Рассчитать"
-                                    font.bold: true
-                                    padding: 8
-                                    background: Rectangle {
-                                        color: parent.down ? "#2980b9" : "#3498db"
-                                        radius: 6
-                                    }
-                                    contentItem: Text {
-                                        text: parent.text
-                                        color: "white"
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                        font: parent.font
-                                    }
-                                    onClicked: calculateTotal()
                                 }
                             }
 
