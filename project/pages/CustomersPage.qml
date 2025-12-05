@@ -345,7 +345,10 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                     font: parent.font
                 }
-                onClicked: tableview.model = dbmanager.getTableModel(root.tableName)
+                onClicked: {
+                    dbmanager.getCurrentUserID();
+                    tableview.model = dbmanager.getTableModel(root.tableName)
+                }
             }
         }
     }

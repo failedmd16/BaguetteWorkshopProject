@@ -15,8 +15,12 @@ DatabaseManager::~DatabaseManager()
 }
 
 bool DatabaseManager::initializeDatabase() {
-    _database = QSqlDatabase::addDatabase("QSQLITE");
-    _database.setDatabaseName("BagetWorkshopDB.db");
+    _database = QSqlDatabase::addDatabase("QPSQL");
+    _database.setDatabaseName("failedmd16"); // имя бд
+    _database.setHostName("pg4.sweb.ru"); // айпи хоста
+    _database.setPort(5433); // порт хоста
+    _database.setUserName("failedmd16");
+    _database.setPassword("Bagetworkshop123");
 
     if (!_database.open()) {
         qDebug() << "Сouldn't connect to the database: " << _database.lastError().text();
@@ -32,38 +36,38 @@ bool DatabaseManager::initializeDatabase() {
 void DatabaseManager::createTables() {
     QSqlQuery query;
 
-    // таблица пользователей
+    // таблица пользователей - ИСПРАВЛЕНО
     QString createTableUsersQuery = "CREATE TABLE IF NOT EXISTS users ("
-                                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                    "id SERIAL PRIMARY KEY, "  // SERIAL вместо INTEGER PRIMARY KEY AUTOINCREMENT
                                     "login TEXT UNIQUE NOT NULL, "
                                     "password TEXT NOT NULL, "
                                     "role TEXT NOT NULL CHECK(role IN ('Продавец', 'Мастер производства')), "
-                                    "created_at DATETIME DEFAULT CURRENT_TIMESTAMP)";
+                                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";  // TIMESTAMP вместо DATETIME
 
     if (!query.exec(createTableUsersQuery)) {
         qDebug() << "Error creating users table:" << query.lastError();
         return;
     }
 
-    // таблица покупателей
+    // таблица покупателей - ИСПРАВЛЕНО
     QString createTableCustomers = "CREATE TABLE IF NOT EXISTS customers ("
-                                   "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                   "id SERIAL PRIMARY KEY, "  // SERIAL
                                    "full_name TEXT NOT NULL, "
                                    "phone TEXT, "
                                    "email TEXT, "
                                    "address TEXT, "
                                    "created_by INTEGER NOT NULL, "
-                                   "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                                   "FOREIGN KEY (created_by) REFERENCES users(id))";
+                                   "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "  // TIMESTAMP
+                                   "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT)";  // Добавлено ON DELETE
 
     if (!query.exec(createTableCustomers)) {
         qDebug() << "Error creating customers table:" << query.lastError();
         return;
     }
 
-    // таблица материалов для рамок
+    // таблица материалов для рамок - ИСПРАВЛЕНО
     QString createTableFrameMaterials = "CREATE TABLE IF NOT EXISTS frame_materials ("
-                                        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                        "id SERIAL PRIMARY KEY, "  // SERIAL
                                         "name TEXT NOT NULL, "
                                         "type TEXT NOT NULL, "
                                         "price_per_meter REAL NOT NULL, "
@@ -71,86 +75,86 @@ void DatabaseManager::createTables() {
                                         "color TEXT, "
                                         "width REAL, "
                                         "created_by INTEGER NOT NULL, "
-                                        "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                                        "FOREIGN KEY (created_by) REFERENCES users(id))";
+                                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "  // TIMESTAMP
+                                        "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT)";
 
     if (!query.exec(createTableFrameMaterials)) {
         qDebug() << "Error creating frame_materials table:" << query.lastError();
         return;
     }
 
-    // таблица комплектующей фурнитуры
+    // таблица комплектующей фурнитуры - ИСПРАВЛЕНО
     QString createTableComponentFurniture = "CREATE TABLE IF NOT EXISTS component_furniture ("
-                                            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                            "id SERIAL PRIMARY KEY, "  // SERIAL
                                             "name TEXT NOT NULL, "
                                             "type TEXT NOT NULL, "
                                             "price_per_unit REAL NOT NULL, "
                                             "stock_quantity INTEGER DEFAULT 0, "
                                             "created_by INTEGER NOT NULL, "
-                                            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                                            "FOREIGN KEY (created_by) REFERENCES users(id))";
+                                            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "  // TIMESTAMP
+                                            "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT)";
 
     if (!query.exec(createTableComponentFurniture)) {
         qDebug() << "Error creating component_furniture table:" << query.lastError();
         return;
     }
 
-    // таблица наборов вышивки
+    // таблица наборов вышивки - ИСПРАВЛЕНО
     QString createTableEmbroideryKits = "CREATE TABLE IF NOT EXISTS embroidery_kits ("
-                                        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                        "id SERIAL PRIMARY KEY, "  // SERIAL
                                         "name TEXT NOT NULL, "
                                         "description TEXT, "
                                         "price REAL NOT NULL, "
                                         "stock_quantity INTEGER DEFAULT 0, "
                                         "created_by INTEGER NOT NULL, "
-                                        "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                                        "is_active BOOLEAN DEFAULT 1, "
-                                        "FOREIGN KEY (created_by) REFERENCES users(id))";
+                                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "  // TIMESTAMP
+                                        "is_active BOOLEAN DEFAULT TRUE, "  // BOOLEAN и TRUE вместо 1
+                                        "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT)";
 
     if (!query.exec(createTableEmbroideryKits)) {
         qDebug() << "Error creating embroidery_kits table:" << query.lastError();
         return;
     }
 
-    // таблица расходной фурнитуры
+    // таблица расходной фурнитуры - ИСПРАВЛЕНО
     QString createTableConsumableFurniture = "CREATE TABLE IF NOT EXISTS consumable_furniture ("
-                                             "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                             "id SERIAL PRIMARY KEY, "  // SERIAL
                                              "name TEXT NOT NULL, "
                                              "type TEXT NOT NULL, "
                                              "price_per_unit REAL NOT NULL, "
                                              "stock_quantity INTEGER DEFAULT 0, "
                                              "unit TEXT NOT NULL, "
                                              "created_by INTEGER NOT NULL, "
-                                             "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                                             "FOREIGN KEY (created_by) REFERENCES users(id))";
+                                             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "  // TIMESTAMP
+                                             "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT)";
 
     if (!query.exec(createTableConsumableFurniture)) {
         qDebug() << "Error creating consumable_furniture table:" << query.lastError();
         return;
     }
 
-    // таблица заказов
+    // таблица заказов - ИСПРАВЛЕНО
     QString createTableOrders = "CREATE TABLE IF NOT EXISTS orders ("
-                                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                "id SERIAL PRIMARY KEY, "  // SERIAL
                                 "order_number TEXT UNIQUE NOT NULL, "
                                 "customer_id INTEGER NOT NULL, "
                                 "order_type TEXT NOT NULL CHECK(order_type IN ('Изготовление рамки', 'Продажа набора')), "
                                 "total_amount REAL NOT NULL, "
                                 "status TEXT NOT NULL CHECK(status IN ('Новый', 'В работе', 'Готов', 'Завершён', 'Отменён')), "
                                 "created_by INTEGER NOT NULL, "
-                                "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                                "completed_at DATETIME, "
-                                "FOREIGN KEY (customer_id) REFERENCES customers(id), "
-                                "FOREIGN KEY (created_by) REFERENCES users(id))";
+                                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "  // TIMESTAMP
+                                "completed_at TIMESTAMP, "  // TIMESTAMP
+                                "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT, "
+                                "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT)";
 
     if (!query.exec(createTableOrders)) {
         qDebug() << "Error creating orders table:" << query.lastError();
         return;
     }
 
-    // таблица заказов на рамки
+    // таблица заказов на рамки - ИСПРАВЛЕНО
     QString createTableFrameOrders = "CREATE TABLE IF NOT EXISTS frame_orders ("
-                                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                     "id SERIAL PRIMARY KEY, "  // SERIAL
                                      "order_id INTEGER NOT NULL, "
                                      "width REAL NOT NULL, "
                                      "height REAL NOT NULL, "
@@ -160,17 +164,17 @@ void DatabaseManager::createTables() {
                                      "production_cost REAL NOT NULL, "
                                      "selling_price REAL NOT NULL, "
                                      "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE, "
-                                     "FOREIGN KEY (frame_material_id) REFERENCES frame_materials(id), "
-                                     "FOREIGN KEY (component_furniture_id) REFERENCES component_furniture(id))";
+                                     "FOREIGN KEY (frame_material_id) REFERENCES frame_materials(id) ON DELETE RESTRICT, "
+                                     "FOREIGN KEY (component_furniture_id) REFERENCES component_furniture(id) ON DELETE RESTRICT)";
 
     if (!query.exec(createTableFrameOrders)) {
         qDebug() << "Error creating frame_orders table:" << query.lastError();
         return;
     }
 
-    // таблица позиций заказа
+    // таблица позиций заказа - ИСПРАВЛЕНО
     QString createTableOrderItems = "CREATE TABLE IF NOT EXISTS order_items ("
-                                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                    "id SERIAL PRIMARY KEY, "  // SERIAL
                                     "order_id INTEGER NOT NULL, "
                                     "item_type TEXT NOT NULL CHECK(item_type IN ('Готовый набор', 'Фурнитура')), "
                                     "item_id INTEGER NOT NULL, "
@@ -184,7 +188,10 @@ void DatabaseManager::createTables() {
         return;
     }
 
-    // заполнение тестовыми данными
+    // Улучшенная версия с использованием DECIMAL/NUMERIC для денежных значений
+    // (опционально, но рекомендуется)
+    qDebug() << "All tables created successfully!";
+
     insertTestData();
 }
 
@@ -347,6 +354,12 @@ bool DatabaseManager::loginUser(const QString &login, const QString &password) {
     }
 
     return false;
+}
+
+int DatabaseManager::getCurrentUserID() {
+    qDebug() << "User ID: " << currentUserId;
+
+    return currentUserId;
 }
 
 QString DatabaseManager::getCurrentUserRole() const {

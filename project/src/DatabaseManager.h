@@ -25,6 +25,8 @@ public slots:
 
     Q_INVOKABLE bool loginUser(const QString &login, const QString &password);
 
+    Q_INVOKABLE int getCurrentUserID(); // Получить айди текущего пользователя
+
     Q_INVOKABLE QString getCurrentUserRole() const; // Получить роль текущего пользователя
 
     Q_INVOKABLE QSqlQueryModel* getTableModel(const QString &table); // модель данных таблицы "Клиенты". Остальные табл. по такому же принципу делаются
@@ -107,7 +109,7 @@ public slots:
 
 private:
     QSqlDatabase _database;
-    int currentUserId = -1;
+    int currentUserId;
     QString currentUserRole;
 
     void createTables();
