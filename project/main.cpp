@@ -2,10 +2,13 @@
 #include <QQmlApplicationEngine>
 #include <QIcon>
 #include "src/DatabaseManager.h"
+#include <QQuickStyle>
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    QQuickStyle::setStyle("Basic");
 
     qmlRegisterType<DatabaseManager>("databasemanager", 1, 0, "DatabaseManager"); // Связывание QML и cpp
 

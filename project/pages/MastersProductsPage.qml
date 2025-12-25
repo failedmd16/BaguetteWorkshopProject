@@ -276,15 +276,6 @@ Page {
 
     function refreshTable() {
         tableview.model = dbmanager.getTableModel(root.currentTable)
-        applySearchFilter()
-    }
-
-    function applySearchFilter() {
-        var sourceModel = dbmanager.getTableModel(root.currentTable)
-        if (!sourceModel) return
-
-        var searchText = searchField.text.toLowerCase().trim()
-        tableview.model = sourceModel
     }
 
     Dialog {

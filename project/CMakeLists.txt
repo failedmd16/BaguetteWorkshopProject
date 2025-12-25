@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 find_package(Qt6 REQUIRED COMPONENTS Sql)
+find_package(Qt6 REQUIRED COMPONENTS QuickControls2)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -42,6 +43,7 @@ set_target_properties(appproject PROPERTIES
 target_link_libraries(appproject
     PRIVATE Qt6::Quick
     PRIVATE Qt6::Sql
+    PRIVATE Qt6::QuickControls2
 )
 
 include(GNUInstallDirs)
