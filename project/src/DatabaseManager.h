@@ -11,16 +11,17 @@
 #include <QVariantMap>
 #include <QDebug>
 #include <QDir>
+#include <QMutex>
 
 class DatabaseManager : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit DatabaseManager(QObject *parent = nullptr);
-    ~DatabaseManager();
+    static DatabaseManager* instance();
+    static void destroyInstance();
 
-public slots:
+public:
     Q_INVOKABLE bool initializeDatabase();
 
     Q_INVOKABLE bool loginUser(const QString &login, const QString &password);
@@ -107,13 +108,20 @@ public slots:
 
     Q_INVOKABLE QVariantList getMasterOrdersData();
 
+    bool isConnected() const;
+
 private:
+    DatabaseManager(QObject *parent = nullptr);
+    DatabaseManager(const DatabaseManager&) = delete;
+    DatabaseManager& operator=(const DatabaseManager&) = delete;
+    ~DatabaseManager();
+
+    static DatabaseManager* m_instance;
+    static QMutex m_mutex;
     QSqlDatabase _database;
+
     int currentUserId;
     QString currentUserRole;
-
-    void createTables();
-    void insertTestData();
 };
 
 #endif // DATABASEMANAGER_H

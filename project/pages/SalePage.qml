@@ -2,7 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import databasemanager
+import Database
 
 Page {
     id: root
@@ -18,10 +18,6 @@ Page {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
-
-        DatabaseManager {
-            id: dbmanager
-        }
 
         Label {
             Layout.fillWidth: true
@@ -65,14 +61,14 @@ Page {
 
                 RadioButton {
                     id: kitsRadio
-                    text: "🎨 Наборы для вышивки"
+                    text: "Наборы для вышивки"
                     checked: true
                     ButtonGroup.group: productTypeGroup
                 }
 
                 RadioButton {
                     id: consumablesRadio
-                    text: "🧵 Расходная фурнитура"
+                    text: "Расходная фурнитура"
                     ButtonGroup.group: productTypeGroup
                 }
             }
@@ -133,8 +129,8 @@ Page {
                     anchors.fill: parent
                     clip: true
                     model: productTypeGroup.checkedButton === kitsRadio ?
-                           dbmanager.getTableModel("embroidery_kits") :
-                           dbmanager.getTableModel("consumable_furniture")
+                           DatabaseManager.getTableModel("embroidery_kits") :
+                           DatabaseManager.getTableModel("consumable_furniture")
 
                     property int columnCount: productTypeGroup.checkedButton === kitsRadio ? 5 : 6
 
@@ -148,8 +144,8 @@ Page {
                         border.color: "#e9ecef"
 
                         property var rowData: model ? (productTypeGroup.checkedButton === kitsRadio ?
-                                              dbmanager.getRowData("embroidery_kits", row) :
-                                              dbmanager.getRowData("consumable_furniture", row)) : ({})
+                                              DatabaseManager.getRowData("embroidery_kits", row) :
+                                              DatabaseManager.getRowData("consumable_furniture", row)) : ({})
 
                         MouseArea {
                             anchors.fill: parent
@@ -217,7 +213,8 @@ Page {
                 Layout.alignment: Qt.AlignRight
 
                 Button {
-                    text: "➕ Добавить товар"
+                    id: addProductButton
+                    text: "Добавить товар"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -240,10 +237,15 @@ Page {
                             consumableAddDialog.open()
                         }
                     }
+
+                    Shortcut {
+                        sequence: "Ctrl+N"
+                        onActivated: addProductButton.click()
+                    }
                 }
 
                 Button {
-                    text: "🛒 Оформить продажу"
+                    text: "Оформить продажу"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -268,7 +270,7 @@ Page {
     Dialog {
         id: productEditDialog
         modal: true
-        title: "✏️ Редактирование товара"
+        title: "Редактирование товара"
 
         property int currentRow: -1
         property bool isKit: true
@@ -291,7 +293,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: productEditDialog.isKit ? "🎨 Редактирование набора" : "🧵 Редактирование фурнитуры"
+                text: productEditDialog.isKit ? "Редактирование набора" : "Редактирование фурнитуры"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -534,7 +536,7 @@ Page {
                     spacing: 10
 
                     Button {
-                        text: "❌ Отмена"
+                        text: "Отмена"
                         font.bold: true
                         font.pixelSize: 14
                         padding: 12
@@ -554,7 +556,7 @@ Page {
                     }
 
                     Button {
-                        text: "💾 Сохранить"
+                        text: "Сохранить"
                         font.bold: true
                         font.pixelSize: 14
                         padding: 12
@@ -573,7 +575,7 @@ Page {
                         onClicked: {
                             if (productEditDialog.validateForm()) {
                                 if (productEditDialog.isKit) {
-                                    dbmanager.updateEmbroideryKit(
+                                    DatabaseManager.updateEmbroideryKit(
                                         productEditDialog.currentData.id,
                                         editNameField.text,
                                         editDescriptionField.text,
@@ -581,7 +583,7 @@ Page {
                                         editQuantityField.value
                                     )
                                 } else {
-                                    dbmanager.updateConsumableFurniture(
+                                    DatabaseManager.updateConsumableFurniture(
                                         productEditDialog.currentData.id,
                                         editNameField.text,
                                         editTypeField.currentText,
@@ -629,8 +631,8 @@ Page {
             productEditDialog.isKit = isKit
 
             productEditDialog.currentData = isKit ?
-                dbmanager.getRowData("embroidery_kits", row) :
-                dbmanager.getRowData("consumable_furniture", row)
+                DatabaseManager.getRowData("embroidery_kits", row) :
+                DatabaseManager.getRowData("consumable_furniture", row)
 
             if (productEditDialog.currentData) {
                 loadCurrentData()
@@ -664,7 +666,7 @@ Page {
     Dialog {
         id: deleteConfirmationDialog
         modal: true
-        title: "🗑️ Удаление товара"
+        title: "Удаление товара"
         width: 400
         height: 200
         anchors.centerIn: parent
@@ -723,7 +725,7 @@ Page {
                 }
 
                 Button {
-                    text: "❌ Отмена"
+                    text: "Отмена"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -743,7 +745,7 @@ Page {
                 }
 
                 Button {
-                    text: "🗑️ Удалить"
+                    text: "Удалить"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -761,9 +763,9 @@ Page {
                     }
                     onClicked: {
                         if (productEditDialog.isKit) {
-                            dbmanager.deleteEmbroideryKit(productEditDialog.currentData.id)
+                            DatabaseManager.deleteEmbroideryKit(productEditDialog.currentData.id)
                         } else {
-                            dbmanager.deleteConsumableFurniture(productEditDialog.currentData.id)
+                            DatabaseManager.deleteConsumableFurniture(productEditDialog.currentData.id)
                         }
                         updateProductList()
                         deleteConfirmationDialog.close()
@@ -777,7 +779,7 @@ Page {
     Dialog {
         id: saleDialog
         modal: true
-        title: "🛒 Оформление продажи"
+        title: "Оформление продажи"
 
         property double unitPrice: 0
         property int availableStock: 0
@@ -801,7 +803,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "🛒 Оформление продажи товара"
+                text: "Оформление продажи товара"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -814,7 +816,7 @@ Page {
                 spacing: 8
 
                 Label {
-                    text: productTypeGroup.checkedButton === kitsRadio ? "🎨 Товар:" : "🧵 Товар:"
+                    text: productTypeGroup.checkedButton === kitsRadio ? "Товар:" : "Товар:"
                     font.bold: true
                     color: "#34495e"
                     font.pixelSize: 14
@@ -869,7 +871,7 @@ Page {
                         anchors.margins: 10
 
                         Label {
-                            text: "💰 Цена за ед.:"
+                            text: "Цена за ед.:"
                             font.bold: true
                             color: "#27ae60"
                             font.pixelSize: 12
@@ -896,7 +898,7 @@ Page {
                         anchors.margins: 10
 
                         Label {
-                            text: "📦 В наличии:"
+                            text: "В наличии:"
                             font.bold: true
                             color: "#3498db"
                             font.pixelSize: 12
@@ -917,7 +919,7 @@ Page {
                 spacing: 8
 
                 Label {
-                    text: "📦 Количество:"
+                    text: "Количество:"
                     font.bold: true
                     color: "#34495e"
                     font.pixelSize: 14
@@ -945,7 +947,7 @@ Page {
                     anchors.margins: 10
 
                     Label {
-                        text: "💰 Итоговая сумма:"
+                        text: "Итоговая сумма:"
                         font.bold: true
                         color: "#e67e22"
                         font.pixelSize: 16
@@ -986,7 +988,7 @@ Page {
             }
 
             Button {
-                text: "❌ Отмена"
+                text: "Отмена"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -1006,7 +1008,7 @@ Page {
             }
 
             Button {
-                text: "✅ Оформить"
+                text: "Оформить"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -1055,9 +1057,9 @@ Page {
 
                 var newStock = saleDialog.availableStock - quantity
                 if (saleDialog.isKit) {
-                    dbmanager.updateEmbroideryKitStock(productId, newStock)
+                    DatabaseManager.updateEmbroideryKitStock(productId, newStock)
                 } else {
-                    dbmanager.updateConsumableStock(productId, newStock)
+                    DatabaseManager.updateConsumableStock(productId, newStock)
                 }
 
                 saleDialog.close()
@@ -1097,10 +1099,10 @@ Page {
             productsComboModel.clear()
 
             var tableName = productTypeGroup.checkedButton === kitsRadio ? "embroidery_kits" : "consumable_furniture"
-            var rowCount = dbmanager.getRowCount(tableName)
+            var rowCount = DatabaseManager.getRowCount(tableName)
 
             for (var i = 0; i < rowCount; i++) {
-                var item = dbmanager.getRowData(tableName, i)
+                var item = DatabaseManager.getRowData(tableName, i)
                 if (item) {
                     if (productTypeGroup.checkedButton === kitsRadio) {
                         productsComboModel.append({
@@ -1129,7 +1131,7 @@ Page {
     Dialog {
         id: saleSuccessDialog
         modal: true
-        title: "✅ Продажа оформлена"
+        title: "Продажа оформлена"
 
         property string productName: ""
         property int quantity: 0
@@ -1152,7 +1154,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "✅ Продажа успешно оформлена!"
+                text: "Продажа успешно оформлена!"
                 wrapMode: Text.WordWrap
                 font.pixelSize: 18
                 color: "#27ae60"
@@ -1217,7 +1219,7 @@ Page {
             }
 
             Button {
-                text: "✅ OK"
+                text: "OK"
                 font.bold: true
                 padding: 12
                 width: 100
@@ -1250,7 +1252,7 @@ Page {
     Dialog {
         id: kitAddDialog
         modal: true
-        title: "🎨 Добавить набор для вышивки"
+        title: "Добавить набор для вышивки"
 
         width: 500
         height: 450
@@ -1269,7 +1271,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "🎨 Добавление нового набора"
+                text: "Добавление нового набора"
                 font.bold: true
                 font.pixelSize: 16
                 color: "#2c3e50"
@@ -1408,7 +1410,7 @@ Page {
             }
 
             Button {
-                text: "❌ Отмена"
+                text: "Отмена"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -1428,7 +1430,7 @@ Page {
             }
 
             Button {
-                text: "✅ Добавить"
+                text: "Добавить"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -1446,7 +1448,7 @@ Page {
                 }
                 onClicked: {
                     if (kitAddDialog.validateKitForm()) {
-                        dbmanager.addEmbroideryKit(addKitNameField.text, addKitDescriptionField.text, parseFloat(addKitPriceField.text), addKitQuantityField.value)
+                        DatabaseManager.addEmbroideryKit(addKitNameField.text, addKitDescriptionField.text, parseFloat(addKitPriceField.text), addKitQuantityField.value)
                         updateProductList()
                         kitAddDialog.close()
                     }
@@ -1492,7 +1494,7 @@ Page {
     Dialog {
         id: consumableAddDialog
         modal: true
-        title: "🧵 Добавить расходную фурнитуру"
+        title: "Добавить расходную фурнитуру"
 
         width: 500
         height: 500
@@ -1511,7 +1513,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "🧵 Добавление расходной фурнитуры"
+                text: "Добавление расходной фурнитуры"
                 font.bold: true
                 font.pixelSize: 16
                 color: "#2c3e50"
@@ -1690,7 +1692,7 @@ Page {
             }
 
             Button {
-                text: "❌ Отмена"
+                text: "Отмена"
                 font.bold: true
                 padding: 12
                 width: 120
@@ -1709,7 +1711,7 @@ Page {
             }
 
             Button {
-                text: "✅ Добавить"
+                text: "Добавить"
                 font.bold: true
                 padding: 12
                 width: 120
@@ -1726,7 +1728,7 @@ Page {
                 }
                 onClicked: {
                     if (consumableAddDialog.validateConsumableForm()) {
-                        dbmanager.addConsumableFurniture(addConsumableNameField.text, addConsumableTypeField.currentText, parseFloat(addConsumablePriceField.text), addConsumableQuantityField.value, addConsumableUnitField.currentText)
+                        DatabaseManager.addConsumableFurniture(addConsumableNameField.text, addConsumableTypeField.currentText, parseFloat(addConsumablePriceField.text), addConsumableQuantityField.value, addConsumableUnitField.currentText)
                         updateProductList()
                         consumableAddDialog.close()
                     }
@@ -1772,8 +1774,8 @@ Page {
 
     function updateProductList() {
         tableview.model = productTypeGroup.checkedButton === kitsRadio ?
-               dbmanager.getTableModel("embroidery_kits") :
-               dbmanager.getTableModel("consumable_furniture")
+               DatabaseManager.getTableModel("embroidery_kits") :
+               DatabaseManager.getTableModel("consumable_furniture")
     }
 
     onVisibleChanged: {

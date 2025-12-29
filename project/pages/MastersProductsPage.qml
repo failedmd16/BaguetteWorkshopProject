@@ -2,7 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import databasemanager
+import Database
 
 Page {
     id: root
@@ -28,10 +28,6 @@ Page {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
-
-        DatabaseManager {
-            id: dbmanager
-        }
 
         Label {
             Layout.fillWidth: true
@@ -63,7 +59,7 @@ Page {
                 spacing: 10
 
                 Button {
-                    text: "📐 Материалы рамок"
+                    text: "Материалы рамок"
                     font.bold: true
                     font.pixelSize: 14
                     Layout.fillWidth: true
@@ -86,7 +82,7 @@ Page {
                 }
 
                 Button {
-                    text: "🔩 Комплектующая фурнитура"
+                    text: "Комплектующая фурнитура"
                     font.bold: true
                     font.pixelSize: 14
                     Layout.fillWidth: true
@@ -162,7 +158,7 @@ Page {
                     id: tableview
                     anchors.fill: parent
                     clip: true
-                    model: dbmanager.getTableModel(root.currentTable)
+                    model: DatabaseManager.getTableModel(root.currentTable)
 
                     columnWidthProvider: function(column) {
                         var columnsCount = root.currentTable === "frame_materials" ? 6 : 4
@@ -174,7 +170,7 @@ Page {
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
 
-                        property var rowData: model ? dbmanager.getRowData(root.currentTable, row) : ({})
+                        property var rowData: model ? DatabaseManager.getRowData(root.currentTable, row) : ({})
 
                         MouseArea {
                             anchors.fill: parent
@@ -233,7 +229,8 @@ Page {
             spacing: 10
 
             Button {
-                text: "➕ Добавить"
+                id: addProductButton
+                text: "Добавить"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -250,10 +247,16 @@ Page {
                     font: parent.font
                 }
                 onClicked: productAddDialog.open()
+
+                Shortcut {
+                    sequence: "Ctrl+N"
+                    onActivated: addProductButton.click()
+                }
             }
 
             Button {
-                text: "🔄 Обновить"
+                id: refreshButton
+                text: "Обновить"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -270,18 +273,23 @@ Page {
                     font: parent.font
                 }
                 onClicked: refreshTable()
+
+                Shortcut {
+                    sequence: "F5"
+                    onActivated: refreshButton.click()
+                }
             }
         }
     }
 
     function refreshTable() {
-        tableview.model = dbmanager.getTableModel(root.currentTable)
+        tableview.model = DatabaseManager.getTableModel(root.currentTable)
     }
 
     Dialog {
         id: productViewDialog
         modal: true
-        title: root.currentTable === "frame_materials" ? "📐 Данные материала" : "🔩 Данные фурнитуры"
+        title: root.currentTable === "frame_materials" ? "Данные материала" : "Данные фурнитуры"
         width: 350
         height: 600
         anchors.centerIn: parent
@@ -303,7 +311,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: root.currentTable === "frame_materials" ? "📐 Данные материала" : "🔩 Данные фурнитуры"
+                text: root.currentTable === "frame_materials" ? "Данные материала" : "Данные фурнитуры"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -332,7 +340,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📝 Название:"
+                            text: "Название:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -356,7 +364,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "🔧 Тип:"
+                            text: "Тип:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -380,7 +388,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "💰 Цена за метр:" : "💰 Цена за шт:"
+                            text: root.currentTable === "frame_materials" ? "Цена за метр:" : "Цена за шт:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -410,7 +418,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "📦 На складе (м):" : "📦 На складе (шт):"
+                            text: root.currentTable === "frame_materials" ? "На складе (м):" : "На складе (шт):"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -441,7 +449,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "🎨 Цвет:"
+                            text: "Цвет:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -466,7 +474,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📏 Ширина:"
+                            text: "Ширина:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -496,7 +504,7 @@ Page {
                     spacing: 10
 
                     Button {
-                        text: "✏️ Изменить"
+                        text: "Изменить"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -518,7 +526,7 @@ Page {
                     }
 
                     Button {
-                        text: "🗑️ Удалить"
+                        text: "Удалить"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -537,7 +545,7 @@ Page {
                     }
 
                     Button {
-                        text: "❌ Закрыть"
+                        text: "Закрыть"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -560,7 +568,7 @@ Page {
 
         function openWithData(row) {
             currentRow = row
-            currentData = dbmanager.getRowData(root.currentTable, row)
+            currentData = DatabaseManager.getRowData(root.currentTable, row)
             open()
         }
     }
@@ -568,7 +576,7 @@ Page {
     Dialog {
         id: productEditDialog
         modal: true
-        title: root.currentTable === "frame_materials" ? "✏️ Редактировать материал" : "✏️ Редактировать фурнитуру"
+        title: root.currentTable === "frame_materials" ? "Редактировать материал" : "Редактировать фурнитуру"
         width: 400
         height: root.currentTable === "frame_materials" ? 550 : 450
         anchors.centerIn: parent
@@ -590,7 +598,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: root.currentTable === "frame_materials" ? "✏️ Редактировать материал" : "✏️ Редактировать фурнитуру"
+                text: root.currentTable === "frame_materials" ? "Редактировать материал" : "Редактировать фурнитуру"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -620,7 +628,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📝 Название:"
+                            text: "Название:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -647,7 +655,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "🔧 Тип:"
+                            text: "Тип:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -674,7 +682,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "💰 Цена за метр (₽):" : "💰 Цена за шт (₽):"
+                            text: root.currentTable === "frame_materials" ? "Цена за метр (₽):" : "Цена за шт (₽):"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -702,7 +710,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "📦 На складе (м):" : "📦 На складе (шт):"
+                            text: root.currentTable === "frame_materials" ? "На складе (м):" : "На складе (шт):"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -731,7 +739,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "🎨 Цвет:"
+                            text: "Цвет:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -759,7 +767,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📏 Ширина (см):"
+                            text: "Ширина (см):"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -804,7 +812,7 @@ Page {
                     spacing: 10
 
                     Button {
-                        text: "💾 Сохранить"
+                        text: "Сохранить"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -822,7 +830,7 @@ Page {
                         onClicked: {
                             if (validateEditForm()) {
                                 if (root.currentTable === "frame_materials") {
-                                    dbmanager.updateFrameMaterial(
+                                    DatabaseManager.updateFrameMaterial(
                                         productEditDialog.currentRow,
                                         editNameField.text.trim(),
                                         editTypeField.text.trim(),
@@ -832,7 +840,7 @@ Page {
                                         parseFloat(editWidthField.text) || 0
                                     )
                                 } else {
-                                    dbmanager.updateComponentFurniture(
+                                    DatabaseManager.updateComponentFurniture(
                                         productEditDialog.currentRow,
                                         editNameField.text.trim(),
                                         editTypeField.text.trim(),
@@ -881,7 +889,7 @@ Page {
                     }
 
                     Button {
-                        text: "❌ Отмена"
+                        text: "Отмена"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -927,7 +935,7 @@ Page {
     Dialog {
         id: productAddDialog
         modal: true
-        title: root.currentTable === "frame_materials" ? "📐 Добавить материал" : "🔩 Добавить фурнитуру"
+        title: root.currentTable === "frame_materials" ? "Добавить материал" : "Добавить фурнитуру"
         width: 500
         height: root.currentTable === "frame_materials" ? 600 : 450
         anchors.centerIn: parent
@@ -945,7 +953,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "📝 Заполните информацию"
+                text: "Заполните информацию"
                 font.bold: true
                 font.pixelSize: 16
                 color: "#2c3e50"
@@ -1138,7 +1146,7 @@ Page {
                 spacing: 15
 
                 Button {
-                    text: "❌ Отмена"
+                    text: "Отмена"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -1158,7 +1166,7 @@ Page {
                 }
 
                 Button {
-                    text: "✅ Добавить"
+                    text: "Добавить"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -1177,7 +1185,7 @@ Page {
                     onClicked: {
                         if (validateAddForm()) {
                             if (root.currentTable === "frame_materials") {
-                                dbmanager.addFrameMaterial(
+                                DatabaseManager.addFrameMaterial(
                                     addNameField.text.trim(),
                                     addTypeField.text.trim(),
                                     parseFloat(addPriceField.text) || 0,
@@ -1186,7 +1194,7 @@ Page {
                                     parseFloat(addWidthField.text) || 0
                                 )
                             } else {
-                                dbmanager.addComponentFurniture(
+                                DatabaseManager.addComponentFurniture(
                                     addNameField.text.trim(),
                                     addTypeField.text.trim(),
                                     parseFloat(addPriceField.text) || 0,
@@ -1250,7 +1258,7 @@ Page {
     Dialog {
         id: deleteConfirmDialog
         modal: true
-        title: "⚠️ Подтверждение удаления"
+        title: "Подтверждение удаления"
         width: 400
         height: 200
         anchors.centerIn: parent
@@ -1268,7 +1276,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "🗑️ Вы уверены, что хотите удалить эту запись?"
+                text: "Вы уверены, что хотите удалить эту запись?"
                 wrapMode: Text.WordWrap
                 font.pixelSize: 14
                 color: "#2c3e50"
@@ -1291,7 +1299,7 @@ Page {
                 spacing: 15
 
                 Button {
-                    text: "❌ Нет"
+                    text: "Нет"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -1311,7 +1319,7 @@ Page {
                 }
 
                 Button {
-                    text: "✅ Да"
+                    text: "Да"
                     font.bold: true
                     font.pixelSize: 14
                     padding: 12
@@ -1329,9 +1337,9 @@ Page {
                     }
                     onClicked: {
                         if (root.currentTable === "frame_materials") {
-                            dbmanager.deleteFrameMaterial(productViewDialog.currentRow)
+                            DatabaseManager.deleteFrameMaterial(productViewDialog.currentRow)
                         } else {
-                            dbmanager.deleteComponentFurniture(productViewDialog.currentRow)
+                            DatabaseManager.deleteComponentFurniture(productViewDialog.currentRow)
                         }
                         refreshTable()
                         productViewDialog.close()

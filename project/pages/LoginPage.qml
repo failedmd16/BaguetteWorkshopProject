@@ -2,7 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.LocalStorage
-import databasemanager
+import Database
 
 Page {
     signal loginSellerSuccess()
@@ -13,10 +13,6 @@ Page {
     property color grayColor: "#808080"
     property color lightGrayColor: "#D3D3D3"
     property color darkGrayColor: "#404040"
-
-    DatabaseManager {
-        id: dbmanager
-    }
 
     background: Rectangle { color: whiteColor }
 
@@ -100,13 +96,13 @@ Page {
                     return
                 }
 
-                if (dbmanager.loginUser(user_name, user_password)) {
+                if (DatabaseManager.loginUser(user_name, user_password)) {
                     infoLbl.text = "Вход успешен"
                     infoLbl.color = "green"
 
-                    if (dbmanager.getCurrentUserRole() === "Продавец")
+                    if (DatabaseManager.getCurrentUserRole() === "Продавец")
                         loginSellerSuccess()
-                        else if (dbmanager.getCurrentUserRole() === "Мастер производства")
+                        else if (DatabaseManager.getCurrentUserRole() === "Мастер производства")
                         loginMasterSuccess()
                 } else {
                     infoLbl.text = "Неверный логин или пароль"

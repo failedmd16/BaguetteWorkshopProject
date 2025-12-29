@@ -10,9 +10,18 @@ int main(int argc, char *argv[])
 
     QQuickStyle::setStyle("Basic");
 
-    qmlRegisterType<DatabaseManager>("databasemanager", 1, 0, "DatabaseManager"); // Связывание QML и cpp
+    qmlRegisterSingletonType<DatabaseManager>(
+        "Database",  // Имя модуля
+        1, 0,        // Версия
+        "DatabaseManager",  // Имя синглтона в QML
+        [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject* {
+            Q_UNUSED(engine)
+            Q_UNUSED(scriptEngine)
+            return DatabaseManager::instance();
+        });
 
     QQmlApplicationEngine engine;
+
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

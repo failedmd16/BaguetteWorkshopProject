@@ -2,7 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import databasemanager
+import Database
 
 Page {
     id: root
@@ -17,10 +17,6 @@ Page {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
-
-        DatabaseManager {
-            id: dbmanager
-        }
 
         Label {
             Layout.fillWidth: true
@@ -76,7 +72,7 @@ Page {
                 TextField {
                     id: searchField
                     Layout.fillWidth: true
-                    placeholderText: "🔍 Поиск по номеру заказа или клиенту..."
+                    placeholderText: "Поиск по номеру заказа или клиенту..."
                     font.pixelSize: 14
                     color: "#000000"
                     background: Rectangle {
@@ -268,7 +264,7 @@ Page {
 
         Button {
             Layout.alignment: Qt.AlignRight
-            text: "🔄 Обновить"
+            text: "Обновить"
             font.pixelSize: 14
             font.bold: true
             padding: 12
@@ -321,7 +317,7 @@ Page {
     function refreshTable() {
         ordersModel.clear()
 
-        var ordersData = dbmanager.getMasterOrdersData()
+        var ordersData = DatabaseManager.getMasterOrdersData()
         if (!ordersData || ordersData.length === 0)
             return
 
@@ -363,7 +359,7 @@ Page {
     Dialog {
         id: orderDetailsDialog
         modal: true
-        title: "📋 Детали заказа"
+        title: "Детали заказа"
         standardButtons: Dialog.NoButton
 
         property var currentData: ({})
@@ -494,10 +490,14 @@ Page {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 5
-                        visible: orderDetailsDialog.currentData && orderDetailsDialog.currentData.special_instructions && orderDetailsDialog.currentData.special_instructions !== ""
+                        visible: {
+                            if (!orderDetailsDialog.currentData) return false
+                            if (!orderDetailsDialog.currentData.special_instructions) return false
+                            return orderDetailsDialog.currentData.special_instructions !== ""
+                        }
 
                         Label {
-                            text: "📝 Особые инструкции:"
+                            text: "Особые инструкции:"
                             font.bold: true
                             color: "#34495e"
                             Layout.alignment: Qt.AlignHCenter
@@ -519,7 +519,7 @@ Page {
                         spacing: 8
 
                         Label {
-                            text: "🔄 Изменить статус:"
+                            text: "Изменить статус:"
                             font.bold: true
                             color: "#34495e"
                             Layout.alignment: Qt.AlignHCenter
@@ -546,7 +546,7 @@ Page {
                         }
 
                         Button {
-                            text: "💾 Сохранить статус"
+                            text: "Сохранить статус"
                             font.bold: true
                             font.pixelSize: 14
                             Layout.fillWidth: true
@@ -563,7 +563,7 @@ Page {
                             }
                             onClicked: {
                                 if (orderDetailsDialog.currentData && orderDetailsDialog.currentData.id) {
-                                    if (dbmanager.updateOrderStatus(orderDetailsDialog.currentData.id, statusComboBox.currentText)) {
+                                    if (DatabaseManager.updateOrderStatus(orderDetailsDialog.currentData.id, statusComboBox.currentText)) {
                                         refreshTable()
                                         orderDetailsDialog.close()
                                         statusUpdatedMessage.open()
@@ -577,7 +577,7 @@ Page {
 
             Button {
                 Layout.alignment: Qt.AlignHCenter
-                text: "❌ Закрыть"
+                text: "Закрыть"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -621,7 +621,7 @@ Page {
     Dialog {
         id: statusUpdatedMessage
         modal: true
-        title: "✅ Статус обновлен"
+        title: "Статус обновлен"
         anchors.centerIn: parent
         width: 350
         height: 150
@@ -660,7 +660,7 @@ Page {
                 Layout.preferredHeight: 40
                 Layout.bottomMargin: 10
 
-                text: "✅ OK"
+                text: "OK"
                 background: Rectangle {
                     color: parent.down ? "#27ae60" : "#2ecc71"
                     radius: 8

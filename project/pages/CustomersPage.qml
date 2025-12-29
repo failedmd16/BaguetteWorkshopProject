@@ -2,7 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import databasemanager
+import Database
 
 Page {
     id: root
@@ -48,10 +48,6 @@ Page {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
-
-        DatabaseManager {
-            id: dbmanager
-        }
 
         Label {
             Layout.fillWidth: true
@@ -139,7 +135,7 @@ Page {
                 }
 
                 Button {
-                    text: "📊 Применить фильтр"
+                    text: "Применить фильтр"
                     font.bold: true
                     width: 180
                     height: 40
@@ -157,7 +153,7 @@ Page {
                     onClicked: {
                         if (startDateField.text && endDateField.text) {
                             if (isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
-                                var customers = dbmanager.getCustomersWithOrdersInPeriod(
+                                var customers = DatabaseManager.getCustomersWithOrdersInPeriod(
                                     convertToSqlDate(startDateField.text),
                                     convertToSqlDate(endDateField.text)
                                 )
@@ -172,7 +168,7 @@ Page {
                 }
 
                 Button {
-                    text: "❌ Сбросить"
+                    text: "Сбросить"
                     font.bold: true
                     width: 120
                     height: 40
@@ -190,7 +186,7 @@ Page {
                     onClicked: {
                         startDateField.text = ""
                         endDateField.text = ""
-                        tableview.model = dbmanager.getTableModel(root.tableName)
+                        tableview.model = DatabaseManager.getTableModel(root.tableName)
                     }
                 }
             }
@@ -248,7 +244,7 @@ Page {
                     id: tableview
                     anchors.fill: parent
                     clip: true
-                    model: dbmanager.getTableModel(root.tableName)
+                    model: DatabaseManager.getTableModel(root.tableName)
 
                     columnWidthProvider: function(column) {
                         return tableview.width / 5
@@ -259,7 +255,7 @@ Page {
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
 
-                        property var rowData: model ? dbmanager.getRowData(root.tableName, row) : ({})
+                        property var rowData: model ? DatabaseManager.getRowData(root.tableName, row) : ({})
 
                         MouseArea {
                             anchors.fill: parent
@@ -308,7 +304,7 @@ Page {
 
             Button {
                 id: newCustomerButton
-                text: "➕ Добавить покупателя"
+                text: "Добавить покупателя"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -325,11 +321,16 @@ Page {
                     font: parent.font
                 }
                 onClicked: customerAddDialog.open()
+
+                Shortcut {
+                    sequence: "Ctrl+N"
+                    onActivated: newCustomerButton.click()
+                }
             }
 
             Button {
                 id: refreshButton
-                text: "🔄 Обновить"
+                text: "Обновить"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -346,8 +347,12 @@ Page {
                     font: parent.font
                 }
                 onClicked: {
-                    dbmanager.getCurrentUserID();
-                    tableview.model = dbmanager.getTableModel(root.tableName)
+                    tableview.model = DatabaseManager.getTableModel(root.tableName)
+                }
+
+                Shortcut {
+                    sequence: "F5"
+                    onActivated: refreshButton.click()
                 }
             }
         }
@@ -385,7 +390,7 @@ Page {
     Dialog {
         id: customerAddDialog
         modal: true
-        title: "👤 Добавить нового покупателя"
+        title: "Добавить нового покупателя"
         width: 400
         height: 400
         anchors.centerIn: parent
@@ -405,7 +410,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "👤 Добавить нового покупателя"
+                text: "Добавить нового покупателя"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -433,7 +438,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "👤 ФИО:"
+                            text: "ФИО:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -459,7 +464,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📞 Телефон:"
+                            text: "Телефон:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -485,7 +490,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📧 Email:"
+                            text: "Email:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -511,7 +516,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "🏠 Адрес:"
+                            text: "Адрес:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -554,7 +559,7 @@ Page {
                     spacing: 10
 
                     Button {
-                        text: "❌ Отмена"
+                        text: "Отмена"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -572,7 +577,7 @@ Page {
                     }
 
                     Button {
-                        text: "✅ Добавить"
+                        text: "Добавить"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -588,13 +593,13 @@ Page {
                         }
                         onClicked: {
                             if (validateAddForm()) {
-                                dbmanager.addCustomer(
+                                DatabaseManager.addCustomer(
                                     addNameField.text.trim(),
                                     addPhoneField.text.trim(),
                                     addEmailField.text.trim(),
                                     addAddressField.text.trim()
                                 )
-                                tableview.model = dbmanager.getTableModel(root.tableName)
+                                tableview.model = DatabaseManager.getTableModel(root.tableName)
                                 customerAddDialog.close()
                             }
                         }
@@ -643,7 +648,7 @@ Page {
     Dialog {
         id: filterResultsDialog
         modal: true
-        title: "📊 Покупатели с заказами за период"
+        title: "Покупатели с заказами за период"
         width: 800
         height: 600
         anchors.centerIn: parent
@@ -664,7 +669,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "📊 Покупатели с заказами за период"
+                text: "Покупатели с заказами за период"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -806,7 +811,7 @@ Page {
 
                 Button {
                     anchors.centerIn: parent
-                    text: "❌ Закрыть"
+                    text: "Закрыть"
                     width: 120
                     height: 40
                     background: Rectangle {
@@ -835,7 +840,7 @@ Page {
     Dialog {
         id: customerViewDialog
         modal: true
-        title: "👤 Данные покупателя"
+        title: "Данные покупателя"
         width: 350
         height: 600
         anchors.centerIn: parent
@@ -858,7 +863,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "👤 Данные покупателя"
+                text: "Данные покупателя"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -887,7 +892,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "👤 ФИО:"
+                            text: "ФИО:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -911,7 +916,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📞 Телефон:"
+                            text: "Телефон:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -935,7 +940,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📧 Email:"
+                            text: "Email:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -959,7 +964,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "🏠 Адрес:"
+                            text: "Адрес:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -980,7 +985,7 @@ Page {
                     Label {
                         width: parent.width
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "📦 Заказы покупателя:"
+                        text: "Заказы покупателя:"
                         font.bold: true
                         color: "#34495e"
                     }
@@ -1128,7 +1133,7 @@ Page {
                     spacing: 10
 
                     Button {
-                        text: "✏️ Изменить"
+                        text: "Изменить"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -1149,7 +1154,7 @@ Page {
                     }
 
                     Button {
-                        text: "🗑️ Удалить"
+                        text: "Удалить"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -1167,7 +1172,7 @@ Page {
                     }
 
                     Button {
-                        text: "❌ Закрыть"
+                        text: "Закрыть"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -1189,8 +1194,8 @@ Page {
 
         function openWithData(row) {
             currentRow = row
-            currentData = dbmanager.getRowData(root.tableName, row)
-            customerOrders = dbmanager.getCustomerOrders(currentData.id)
+            currentData = DatabaseManager.getRowData(root.tableName, row)
+            customerOrders = DatabaseManager.getCustomerOrders(currentData.id)
             open()
         }
     }
@@ -1199,7 +1204,7 @@ Page {
     Dialog {
         id: customerEditDialog
         modal: true
-        title: "✏️ Редактирование данных покупателя"
+        title: "Редактирование данных покупателя"
         width: 400
         height: 450
         anchors.centerIn: parent
@@ -1221,7 +1226,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "✏️ Редактирование данных покупателя"
+                text: "Редактирование данных покупателя"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -1251,7 +1256,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "👤 ФИО:"
+                            text: "ФИО:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -1277,7 +1282,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📞 Телефон:"
+                            text: "Телефон:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -1303,7 +1308,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "📧 Email:"
+                            text: "Email:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -1329,7 +1334,7 @@ Page {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "🏠 Адрес:"
+                            text: "Адрес:"
                             font.bold: true
                             color: "#34495e"
                         }
@@ -1372,7 +1377,7 @@ Page {
                     spacing: 10
 
                     Button {
-                        text: "💾 Сохранить"
+                        text: "Сохранить"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -1388,14 +1393,14 @@ Page {
                         }
                         onClicked: {
                             if (validateEditForm()) {
-                                dbmanager.updateCustomer(
+                                DatabaseManager.updateCustomer(
                                     customerEditDialog.currentRow,
                                     editNameField.text.trim(),
                                     editPhoneField.text.trim(),
                                     editEmailField.text.trim(),
                                     editAddressField.text.trim()
                                 )
-                                tableview.model = dbmanager.getTableModel(root.tableName)
+                                tableview.model = DatabaseManager.getTableModel(root.tableName)
                                 customerEditDialog.close()
                             }
                         }
@@ -1429,7 +1434,7 @@ Page {
                     }
 
                     Button {
-                        text: "❌ Отмена"
+                        text: "Отмена"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -1501,7 +1506,7 @@ Page {
 
                 Label {
                     width: parent.width
-                    text: "🗑️ Вы уверены, что хотите удалить этого покупателя?"
+                    text: "Вы уверены, что хотите удалить этого покупателя?"
                     wrapMode: Text.Wrap
                     font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
@@ -1528,7 +1533,7 @@ Page {
                     spacing: 15
 
                     Button {
-                        text: "❌ Нет"
+                        text: "Нет"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -1546,7 +1551,7 @@ Page {
                     }
 
                     Button {
-                        text: "✅ Да"
+                        text: "Да"
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
                         background: Rectangle {
@@ -1561,8 +1566,8 @@ Page {
                             font.bold: true
                         }
                         onClicked: {
-                            dbmanager.deleteCustomer(customerViewDialog.currentRow)
-                            tableview.model = dbmanager.getTableModel(root.tableName)
+                            DatabaseManager.deleteCustomer(customerViewDialog.currentRow)
+                            tableview.model = DatabaseManager.getTableModel(root.tableName)
                             customerViewDialog.close()
                             deleteConfirmDialog.close()
                         }
@@ -1575,7 +1580,7 @@ Page {
     Dialog {
         id: messageDialog
         modal: true
-        title: "❌ Ошибка"
+        title: "Ошибка"
         anchors.centerIn: parent
         width: 350
         height: 150
@@ -1614,7 +1619,7 @@ Page {
                 Layout.preferredHeight: 40
                 Layout.bottomMargin: 10
 
-                text: "✅ OK"
+                text: "OK"
                 background: Rectangle {
                     color: parent.down ? "#27ae60" : "#2ecc71"
                     radius: 8
@@ -1635,7 +1640,7 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
-            tableview.model = dbmanager.getTableModel(root.tableName)
+            tableview.model = DatabaseManager.getTableModel(root.tableName)
             var endDate = new Date()
             var startDate = new Date()
             startDate.setDate(startDate.getDate() - 30)

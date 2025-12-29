@@ -1,5 +1,6 @@
 ﻿import QtQuick
 import QtQuick.Controls
+import Database
 
 ApplicationWindow {
     id: mainWindow
@@ -240,7 +241,7 @@ ApplicationWindow {
 
     RoundButton {
         visible: masterLogged || sellerLogged
-        text: "🚪 Выход"
+        text: "Выход"
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 10

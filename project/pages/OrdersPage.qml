@@ -2,7 +2,7 @@
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import databasemanager
+import Database
 
 Page {
     id: root
@@ -18,10 +18,6 @@ Page {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
-
-        DatabaseManager {
-            id: dbmanager
-        }
 
         Label {
             Layout.fillWidth: true
@@ -103,7 +99,7 @@ Page {
                 TextField {
                     id: searchField
                     Layout.fillWidth: true
-                    placeholderText: "🔍 Поиск по номеру заказа или клиенту..."
+                    placeholderText: "Поиск по номеру заказа или клиенту..."
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 6
@@ -294,7 +290,8 @@ Page {
             spacing: 10
 
             Button {
-                text: "➕ Новый заказ"
+                id: newOrderButton
+                text: "Новый заказ"
                 font.bold: true
                 padding: 12
                 font.pixelSize: 14
@@ -311,10 +308,16 @@ Page {
                     font: parent.font
                 }
                 onClicked: orderAddDialog.open()
+
+                Shortcut {
+                    sequence: "Ctrl+N"
+                    onActivated: newOrderButton.click()
+                }
             }
 
             Button {
-                text: "🔄 Обновить"
+                id: refreshButton
+                text: "Обновить"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
@@ -331,6 +334,11 @@ Page {
                     font: parent.font
                 }
                 onClicked: refreshTable()
+
+                Shortcut {
+                    sequence: "F5"
+                    onActivated: refreshButton.click()
+                }
             }
         }
     }
@@ -368,7 +376,7 @@ Page {
 
     function refreshTable() {
         ordersModel.clear()
-        var ordersData = dbmanager.getOrdersData()
+        var ordersData = DatabaseManager.getOrdersData()
 
         for (var i = 0; i < ordersData.length; i++) {
             var orderData = ordersData[i]
@@ -469,19 +477,19 @@ Page {
         var totalAmount = parseFloat(totalAmountField.text)
         var customerId = customersModel.get(customerComboBox.currentIndex).id
 
-        var success = dbmanager.createOrder(orderNumber, customerId, orderType, totalAmount, "Новый", notesField.text)
+        var success = DatabaseManager.createOrder(orderNumber, customerId, orderType, totalAmount, "Новый", notesField.text)
 
         if (success) {
-            var orderId = dbmanager.getLastInsertedOrderId()
+            var orderId = DatabaseManager.getLastInsertedOrderId()
 
             if (orderType === "Изготовление рамки") {
                 var width = parseFloat(frameWidthField.text)
                 var height = parseFloat(frameHeightField.text)
-                dbmanager.createFrameOrder(orderId, width, height, 1, 1, notesField.text)
+                DatabaseManager.createFrameOrder(orderId, width, height, 1, 1, notesField.text)
             } else {
                 var kitData = kitsModel.get(kitComboBox.currentIndex)
                 var quantity = parseInt(kitQuantityField.text)
-                dbmanager.createOrderItem(orderId, kitData.id, "Готовый набор", quantity, kitData.price)
+                DatabaseManager.createOrderItem(orderId, kitData.id, "Готовый набор", quantity, kitData.price)
             }
 
             orderAddDialog.close()
@@ -496,7 +504,7 @@ Page {
     Dialog {
         id: orderAddDialog
         modal: true
-        title: "📦 Создание нового заказа"
+        title: "Создание нового заказа"
         width: 480
         height: 700
         anchors.centerIn: parent
@@ -514,7 +522,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "📝 Создание нового заказа"
+                text: "Создание нового заказа"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
@@ -547,7 +555,7 @@ Page {
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "👤 Выберите клиента:"
+                                text: "Выберите клиента:"
                                 font.bold: true
                                 color: "#34495e"
                                 font.pixelSize: 13
@@ -593,7 +601,7 @@ Page {
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "📞 Контактная информация:"
+                                text: "Контактная информация:"
                                 font.bold: true
                                 color: "#34495e"
                                 font.pixelSize: 13
@@ -634,7 +642,7 @@ Page {
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "🔧 Тип заказа:"
+                                text: "Тип заказа:"
                                 font.bold: true
                                 color: "#34495e"
                                 font.pixelSize: 13
@@ -674,7 +682,7 @@ Page {
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "📐 Размеры рамки:"
+                                text: "Размеры рамки:"
                                 font.bold: true
                                 color: "#34495e"
                                 font.pixelSize: 13
@@ -747,7 +755,7 @@ Page {
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "🎨 Выбор набора:"
+                                text: "Выбор набора:"
                                 font.bold: true
                                 color: "#34495e"
                                 font.pixelSize: 13
@@ -845,7 +853,7 @@ Page {
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "💰 Сумма заказа:"
+                                text: "Сумма заказа:"
                                 font.bold: true
                                 color: "#34495e"
                                 font.pixelSize: 13
@@ -888,7 +896,7 @@ Page {
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "📝 Примечания к заказу:"
+                                text: "Примечания к заказу:"
                                 font.bold: true
                                 color: "#34495e"
                                 font.pixelSize: 13
@@ -933,7 +941,7 @@ Page {
             padding: 15
 
             Button {
-                text: "❌ Отмена"
+                text: "Отмена"
                 font.bold: true
                 font.pixelSize: 14
                 width: 120
@@ -952,7 +960,7 @@ Page {
             }
 
             Button {
-                text: "✅ Создать заказ"
+                text: "Создать заказ"
                 font.bold: true
                 font.pixelSize: 14
                 width: 140
@@ -993,7 +1001,7 @@ Page {
 
     function loadCustomers() {
         customersModel.clear()
-        var model = dbmanager.getCustomersModel()
+        var model = DatabaseManager.getCustomersModel()
         for (var i = 0; i < model.rowCount(); i++) {
             customersModel.append({
                 display: model.data(model.index(i, 1)),
@@ -1006,7 +1014,7 @@ Page {
 
     function loadKits() {
         kitsModel.clear()
-        var model = dbmanager.getEmbroideryKitsModel()
+        var model = DatabaseManager.getEmbroideryKitsModel()
         for (var i = 0; i < model.rowCount(); i++) {
             kitsModel.append({
                 display: model.data(model.index(i, 1)) + " - " + model.data(model.index(i, 2)) + " ₽",
@@ -1020,7 +1028,7 @@ Page {
     Dialog {
         id: orderCreatedMessage
         modal: true
-        title: "✅ Заказ создан"
+        title: "Заказ создан"
         width: 300
         height: 150
         anchors.centerIn: parent
@@ -1038,7 +1046,7 @@ Page {
     Dialog {
         id: orderDetailsDialog
         modal: true
-        title: "📦 Детали заказа"
+        title: "Детали заказа"
         property var currentOrderData: ({})
         width: Math.min(700, parent.width * 0.9)
         height: Math.min(600, parent.height * 0.9)
@@ -1057,7 +1065,7 @@ Page {
 
             Label {
                 Layout.fillWidth: true
-                text: "📦 Детали заказа"
+                text: "Детали заказа"
                 font.bold: true
                 font.pixelSize: 20
                 color: "#2c3e50"
@@ -1089,7 +1097,7 @@ Page {
 
                             Label {
                                 Layout.fillWidth: true
-                                text: "📋 Основная информация"
+                                text: "Основная информация"
                                 font.bold: true
                                 font.pixelSize: 18
                                 color: "#2c3e50"
@@ -1181,7 +1189,7 @@ Page {
 
                             Label {
                                 Layout.fillWidth: true
-                                text: "👤 Информация о клиенте"
+                                text: "Информация о клиенте"
                                 font.bold: true
                                 font.pixelSize: 18
                                 color: "#2c3e50"
@@ -1228,7 +1236,7 @@ Page {
             padding: 15
 
             Button {
-                text: "❌ Закрыть"
+                text: "Закрыть"
                 font.bold: true
                 font.pixelSize: 14
                 padding: 12
