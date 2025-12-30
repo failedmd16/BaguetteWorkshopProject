@@ -11,7 +11,6 @@ ApplicationWindow {
     property bool sellerLogged: false
     property bool masterLogged: false
 
-    // Стилизация
     palette {
         button: "#3498db"
         buttonText: "white"
@@ -58,18 +57,30 @@ ApplicationWindow {
 
     Component.onCompleted: {
         let loginComponent = Qt.createComponent("pages/LoginPage.qml")
-        stack.push(loginComponent)
+        let registrationComponent = Qt.createComponent("pages/RegistrationPage.qml")
 
+        stack.push(loginComponent)
         let loginItem = stack.currentItem
+
         loginItem.loginMasterSuccess.connect(function() {
             masterLogged = true
             stack.push("pages/MastersOrdersPage.qml")
             headerLabel.text = "Заказы мастера"
         })
+
         loginItem.loginSellerSuccess.connect(function() {
             sellerLogged = true
             stack.push("pages/CustomersPage.qml")
             headerLabel.text = "Покупатели"
+        })
+
+        loginItem.registrationButtonClicked.connect(function() {
+            stack.push("pages/RegistrationPage.qml")
+            let registrationItem = stack.currentItem
+
+            registrationItem.backToLogin.connect(function() {
+                stack.pop()
+            })
         })
     }
 

@@ -1048,22 +1048,34 @@ Page {
         }
 
         function processSale() {
-            if (saleDialog.validateSaleForm()) {
-                var productItem = productsComboModel.get(productComboBox.currentIndex)
-                var productId = productItem ? productItem.id : -1
-                var productName = productItem ? productItem.name : ""
-                var quantity = quantitySpinBox.value
-                var totalAmount = saleDialog.unitPrice * quantity
+            // 1. Валидация (проверка, что кол-во > 0)
+            if (quantitySpinBox.value <= 0) return;
 
-                var newStock = saleDialog.availableStock - quantity
-                if (saleDialog.isKit) {
-                    DatabaseManager.updateEmbroideryKitStock(productId, newStock)
-                } else {
-                    DatabaseManager.updateConsumableStock(productId, newStock)
-                }
+            var productItem = productsComboModel.get(productComboBox.currentIndex)
+            var quantity = quantitySpinBox.value
+            var totalAmount = saleDialog.unitPrice * quantity
 
+            // 2. Получаем ID технического покупателя
+            var retailId = DatabaseManager.getRetailCustomerId()
+
+            if (retailId === -1) {
+                console.error("Ошибка: Не удалось найти розничного покупателя")
+                return
+            }
+
+            // 3. Создаем заказ
+            var orderNumber = "SALE-" + new Date().getTime()
+            var orderId = DatabaseManager.createOrder(orderNumber, retailId, "Продажа набора", totalAmount, "Завершён", "Быстрая продажа")
+
+            if (orderId !== -1) {
+                // 4. Добавляем товары в заказ (это спишет их со склада)
+                var itemType = saleDialog.isKit ? "Готовый набор" : "Фурнитура"
+                DatabaseManager.createOrderItem(orderId, productItem.id, itemType, productItem.name, quantity, saleDialog.unitPrice)
+
+                // 5. Закрываем окно и обновляем
                 saleDialog.close()
-                saleSuccessDialog.openWithData(productName, quantity, totalAmount)
+                updateProductList()
+                saleSuccessDialog.openWithData(productItem.name, quantity, totalAmount)
             }
         }
 

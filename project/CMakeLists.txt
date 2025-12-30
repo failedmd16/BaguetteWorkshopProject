@@ -22,6 +22,7 @@ qt_add_qml_module(appproject
         Main.qml
         pages/CustomersPage.qml
         pages/LoginPage.qml
+        pages/RegistrationPage.qml
         pages/MastersOrdersPage.qml
         pages/MastersProductsPage.qml
         pages/OrdersPage.qml

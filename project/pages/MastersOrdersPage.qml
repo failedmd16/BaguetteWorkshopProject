@@ -349,9 +349,10 @@ Page {
                 customer_name: order.customer_name || "Не указан",
                 width: order.width || 0,
                 height: order.height || 0,
-                special_instructions: order.special_instructions || ""
+                special_instructions: order.special_instructions || "",
+                material_name: order.material_name || "Неизвестный материал",
+                material_color: order.material_color || "Не указан"
             }
-
             ordersModel.append(orderData)
         }
     }
@@ -443,6 +444,23 @@ Page {
                                   (orderDetailsDialog.currentData.width + "x" + orderDetailsDialog.currentData.height + " см") : "Не указан"
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignLeft
+                        }
+
+                        Label {
+                            text: "Материал:"
+                            font.bold: true
+                            color: "#34495e"
+                            Layout.alignment: Qt.AlignRight
+                            Layout.preferredWidth: 120
+                        }
+                        Label {
+                            // Отображаем Название + Цвет
+                            text: (orderDetailsDialog.currentData) ?
+                                  (orderDetailsDialog.currentData.material_name + " (" + orderDetailsDialog.currentData.material_color + ")") : "Не указан"
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignLeft
+                            color: "#d35400" // Выделим цветом, так как это важно для мастера
+                            font.bold: true
                         }
 
                         Label {

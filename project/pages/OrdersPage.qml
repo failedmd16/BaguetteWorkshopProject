@@ -355,6 +355,28 @@ Page {
         id: kitsModel
     }
 
+    ListModel {
+        id: frameMaterialsModel
+    }
+
+    ListModel {
+        id: mastersModel
+    }
+
+    function loadMasters() {
+        mastersModel.clear()
+        var model = DatabaseManager.getMastersModel()
+        mastersModel.append({ id: -1, display: "Не назначен" })
+
+        if (!model) return
+        for (var i = 0; i < model.rowCount(); i++) {
+            mastersModel.append({
+                id: model.data(model.index(i, 0)),
+                display: model.data(model.index(i, 1))
+            })
+        }
+    }
+
     function formatDate(dateString) {
         if (!dateString) return "Не указана"
         var date = new Date(dateString)
@@ -429,9 +451,12 @@ Page {
         } else if (orderTypeComboBox.currentText === "Изготовление рамки") {
             var width = parseFloat(frameWidthField.text) || 0
             var height = parseFloat(frameHeightField.text) || 0
-            if (width > 0 && height > 0) {
-                var area = (width * height) / 10000
-                total = (area * 1000) + 500
+
+            if (width > 0 && height > 0 && materialComboBox.currentIndex >= 0) {
+                var matPrice = frameMaterialsModel.get(materialComboBox.currentIndex).price
+                // Периметр (м) * запас * цена + работа
+                var cost = ((width + height) * 2 / 100.0 * 1.15 * matPrice) + 500
+                total = cost * 2.0 // Цена продажи
             }
         }
 
@@ -474,19 +499,37 @@ Page {
 
         var orderNumber = "ORD-" + new Date().getTime()
         var orderType = orderTypeComboBox.currentText
-        var totalAmount = parseFloat(totalAmountField.text)
+        var totalAmount = parseFloat(totalAmountField.text) || 0
+
+        // Статус
+        var initialStatus = (orderType === "Продажа набора") ? "Завершён" : "Новый"
+
         var customerId = customersModel.get(customerComboBox.currentIndex).id
 
-        var success = DatabaseManager.createOrder(orderNumber, customerId, orderType, totalAmount, "Новый", notesField.text)
+        // 1. Создаем заказ и ПОЛУЧАЕМ ID (int)
+        var orderId = DatabaseManager.createOrder(orderNumber, customerId, orderType, totalAmount, initialStatus, notesField.text)
 
-        if (success) {
-            var orderId = DatabaseManager.getLastInsertedOrderId()
-
+        if (orderId !== -1) {
             if (orderType === "Изготовление рамки") {
                 var width = parseFloat(frameWidthField.text)
                 var height = parseFloat(frameHeightField.text)
-                DatabaseManager.createFrameOrder(orderId, width, height, 1, 1, notesField.text)
+
+                // Получаем ID материала
+                if (materialComboBox.currentIndex < 0) return // Защита
+                var matId = frameMaterialsModel.get(materialComboBox.currentIndex).id
+
+                // Получаем ID мастера (или -1, если не выбран)
+                var masterId = -1
+                if (masterComboBox.currentIndex >= 0) {
+                    masterId = mastersModel.get(masterComboBox.currentIndex).id
+                }
+
+                // ВАЖНО: Передаем все аргументы, соблюдая типы C++
+                // orderId (int), width (double), height (double), matId (int), furnId (int), masterId (int), notes (string)
+                DatabaseManager.createFrameOrder(orderId, width, height, matId, 1, masterId, notesField.text)
+
             } else {
+                // Продажа набора
                 var kitData = kitsModel.get(kitComboBox.currentIndex)
                 var quantity = parseInt(kitQuantityField.text)
                 DatabaseManager.createOrderItem(orderId, kitData.id, "Готовый набор", quantity, kitData.price)
@@ -496,7 +539,7 @@ Page {
             refreshTable()
             orderCreatedMessage.open()
         } else {
-            addOrderValidationError.text = "Ошибка при создании заказа"
+            addOrderValidationError.text = "Ошибка БД: Не удалось создать заказ"
             addOrderValidationError.visible = true
         }
     }
@@ -679,6 +722,71 @@ Page {
                             width: parent.width
                             spacing: 6
                             visible: false
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Багет:" // <-- Новое поле
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
+                            ComboBox {
+                                id: materialComboBox // <-- Новый комбобокс
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                model: frameMaterialsModel
+                                textRole: "display"
+                                onActivated: calculateTotal()
+
+                                contentItem: Text {
+                                    text: materialComboBox.displayText
+                                    color: "#000000"
+                                    font: materialComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: materialComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+                            }
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Мастер:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
+                            ComboBox {
+                                id: masterComboBox
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                model: mastersModel
+                                textRole: "display"
+
+                                contentItem: Text {
+                                    text: masterComboBox.displayText
+                                    color: "#000000"
+                                    font: masterComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: masterComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+                            }
 
                             Label {
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -982,6 +1090,8 @@ Page {
         onOpened: {
             loadCustomers()
             loadKits()
+            loadFrameMaterials()
+            loadMasters()
             customerComboBox.currentIndex = -1
             kitComboBox.currentIndex = -1
             orderTypeComboBox.currentIndex = 0
@@ -1021,6 +1131,29 @@ Page {
                 id: model.data(model.index(i, 0)),
                 name: model.data(model.index(i, 1)),
                 price: model.data(model.index(i, 2))
+            })
+        }
+    }
+
+    function loadFrameMaterials() {
+        frameMaterialsModel.clear()
+        // Предполагаем, что метод getFrameMaterialsModel() у вас уже есть в C++ (вы его присылали)
+        var model = DatabaseManager.getFrameMaterialsModel()
+        if (!model) return
+
+        for (var i = 0; i < model.rowCount(); i++) {
+            // Индексы колонок зависят от вашего запроса "SELECT * FROM frame_materials"
+            // Обычно: 0-id, 1-name, 2-type, 3-price, 4-stock, 5-color, 6-width
+            var name = model.data(model.index(i, 1))
+            var price = model.data(model.index(i, 3))
+            var stock = model.data(model.index(i, 4))
+            var color = model.data(model.index(i, 5))
+
+            frameMaterialsModel.append({
+                id: model.data(model.index(i, 0)),
+                display: name + " (" + color + ") - " + price + " ₽/м",
+                price: price,
+                stock: stock
             })
         }
     }

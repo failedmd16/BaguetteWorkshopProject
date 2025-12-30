@@ -5,9 +5,7 @@ import QtQuick.LocalStorage
 import Database
 
 Page {
-    signal loginSellerSuccess()
-    signal loginMasterSuccess()
-    signal registrationButtonClicked()
+    signal backToLogin()
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -15,7 +13,7 @@ Page {
         spacing: 15
 
         Label {
-            text: "Вход в систему"
+            text: "Регистрация аккаунта"
             font.pixelSize: 24
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
@@ -54,13 +52,50 @@ Page {
             }
         }
 
+        TextField {
+            id: codeTF
+            color: "black"
+            placeholderText: "Код"
+            echoMode: TextInput.Password
+            font.pixelSize: 14
+            Layout.fillWidth: true
+            background: Rectangle {
+                border.color: codeTF.activeFocus ? "#3498db" : "#dce0e3"
+                border.width: 1
+                radius: 4
+            }
+        }
+
+        ComboBox {
+            id: rolesComboBox
+            editable: false
+            Layout.fillWidth: true
+            model: ["Продавец", "Мастер производства"]
+
+            contentItem: Text {
+                text: rolesComboBox.displayText
+                color: "#000000"
+                font: rolesComboBox.font
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+                elide: Text.ElideRight
+                leftPadding: 12
+            }
+
+            background: Rectangle {
+                color: "#f8f9fa"
+                radius: 6
+                border.color: rolesComboBox.activeFocus ? "#3498db" : "#dce0e3"
+            }
+        }
+
         RowLayout {
-            spacing: 60
+            spacing: 40
             Layout.fillWidth: true
 
             Button {
                 id: registrationBtn
-                text: "Регистрация"
+                text: "Авторизация"
                 font.pixelSize: 16
                 Layout.fillWidth: true
 
@@ -77,12 +112,12 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                onClicked: registrationButtonClicked()
+                onClicked: backToLogin()
             }
 
             Button {
                 id: enterBtn
-                text: "Войти"
+                text: "Зарегистрировать"
                 font.pixelSize: 16
                 Layout.fillWidth: true
 
@@ -102,6 +137,7 @@ Page {
                 onClicked: {
                     var user_name = loginTF.text.trim()
                     var user_password = passwordTF.text.trim()
+                    var admin_code = codeTF.text.trim()
 
                     if (user_name === "") {
                         infoLbl.text = "Логин не может быть пустым"
@@ -115,16 +151,20 @@ Page {
                         return
                     }
 
-                    if (DatabaseManager.loginUser(user_name, user_password)) {
-                        infoLbl.text = "Вход успешен"
-                        infoLbl.color = "green"
+                    if (admin_code === "") {
+                        infoLbl.text = "Код администратора не может быть пустым"
+                        infoLbl.color = "red"
+                        return
+                    }
 
-                        if (DatabaseManager.getCurrentUserRole() === "Продавец")
-                            loginSellerSuccess()
-                            else if (DatabaseManager.getCurrentUserRole() === "Мастер производства")
-                            loginMasterSuccess()
+                    if (DatabaseManager.registrationUser(user_name, user_password, rolesComboBox.currentText, admin_code)) {
+                        infoLbl.text = "Регистрация успешна"
+                        infoLbl.color = "green"
+                        loginTF.clear()
+                        passwordTF.clear()
+                        codeTF.clear()
                     } else {
-                        infoLbl.text = "Неверный логин или пароль"
+                        infoLbl.text = "Ошибка при регистрации, проверьте введённый логин, пароль, код"
                         infoLbl.color = "red"
                     }
                 }
