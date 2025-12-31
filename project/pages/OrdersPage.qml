@@ -14,10 +14,6 @@ Page {
         color: "#f8f9fa"
     }
 
-    // =========================================================
-    // ФУНКЦИИ ЛОГИКИ
-    // =========================================================
-
     function loadMasters() {
         mastersModel.clear()
         var model = DatabaseManager.getMastersModel()
@@ -125,7 +121,6 @@ Page {
             }
         }
 
-        // Записываем результат сразу в поле ввода суммы
         totalAmountField.text = total > 0 ? total.toFixed(2) : ""
     }
 
@@ -175,7 +170,6 @@ Page {
         }
     }
 
-    // Логика создания
     function validateForm() {
         var errors = []
         if (customerComboBox.currentIndex === -1)
@@ -233,7 +227,6 @@ Page {
         }
     }
 
-    // --- МОДЕЛИ ДАННЫХ ---
     ListModel {
         id: ordersModel
     }
@@ -250,16 +243,11 @@ Page {
         id: mastersModel
     }
 
-
-    // =========================================================
-    // ГЛАВНЫЙ ИНТЕРФЕЙС
-    // =========================================================
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
 
-        // ЗАГОЛОВОК СТРАНИЦЫ
         Label {
             Layout.fillWidth: true
             Layout.preferredHeight: 70
@@ -277,7 +265,6 @@ Page {
             }
         }
 
-        // ПАНЕЛЬ ФИЛЬТРОВ
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -356,7 +343,6 @@ Page {
             }
         }
 
-        // 1. ЗАГОЛОВКИ ТАБЛИЦЫ (Отдельный блок, как в примере покупателей)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -365,7 +351,6 @@ Page {
 
             Row {
                 anchors.fill: parent
-                // Отступы и spacing как в примере
                 anchors.margins: 5
                 spacing: 1
 
@@ -373,7 +358,6 @@ Page {
                     model: ["№ заказа", "Клиент", "Тип", "Статус", "Сумма", "Дата"]
 
                     Rectangle {
-                        // Делим ширину родителя (Row) на 6 столбцов
                         width: (parent.width - 5) / 6
                         height: parent.height
                         color: "transparent"
@@ -390,7 +374,6 @@ Page {
             }
         }
 
-        // 2. ТАБЛИЦА ДАННЫХ (Контейнер со списком)
         Rectangle {
             id: tableContainer
             Layout.fillWidth: true
@@ -405,7 +388,6 @@ Page {
                 anchors.fill: parent
                 anchors.margins: 2
                 clip: true
-                // Политика скроллбара как в примере
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
@@ -421,10 +403,8 @@ Page {
                         height: 45
                         color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
 
-                        // Нижняя граница строки (как в TableView)
                         border.color: "#e9ecef"
                         border.width: 1
-                        // Убираем верхнюю/боковые границы, оставляем только нижнюю
 
                         MouseArea {
                             anchors.fill: parent
@@ -444,16 +424,11 @@ Page {
 
                         Row {
                             anchors.fill: parent
-                            // ВАЖНО: Отступы должны совпадать с заголовком (anchors.margins: 5 в header)
                             anchors.margins: 5
                             spacing: 1
 
-                            // Вычисляем ширину так же, как в заголовке
                             property int colWidth: (parent.width - 5) / 6
 
-                            // --- СТОЛБЦЫ ---
-
-                            // 1. Номер заказа
                             Rectangle {
                                 width: parent.colWidth; height: parent.height; color: "transparent"
                                 Text {
@@ -466,7 +441,6 @@ Page {
                                 }
                             }
 
-                            // 2. Клиент
                             Rectangle {
                                 width: parent.colWidth; height: parent.height; color: "transparent"
                                 Text {
@@ -480,7 +454,6 @@ Page {
                                 }
                             }
 
-                            // 3. Тип
                             Rectangle {
                                 width: parent.colWidth; height: parent.height; color: "transparent"
                                 Text {
@@ -493,7 +466,6 @@ Page {
                                 }
                             }
 
-                            // 4. Статус
                             Rectangle {
                                 width: parent.colWidth; height: parent.height; color: "transparent"
                                 Text {
@@ -507,7 +479,6 @@ Page {
                                 }
                             }
 
-                            // 5. Сумма
                             Rectangle {
                                 width: parent.colWidth; height: parent.height; color: "transparent"
                                 Text {
@@ -520,7 +491,6 @@ Page {
                                 }
                             }
 
-                            // 6. Дата
                             Rectangle {
                                 width: parent.colWidth; height: parent.height; color: "transparent"
                                 Text {
@@ -537,7 +507,6 @@ Page {
                 }
             }
         }
-        // КНОПКИ ДЕЙСТВИЙ (FOOTER СТРАНИЦЫ)
         RowLayout {
             Layout.alignment: Qt.AlignRight
             spacing: 10
@@ -586,14 +555,10 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 1. ДИАЛОГ ДОБАВЛЕНИЯ ЗАКАЗА
-    // =========================================================
     Dialog {
         id: orderAddDialog
         modal: true
-        header: null // Убираем системный хедер
+        header: null
         width: 500
         height: 700
         anchors.centerIn: parent
@@ -606,12 +571,10 @@ Page {
             border.width: 1
         }
 
-        // Общий контейнер диалога
         ColumnLayout {
             anchors.fill: parent
             spacing: 10
 
-            // Кастомный заголовок
             Label {
                 Layout.fillWidth: true
                 text: "Создание нового заказа"
@@ -622,16 +585,14 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Область с прокруткой для полей ввода
             ScrollView {
                 clip: true
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                contentWidth: availableWidth // Растягиваем контент на всю ширину для центрирования
+                contentWidth: availableWidth
                 ScrollBar.vertical.policy: ScrollBar.AsNeeded
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                // ВАЖНО: Используем вашу структуру с вложенными Column для центрирования
                 Column {
                     width: parent.width
                     spacing: 15
@@ -643,7 +604,6 @@ Page {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: 12
 
-                        // --- ВЫБОР КЛИЕНТА ---
                         Column {
                             width: parent.width
                             spacing: 6
@@ -688,7 +648,6 @@ Page {
                             }
                         }
 
-                        // --- ИНФОРМАЦИЯ О КЛИЕНТЕ ---
                         Column {
                             width: parent.width
                             spacing: 6
@@ -723,7 +682,6 @@ Page {
                             }
                         }
 
-                        // --- ТИП ЗАКАЗА ---
                         Column {
                             width: parent.width
                             spacing: 6
@@ -760,7 +718,6 @@ Page {
                             }
                         }
 
-                        // --- ПОЛЯ ДЛЯ РАМКИ ---
                         Column {
                             id: frameOrderFields
                             width: parent.width
@@ -892,7 +849,6 @@ Page {
                             }
                         }
 
-                        // --- ПОЛЯ ДЛЯ НАБОРА ---
                         Column {
                             id: kitOrderFields
                             width: parent.width
@@ -925,7 +881,6 @@ Page {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 spacing: 10
 
-                                // Столбец кол-ва
                                 Column {
                                     width: (parent.width - 10) / 2
                                     spacing: 4
@@ -952,12 +907,10 @@ Page {
                                     }
                                 }
 
-                                // Столбец цены (Цена и метка в одной строке)
                                 Column {
                                     width: (parent.width - 10) / 2
                                     spacing: 4
 
-                                    // Пустой Label для выравнивания по вертикали
                                     Label {
                                         text: " "
                                         font.pixelSize: 12
@@ -989,7 +942,6 @@ Page {
                             }
                         }
 
-                        // --- СУММА ЗАКАЗА ---
                         Column {
                             width: parent.width
                             spacing: 6
@@ -1018,7 +970,6 @@ Page {
                             }
                         }
 
-                        // --- ПРИМЕЧАНИЯ ---
                         Column {
                             width: parent.width
                             spacing: 6
@@ -1043,7 +994,6 @@ Page {
                             }
                         }
 
-                        // --- БЛОК ОШИБОК ---
                         Label {
                             id: addOrderValidationError
                             width: parent.width
@@ -1058,7 +1008,6 @@ Page {
                 }
             }
 
-            // Кнопки (Footer)
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 60
@@ -1130,10 +1079,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 2. ДИАЛОГ ДЕТАЛЕЙ ЗАКАЗА (С кнопками Редактировать и Удалить)
-    // =========================================================
     Dialog {
         id: orderDetailsDialog
         modal: true
@@ -1176,7 +1121,6 @@ Page {
                     spacing: 15
                     Layout.topMargin: 10
 
-                    // Карточка с информацией
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: detailsCol.implicitHeight + 20
@@ -1189,31 +1133,30 @@ Page {
                             anchors.margins: 15
                             spacing: 10
 
-                            // Хелпер для отображения строк
                             Repeater {
                                 model: [{
                                     l: "№ заказа:",
-                                    v: orderDetailsDialog.currentOrderData.order_number
+                                    v: (orderDetailsDialog.currentOrderData || {}).order_number
                                 }, {
                                     l: "Статус:",
-                                    v: orderDetailsDialog.currentOrderData.status,
+                                    v: (orderDetailsDialog.currentOrderData || {}).status,
                                     isStatus: true
                                 }, {
                                     l: "Тип:",
-                                    v: orderDetailsDialog.currentOrderData.order_type
+                                    v: (orderDetailsDialog.currentOrderData || {}).order_type
                                 }, {
                                     l: "Сумма:",
-                                    v: (orderDetailsDialog.currentOrderData.total_amount || 0) + " ₽",
+                                    v: ((orderDetailsDialog.currentOrderData || {}).total_amount || 0) + " ₽",
                                     isPrice: true
                                 }, {
                                     l: "Клиент:",
-                                    v: orderDetailsDialog.currentOrderData.customer_name
+                                    v: (orderDetailsDialog.currentOrderData || {}).customer_name
                                 }, {
                                     l: "Телефон:",
-                                    v: orderDetailsDialog.currentOrderData.customer_phone
+                                    v: (orderDetailsDialog.currentOrderData || {}).customer_phone
                                 }, {
                                     l: "Дата:",
-                                    v: formatDate(orderDetailsDialog.currentOrderData.created_at)
+                                    v: formatDate((orderDetailsDialog.currentOrderData || {}).created_at)
                                 }]
 
                                 RowLayout {
@@ -1242,7 +1185,6 @@ Page {
                 }
             }
 
-            // Footer с кнопками
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 60
@@ -1321,10 +1263,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 3. ДИАЛОГ РЕДАКТИРОВАНИЯ ЗАКАЗА
-    // =========================================================
     Dialog {
         id: orderEditDialog
         modal: true
@@ -1343,12 +1281,10 @@ Page {
             border.width: 1
         }
 
-        // Основной контейнер
         ColumnLayout {
             anchors.fill: parent
             spacing: 10
 
-            // --- ЗАГОЛОВОК ---
             Label {
                 Layout.fillWidth: true
                 text: "Редактирование заказа"
@@ -1359,16 +1295,14 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            // --- ФОРМА ВВОДА (ПО ЦЕНТРУ) ---
             ColumnLayout {
                 Layout.fillWidth: true
-                Layout.fillHeight: true // Занимает всё свободное место по вертикали
-                Layout.alignment: Qt.AlignCenter // Центрируем весь блок формы
+                Layout.fillHeight: true
+                Layout.alignment: Qt.AlignCenter
                 spacing: 20
 
-                // Группа: Изменение статуса
                 Column {
-                    Layout.alignment: Qt.AlignHCenter // Центрируем этот блок по горизонтали
+                    Layout.alignment: Qt.AlignHCenter
                     width: 300
                     spacing: 5
 
@@ -1400,7 +1334,6 @@ Page {
                     }
                 }
 
-                // Группа: Изменение суммы
                 Column {
                     Layout.alignment: Qt.AlignHCenter
                     width: 300
@@ -1425,7 +1358,6 @@ Page {
                     }
                 }
 
-                // Группа: Изменение примечания
                 Column {
                     Layout.alignment: Qt.AlignHCenter
                     width: 300
@@ -1450,7 +1382,6 @@ Page {
                 }
             }
 
-            // --- КНОПКИ (FOOTER) ---
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 60
@@ -1520,10 +1451,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 4. ДИАЛОГ ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ
-    // =========================================================
     Dialog {
         id: deleteConfirmDialog
         modal: true
@@ -1614,9 +1541,6 @@ Page {
         }
     }
 
-    // =========================================================
-    // 5. СООБЩЕНИЕ ОБ УСПЕХЕ
-    // =========================================================
     Dialog {
         id: orderCreatedMessage
         modal: true
@@ -1638,7 +1562,7 @@ Page {
             spacing: 10
 
             Label {
-                text: "Успех"
+                text: "Успешно"
                 font.bold: true
                 font.pixelSize: 18
                 color: "#27ae60"

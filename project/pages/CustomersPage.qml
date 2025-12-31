@@ -14,13 +14,10 @@ Page {
         color: "#f8f9fa"
     }
 
-    // При открытии страницы инициализируем даты
     onVisibleChanged: {
         if (visible)
             refreshTable()
     }
-
-    // --- ФУНКЦИИ-ХЕЛПЕРЫ ---
 
     function getOrderTypeText(type) {
         switch(type) {
@@ -85,14 +82,11 @@ Page {
         tableview.model = DatabaseManager.getTableModel(root.tableName)
     }
 
-    // --- ОСНОВНОЙ ИНТЕРФЕЙС ---
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
 
-        // Заголовок страницы
         Label {
             Layout.fillWidth: true
             text: "👥 Управление покупателями"
@@ -109,7 +103,6 @@ Page {
             }
         }
 
-        // Панель фильтрации
         Rectangle {
             Layout.alignment: Qt.AlignLeft
             Layout.preferredHeight: 50
@@ -228,7 +221,6 @@ Page {
             }
         }
 
-        // Заголовки таблицы
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -260,7 +252,6 @@ Page {
             }
         }
 
-        // Таблица данных
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -335,7 +326,6 @@ Page {
             }
         }
 
-        // Кнопки управления (внизу справа)
         RowLayout {
             Layout.alignment: Qt.AlignRight
             spacing: 10
@@ -384,9 +374,6 @@ Page {
         }
     }
 
-    // =========================================================
-    // 1. ДИАЛОГ ДОБАВЛЕНИЯ
-    // =========================================================
     Dialog {
         id: customerAddDialog
         modal: true
@@ -417,13 +404,11 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Форма ввода
             ColumnLayout {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 10
                 spacing: 15
 
-                // ФИО
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 5
@@ -449,7 +434,6 @@ Page {
                     }
                 }
 
-                // Телефон
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 5
@@ -475,7 +459,6 @@ Page {
                     }
                 }
 
-                // Email
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 5
@@ -501,7 +484,6 @@ Page {
                     }
                 }
 
-                // Адрес
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 5
@@ -541,12 +523,10 @@ Page {
                 }
             }
 
-            // Распорка
             Item {
                 Layout.fillHeight: true
             }
 
-            // Кнопки диалога
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 10
@@ -636,9 +616,6 @@ Page {
         }
     }
 
-    // ===========================
-    // 2. ДИАЛОГ РЕДАКТИРОВАНИЯ
-    // ===========================
     Dialog {
         id: customerEditDialog
         modal: true
@@ -983,7 +960,6 @@ Page {
                             }
                         }
 
-                        // --- ЗАГОЛОВОК ИСТОРИИ ---
                         Label {
                             text: "История заказов"
                             font.bold: true
@@ -995,7 +971,6 @@ Page {
                             font.pixelSize: 14
                         }
 
-                        // --- СПИСОК ЗАКАЗОВ ---
                         Repeater {
                             model: customerViewDialog.customerOrders
 
@@ -1070,7 +1045,6 @@ Page {
                 Layout.fillHeight: true
             }
 
-            // Кнопки управления (Футер)
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 10
@@ -1143,9 +1117,6 @@ Page {
         }
     }
 
-    // =========================================================
-    // 4. ДИАЛОГ РЕЗУЛЬТАТОВ ФИЛЬТРАЦИИ
-    // =========================================================
     Dialog {
         id: filterResultsDialog
         modal: true
@@ -1182,7 +1153,6 @@ Page {
                 Layout.fillHeight: true
                 spacing: 0
 
-                // Шапка таблицы результатов
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
@@ -1195,7 +1165,6 @@ Page {
 
                         property var colWeights: [0.30, 0.20, 0.25, 0.10, 0.15]
 
-                        // Функция для получения ширины конкретной колонки по индексу
                         function getColWidth(index) {
                             return width * colWeights[index]
                         }
@@ -1219,7 +1188,6 @@ Page {
                     }
                 }
 
-                // Область с прокруткой
                 ScrollView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -1233,7 +1201,6 @@ Page {
                         model: filterResultsDialog.filteredCustomers
 
                         delegate: Rectangle {
-                            // Ширина строки равна ширине шапки
                             width: headerRow.width
                             height: 40
                             color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
@@ -1241,7 +1208,6 @@ Page {
                             Row {
                                 anchors.fill: parent
 
-                                // --- КОЛОНКА 1: ФИО (30%) ---
                                 Item {
                                     width: headerRow.getColWidth(0)
                                     height: parent.height
@@ -1252,22 +1218,19 @@ Page {
                                         text: modelData.full_name
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
-                                        elide: Text.ElideRight // Ставим троеточие, если не влезает
+                                        elide: Text.ElideRight
                                         font.pixelSize: 12
                                         padding: 5
                                     }
-                                    // ТУЛТИП (Подсказка при наведении)
                                     MouseArea {
                                         anchors.fill: parent
                                         hoverEnabled: true
-                                        // Показывать тултип только если текст обрезан (truncated)
                                         ToolTip.visible: containsMouse && txtName.truncated
                                         ToolTip.text: txtName.text
                                         ToolTip.delay: 500
                                     }
                                 }
 
-                                // --- КОЛОНКА 2: Телефон (20%) ---
                                 Text {
                                     width: headerRow.getColWidth(1)
                                     height: parent.height
@@ -1279,7 +1242,6 @@ Page {
                                     padding: 5
                                 }
 
-                                // --- КОЛОНКА 3: Email (25%) ---
                                 Item {
                                     width: headerRow.getColWidth(2)
                                     height: parent.height
@@ -1302,7 +1264,6 @@ Page {
                                     }
                                 }
 
-                                // --- КОЛОНКА 4: Заказов (10%) ---
                                 Text {
                                     width: headerRow.getColWidth(3)
                                     height: parent.height
@@ -1313,7 +1274,6 @@ Page {
                                     font.pixelSize: 12
                                 }
 
-                                // --- КОЛОНКА 5: Сумма (15%) ---
                                 Text {
                                     width: headerRow.getColWidth(4)
                                     height: parent.height
@@ -1364,9 +1324,6 @@ Page {
         }
     }
 
-    // =========================================================
-    // 5. ДИАЛОГ ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ
-    // =========================================================
     Dialog {
         id: deleteConfirmDialog
         modal: true
@@ -1457,9 +1414,6 @@ Page {
         }
     }
 
-    // =========================================================
-    // 6. ДИАЛОГ ОШИБКИ
-    // =========================================================
     Dialog {
         id: messageDialog
         modal: true

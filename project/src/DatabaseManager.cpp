@@ -495,7 +495,6 @@ QSqlQueryModel* DatabaseManager::getEmbroideryKitsModel() {
 
 int DatabaseManager::createOrder(const QString &orderNumber, int customerId, const QString &orderType, double totalAmount, const QString &status, const QString &notes) {
     QSqlQuery query;
-    // Добавили notes в INSERT
     query.prepare("INSERT INTO orders (order_number, customer_id, order_type, total_amount, status, notes, created_by) "
                   "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id");
     query.addBindValue(orderNumber);
@@ -503,7 +502,7 @@ int DatabaseManager::createOrder(const QString &orderNumber, int customerId, con
     query.addBindValue(orderType);
     query.addBindValue(totalAmount);
     query.addBindValue(status);
-    query.addBindValue(notes); // Привязываем заметку
+    query.addBindValue(notes);
     query.addBindValue(currentUserId);
 
     if (query.exec() && query.next()) {
@@ -518,7 +517,6 @@ void DatabaseManager::updateOrder(int id, const QString &status, double totalAmo
     QSqlQuery query;
     QString sql = "UPDATE orders SET status = ?, total_amount = ?, notes = ?";
 
-    // Если статус меняется на "Завершён", ставим метку времени
     if (status == "Завершён") {
         sql += ", completed_at = CURRENT_TIMESTAMP";
     }
@@ -533,23 +531,17 @@ void DatabaseManager::updateOrder(int id, const QString &status, double totalAmo
 
     if (!query.exec()) {
         qDebug() << "Error updating order:" << query.lastError().text();
-    } else {
-        qDebug() << "Order updated successfully. ID:" << id;
     }
 }
 
 void DatabaseManager::deleteOrder(int id)
 {
-    // Благодаря ON DELETE CASCADE (который прописан в createTables для frame_orders и order_items),
-    // удаление заказа автоматически удалит связанные рамки и товары.
     QSqlQuery query;
     query.prepare("DELETE FROM orders WHERE id = ?");
     query.addBindValue(id);
 
     if (!query.exec()) {
         qDebug() << "Error deleting order:" << query.lastError().text();
-    } else {
-        qDebug() << "Order deleted successfully. ID:" << id;
     }
 }
 
@@ -860,7 +852,6 @@ QVariantList DatabaseManager::getOrdersData() {
 
     query.setForwardOnly(true);
 
-    // Добавили o.notes в SELECT
     QString queryStr = "SELECT "
                        "o.id, o.order_number, o.order_type, o.status, o.total_amount, o.created_at, o.notes, "
                        "c.full_name as customer_name, c.phone as customer_phone, "

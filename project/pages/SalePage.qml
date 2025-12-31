@@ -9,6 +9,7 @@ Page {
     property string consumablesTable: "consumable_furniture"
     property int selectedRow: -1
 
+
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
@@ -19,7 +20,6 @@ Page {
         anchors.margins: 20
         spacing: 15
 
-        // --- ЗАГОЛОВОК СТРАНИЦЫ ---
         Label {
             Layout.fillWidth: true
             Layout.preferredHeight: 70
@@ -37,7 +37,6 @@ Page {
             }
         }
 
-        // --- ПАНЕЛЬ ВЫБОРА ТИПА (С КРАСИВЫМИ RADIO BUTTONS) ---
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -63,7 +62,6 @@ Page {
                     onCheckedButtonChanged: updateProductList()
                 }
 
-                // Кастомный стиль для RadioButton
                 Component {
                     id: radioStyle
                     RadioButton {
@@ -106,7 +104,6 @@ Page {
                     checked: true
                     ButtonGroup.group: productTypeGroup
 
-                    // Применяем стиль вручную (копируя логику из Component выше для наглядности)
                     indicator: Rectangle {
                         implicitWidth: 22
                         implicitHeight: 22
@@ -168,11 +165,10 @@ Page {
 
                 Item {
                     Layout.fillWidth: true
-                } // Распорка
+                }
             }
         }
 
-        // --- ЗАГОЛОВКИ ТАБЛИЦЫ ---
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -206,7 +202,6 @@ Page {
             }
         }
 
-        // --- ТАБЛИЦА ТОВАРОВ ---
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -242,7 +237,6 @@ Page {
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
                         border.width: 1
-                        // Убираем лишние границы, оставляем нижнюю для красоты
 
                         property var rowData: model ? (productTypeGroup.checkedButton === kitsRadio ?
                             DatabaseManager.getRowData("embroidery_kits", row) :
@@ -367,9 +361,6 @@ Page {
         }
     }
 
-    // =========================================================
-    // 1. ДИАЛОГ РЕДАКТИРОВАНИЯ ТОВАРА (FINAL COMPACT)
-    // =========================================================
     Dialog {
         id: productEditDialog
         modal: true
@@ -377,7 +368,7 @@ Page {
         width: 420
         height: 420
         anchors.centerIn: parent
-        padding: 0 // Убираем внутренний паддинг диалога, управляем им через Layout
+        padding: 0
 
         property int currentRow: -1
         property bool isKit: true
@@ -390,13 +381,11 @@ Page {
             border.width: 1
         }
 
-        // Основной контейнер на всё окно
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20 // Отступы от краев окна
+            anchors.margins: 20
             spacing: 12
 
-            // --- ЗАГОЛОВОК ---
             Label {
                 Layout.fillWidth: true
                 text: productEditDialog.isKit ? "Редактирование набора" : "Ред. фурнитуры"
@@ -407,7 +396,6 @@ Page {
                 Layout.bottomMargin: 5
             }
 
-            // --- НАЗВАНИЕ ---
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 5
@@ -429,7 +417,6 @@ Page {
                 }
             }
 
-            // --- ОПИСАНИЕ (Только для наборов) ---
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 5
@@ -454,7 +441,6 @@ Page {
                 }
             }
 
-            // --- ТИП И ЕД. ИЗМ (Только для фурнитуры) ---
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 15
@@ -520,12 +506,10 @@ Page {
                 }
             }
 
-            // --- ЦЕНА И КОЛИЧЕСТВО (В одну строку) ---
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 15
 
-                // Цена
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
@@ -552,7 +536,6 @@ Page {
                     }
                 }
 
-                // Количество (Custom SpinBox)
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
@@ -640,7 +623,6 @@ Page {
                 }
             }
 
-            // Ошибка валидации
             Label {
                 id: editValidationError
                 color: "#e74c3c"
@@ -650,12 +632,10 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            // Распорка (прижимает футер к низу, если контента мало, но в ColumnLayout без высоты она просто занимает место)
             Item {
                 Layout.fillHeight: true
             }
 
-            // --- FOOTER (КНОПКИ) ---
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
@@ -682,7 +662,7 @@ Page {
 
                 Item {
                     Layout.fillWidth: true
-                } // Распорка между Удалить и Отмена
+                }
 
                 Button {
                     text: "Отмена"
@@ -747,7 +727,6 @@ Page {
             }
         }
 
-        // --- ЛОГИКА ---
         function validateForm() {
             var errors = []
             if (editNameField.text.trim().length < 2) errors.push("• Название слишком короткое")
@@ -788,10 +767,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 2. ДИАЛОГ УДАЛЕНИЯ
-    // =========================================================
     Dialog {
         id: deleteConfirmationDialog
         modal: true
@@ -886,10 +861,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 3. ДИАЛОГ ПРОДАЖИ (С КРАСИВЫМ SPINBOX)
-    // =========================================================
     Dialog {
         id: saleDialog
         modal: true
@@ -958,7 +929,6 @@ Page {
                 }
             }
 
-            // Инфо-блока (Цена / Сток)
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 15
@@ -1046,7 +1016,6 @@ Page {
                         radius: 6
                     }
 
-                    // Стилизация кнопки "Минус"
                     down.indicator: Rectangle {
                         x: 0
                         height: parent.height
@@ -1055,7 +1024,6 @@ Page {
                         color: quantitySpinBox.down.pressed ? "#bdc3c7" : "#e0e0e0"
                         border.color: "#bdc3c7"
 
-                        // Обрезаем правые углы, чтобы пристыковать к полю
                         Rectangle {
                             x: parent.width - radius
                             width: radius
@@ -1073,7 +1041,6 @@ Page {
                         }
                     }
 
-                    // Стилизация кнопки "Плюс"
                     up.indicator: Rectangle {
                         x: parent.width - width
                         height: parent.height
@@ -1101,7 +1068,6 @@ Page {
                 }
             }
 
-            // Итого
             Rectangle {
                 Layout.fillWidth: true
                 height: 60
@@ -1140,7 +1106,6 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
             }
 
-            // Footer
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 60
@@ -1191,7 +1156,6 @@ Page {
             }
         }
 
-        // Логика диалога (без изменений, просто перенесена)
         function updateProductInfo() {
             if (productComboBox.currentIndex >= 0) {
                 var currentItem = productsComboModel.get(productComboBox.currentIndex)
@@ -1254,10 +1218,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 4. ДИАЛОГ УСПЕХА
-    // =========================================================
     Dialog {
         id: saleSuccessDialog
         modal: true
@@ -1355,10 +1315,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 5. ДИАЛОГ ДОБАВЛЕНИЯ НАБОРА
-    // =========================================================
     Dialog {
         id: kitAddDialog
         modal: true
@@ -1474,7 +1430,6 @@ Page {
                                 inputMethodHints: Qt.ImhDigitsOnly
                             }
 
-                            // Стилизация кнопки "Минус"
                             down.indicator: Rectangle {
                                 x: 0
                                 height: parent.height
@@ -1483,7 +1438,6 @@ Page {
                                 color: addKitQuantityField.down.pressed ? "#bdc3c7" : "#e0e0e0"
                                 border.color: "#bdc3c7"
 
-                                // Обрезаем правые углы, чтобы пристыковать к полю
                                 Rectangle {
                                     x: parent.width - radius
                                     width: radius
@@ -1501,7 +1455,6 @@ Page {
                                 }
                             }
 
-                            // Стилизация кнопки "Плюс"
                             up.indicator: Rectangle {
                                 x: parent.width - width
                                 height: parent.height
@@ -1608,10 +1561,6 @@ Page {
         }
     }
 
-
-    // =========================================================
-    // 6. ДИАЛОГ ДОБАВЛЕНИЯ ФУРНИТУРЫ
-    // =========================================================
     Dialog {
         id: consumableAddDialog
         modal: true
@@ -1645,7 +1594,6 @@ Page {
                 Layout.fillWidth: true
                 spacing: 10
 
-                // Название
                 Label {
                     text: "Название:"
                     font.bold: true
@@ -1662,7 +1610,6 @@ Page {
                     }
                 }
 
-                // Тип
                 Label {
                     text: "Тип:"
                     font.bold: true
@@ -1688,12 +1635,10 @@ Page {
                     }
                 }
 
-                // Строка: Цена | Ед. изм. | Количество
                 RowLayout {
                     spacing: 10
                     Layout.fillWidth: true
 
-                    // 1. Цена
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
@@ -1719,7 +1664,6 @@ Page {
                         }
                     }
 
-                    // 2. Ед. измерения
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
@@ -1749,7 +1693,6 @@ Page {
                         }
                     }
 
-                    // 3. Количество (Стилизованный SpinBox)
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
@@ -1785,7 +1728,6 @@ Page {
                                 inputMethodHints: Qt.ImhDigitsOnly
                             }
 
-                            // Кнопка "Минус"
                             down.indicator: Rectangle {
                                 x: 0
                                 height: parent.height
@@ -1811,7 +1753,6 @@ Page {
                                 }
                             }
 
-                            // Кнопка "Плюс"
                             up.indicator: Rectangle {
                                 x: parent.width - width
                                 height: parent.height

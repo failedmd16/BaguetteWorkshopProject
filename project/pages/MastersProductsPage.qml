@@ -169,6 +169,7 @@ Page {
                         implicitHeight: 45
                         color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
+                        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: "#e9ecef" }
 
                         property var rowData: model ? DatabaseManager.getRowData(root.currentTable, row) : ({})
 
@@ -217,7 +218,7 @@ Page {
                             horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
                             color: "#2c3e50"
-                            font.pixelSize: 13
+                            font.pixelSize: 14
                         }
                     }
                 }
@@ -289,11 +290,11 @@ Page {
     Dialog {
         id: productViewDialog
         modal: true
-        title: root.currentTable === "frame_materials" ? "Данные материала" : "Данные фурнитуры"
-        width: 350
-        height: 600
+        header: null
+        width: 450
+        height: 450
         anchors.centerIn: parent
-        padding: 0
+        padding: 20
 
         property int currentRow: -1
         property var currentData: ({})
@@ -307,7 +308,7 @@ Page {
 
         ColumnLayout {
             anchors.fill: parent
-            spacing: 0
+            spacing: 15
 
             Label {
                 Layout.fillWidth: true
@@ -315,253 +316,154 @@ Page {
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
-                padding: 10
                 horizontalAlignment: Text.AlignHCenter
+                Layout.alignment: Qt.AlignTop
             }
 
-            ScrollView {
-                clip: true
-                Layout.fillHeight: true
+            Item { Layout.fillHeight: true }
+
+            Rectangle {
                 Layout.fillWidth: true
-                Layout.margins: 15
+                Layout.preferredHeight: detailsCol.implicitHeight + 30
+                color: "#f8f9fa"
+                radius: 10
+                border.color: "#ecf0f1"
 
-                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                ColumnLayout {
+                    id: detailsCol
+                    anchors.fill: parent
+                    anchors.margins: 15
+                    spacing: 12
 
-                Column {
-                    width: parent.width
-                    spacing: 15
-                    anchors.top: parent.top
-                    anchors.topMargin: 10
+                    component DetailRow: RowLayout {
+                        property string labelText
+                        property string valueText
+                        property color valueColor: "#2c3e50"
+                        property bool isBold: false
 
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
+                        Layout.fillWidth: true
                         Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Название:"
+                            text: labelText
                             font.bold: true
-                            color: "#34495e"
+                            color: "#7f8c8d"
+                            Layout.preferredWidth: 120
+                            font.pixelSize: 14
                         }
                         Label {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: productViewDialog.currentData.name || "Не указано"
+                            text: valueText
+                            color: valueColor
+                            font.bold: isBold
+                            Layout.fillWidth: true
                             wrapMode: Text.Wrap
-                            color: "#2c3e50"
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                            }
+                            font.pixelSize: 14
                         }
                     }
 
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Тип:"
-                            font.bold: true
-                            color: "#34495e"
+                    DetailRow {
+                        labelText: "Название:"
+                        valueText: productViewDialog.currentData.name || "—"
+                        isBold: true
+                    }
+                    DetailRow {
+                        labelText: "Тип:"
+                        valueText: productViewDialog.currentData.type || "—"
+                    }
+                    DetailRow {
+                        labelText: "Цена:"
+                        valueText: {
+                             var price = (root.currentTable === "frame_materials") ?
+                                productViewDialog.currentData.price_per_meter :
+                                productViewDialog.currentData.price_per_unit
+                             return (price ? price.toFixed(2) : "0.00") + " ₽"
                         }
-                        Label {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: productViewDialog.currentData.type || "Не указано"
-                            wrapMode: Text.Wrap
-                            color: "#2c3e50"
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                            }
+                        valueColor: "#27ae60"
+                        isBold: true
+                    }
+                    DetailRow {
+                        labelText: "На складе:"
+                        valueText: {
+                            var stock = productViewDialog.currentData.stock_quantity || 0
+                            var unit = (root.currentTable === "frame_materials") ? " м" : " шт"
+                            return stock + unit
                         }
                     }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "Цена за метр:" : "Цена за шт:"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        Label {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: {
-                                if (root.currentTable === "frame_materials")
-                                    return (productViewDialog.currentData.price_per_meter || 0).toFixed(2) + " ₽"
-                                else
-                                    return (productViewDialog.currentData.price_per_unit || 0).toFixed(2) + " ₽"
-                            }
-                            wrapMode: Text.Wrap
-                            color: "#27ae60"
-                            font.bold: true
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "На складе (м):" : "На складе (шт):"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        Label {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: {
-                                if (root.currentTable === "frame_materials")
-                                    return (productViewDialog.currentData.stock_quantity || 0) + " м"
-                                else
-                                    return (productViewDialog.currentData.stock_quantity || 0) + " шт"
-                            }
-                            wrapMode: Text.Wrap
-                            color: "#2c3e50"
-                            font.bold: true
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
+                    DetailRow {
                         visible: root.currentTable === "frame_materials"
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Цвет:"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        Label {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: productViewDialog.currentData.color || "Не указан"
-                            wrapMode: Text.Wrap
-                            color: "#2c3e50"
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                            }
-                        }
+                        labelText: "Цвет:"
+                        valueText: productViewDialog.currentData.color || "—"
                     }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
+                    DetailRow {
                         visible: root.currentTable === "frame_materials"
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Ширина:"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        Label {
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: (productViewDialog.currentData.width || 0) + " см"
-                            wrapMode: Text.Wrap
-                            color: "#2c3e50"
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                            }
-                        }
+                        labelText: "Ширина:"
+                        valueText: (productViewDialog.currentData.width || 0) + " см"
                     }
                 }
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 70
-                color: "transparent"
+            Item { Layout.fillHeight: true }
 
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 10
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 15
 
-                    Button {
-                        text: "Изменить"
-                        Layout.preferredWidth: 100
-                        Layout.preferredHeight: 40
-                        background: Rectangle {
-                            color: parent.down ? "#2980b9" : "#3498db"
-                            radius: 8
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.bold: true
-                            font.pixelSize: 14
-                        }
-                        onClicked: {
-                            productViewDialog.close()
-                            productEditDialog.openWithData(productViewDialog.currentRow, productViewDialog.currentData)
-                        }
+                Button {
+                    text: "Изменить"
+                    Layout.preferredWidth: 110
+                    Layout.preferredHeight: 40
+                    background: Rectangle {
+                        color: parent.down ? "#f39c12" : "#f1c40f"
+                        radius: 8
                     }
-
-                    Button {
-                        text: "Удалить"
-                        Layout.preferredWidth: 100
-                        Layout.preferredHeight: 40
-                        background: Rectangle {
-                            color: parent.down ? "#c0392b" : "#e74c3c"
-                            radius: 8
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.bold: true
-                            font.pixelSize: 14
-                        }
-                        onClicked: deleteConfirmDialog.open()
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: true
+                        font.pixelSize: 14
                     }
-
-                    Button {
-                        text: "Закрыть"
-                        Layout.preferredWidth: 100
-                        Layout.preferredHeight: 40
-                        background: Rectangle {
-                            color: parent.down ? "#7f8c8d" : "#95a5a6"
-                            radius: 8
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.bold: true
-                            font.pixelSize: 14
-                        }
-                        onClicked: productViewDialog.close()
+                    onClicked: {
+                        productViewDialog.close()
+                        productEditDialog.openWithData(productViewDialog.currentRow, productViewDialog.currentData)
                     }
+                }
+
+                Button {
+                    text: "Удалить"
+                    Layout.preferredWidth: 110
+                    Layout.preferredHeight: 40
+                    background: Rectangle {
+                        color: parent.down ? "#c0392b" : "#e74c3c"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+                    onClicked: deleteConfirmDialog.open()
+                }
+
+                Button {
+                    text: "Закрыть"
+                    Layout.preferredWidth: 110
+                    Layout.preferredHeight: 40
+                    background: Rectangle {
+                        color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+                    onClicked: productViewDialog.close()
                 }
             }
         }
@@ -576,11 +478,11 @@ Page {
     Dialog {
         id: productEditDialog
         modal: true
-        title: root.currentTable === "frame_materials" ? "Редактировать материал" : "Редактировать фурнитуру"
-        width: 400
-        height: root.currentTable === "frame_materials" ? 550 : 450
+        header: null
+        width: 450
+        height: 550
         anchors.centerIn: parent
-        padding: 0
+        padding: 20
 
         property int currentRow: -1
         property var currentData: ({})
@@ -594,7 +496,7 @@ Page {
 
         ColumnLayout {
             anchors.fill: parent
-            spacing: 0
+            spacing: 15
 
             Label {
                 Layout.fillWidth: true
@@ -602,309 +504,191 @@ Page {
                 font.bold: true
                 font.pixelSize: 18
                 color: "#2c3e50"
-                padding: 10
                 horizontalAlignment: Text.AlignHCenter
+                Layout.alignment: Qt.AlignTop
             }
 
-            ScrollView {
-                clip: true
-                Layout.fillHeight: true
+            Item { Layout.fillHeight: true }
+
+            ColumnLayout {
                 Layout.fillWidth: true
-                Layout.topMargin: 10
-                Layout.bottomMargin: 10
+                Layout.alignment: Qt.AlignCenter
+                spacing: 12
 
-                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                component InputField: ColumnLayout {
+                    property alias label: labelItem.text
+                    property alias placeholder: fieldItem.placeholderText
+                    property alias text: fieldItem.text
+                    property alias validator: fieldItem.validator
+                    property alias inputField: fieldItem
 
-                Column {
-                    width: parent.width
-                    spacing: 15
-                    anchors.top: parent.top
-                    anchors.topMargin: 10
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Название:"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        TextField {
-                            id: editNameField
-                            color: "black"
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Введите название"
-                            font.pixelSize: 14
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: editNameField.activeFocus ? "#3498db" : "#dce0e3"
-                                border.width: 2
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Тип:"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        TextField {
-                            id: editTypeField
-                            color: "black"
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Введите тип"
-                            font.pixelSize: 14
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: editTypeField.activeFocus ? "#3498db" : "#dce0e3"
-                                border.width: 2
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "Цена за метр (₽):" : "Цена за шт (₽):"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        TextField {
-                            id: editPriceField
-                            color: "black";
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "0.00"
-                            validator: DoubleValidator { bottom: 0.01 }
-                            font.pixelSize: 14
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: editPriceField.activeFocus ? "#3498db" : "#dce0e3"
-                                border.width: 2
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "На складе (м):" : "На складе (шт):"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        TextField {
-                            id: editStockField
-                            color: "black"
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: root.currentTable === "frame_materials" ? "0.0" : "0"
-                            validator: root.currentTable === "frame_materials" ? doubleValidator : intValidator
-                            font.pixelSize: 14
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: editStockField.activeFocus ? "#3498db" : "#dce0e3"
-                                border.width: 2
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-                        visible: root.currentTable === "frame_materials"
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Цвет:"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        TextField {
-                            id: editColorField
-                            color: "black"
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Введите цвет"
-                            font.pixelSize: 14
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: editColorField.activeFocus ? "#3498db" : "#dce0e3"
-                                border.width: 2
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-                        visible: root.currentTable === "frame_materials"
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Ширина (см):"
-                            font.bold: true
-                            color: "#34495e"
-                        }
-                        TextField {
-                            id: editWidthField
-                            color: "black"
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "0.0"
-                            validator: DoubleValidator { bottom: 0.1 }
-                            font.pixelSize: 14
-                            padding: 12
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 8
-                                border.color: editWidthField.activeFocus ? "#3498db" : "#dce0e3"
-                                border.width: 2
-                            }
-                        }
-                    }
+                    spacing: 4
+                    Layout.alignment: Qt.AlignHCenter
 
                     Label {
-                        id: editValidationError
-                        width: 300
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        color: "#e74c3c"
-                        visible: false
-                        wrapMode: Text.Wrap
-                        font.pixelSize: 13
-                        horizontalAlignment: Text.AlignHCenter
+                        id: labelItem
+                        font.bold: true
+                        color: "#34495e"
+                        font.pixelSize: 14
                     }
+                    TextField {
+                        id: fieldItem
+                        Layout.preferredWidth: 300
+                        font.pixelSize: 14
+                        color: "black"
+                        background: Rectangle {
+                            color: "#f8f9fa"
+                            radius: 8
+                            border.color: fieldItem.activeFocus ? "#3498db" : "#dce0e3"
+                            border.width: 1
+                        }
+                    }
+                }
+
+                InputField {
+                    id: editNameField
+                    label: "Название:"
+                    placeholder: "Введите название"
+                }
+
+                InputField {
+                    id: editTypeField
+                    label: "Тип:"
+                    placeholder: "Введите тип"
+                }
+
+                InputField {
+                    id: editPriceField
+                    label: root.currentTable === "frame_materials" ? "Цена за метр (₽):" : "Цена за шт (₽):"
+                    placeholder: "0.00"
+                    validator: DoubleValidator { bottom: 0.01 }
+                }
+
+                InputField {
+                    id: editStockField
+                    label: root.currentTable === "frame_materials" ? "На складе (м):" : "На складе (шт):"
+                    placeholder: "0"
+                    validator: root.currentTable === "frame_materials" ? doubleValidator : intValidator
+                }
+
+                InputField {
+                    id: editColorField
+                    visible: root.currentTable === "frame_materials"
+                    label: "Цвет:"
+                    placeholder: "Введите цвет"
+                }
+
+                InputField {
+                    id: editWidthField
+                    visible: root.currentTable === "frame_materials"
+                    label: "Ширина (см):"
+                    placeholder: "0.0"
+                    validator: DoubleValidator { bottom: 0.1 }
+                }
+
+                Label {
+                    id: editValidationError
+                    Layout.preferredWidth: 300
+                    Layout.alignment: Qt.AlignHCenter
+                    color: "#e74c3c"
+                    visible: false
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
                 }
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 70
-                color: "transparent"
+            Item { Layout.fillHeight: true }
 
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 10
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 15
 
-                    Button {
-                        text: "Сохранить"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
-                        background: Rectangle {
-                            color: parent.down ? "#27ae60" : "#2ecc71"
-                            radius: 8
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.bold: true
-                            font.pixelSize: 14
-                        }
-                        onClicked: {
-                            if (validateEditForm()) {
-                                if (root.currentTable === "frame_materials") {
-                                    DatabaseManager.updateFrameMaterial(
-                                        productEditDialog.currentRow,
-                                        editNameField.text.trim(),
-                                        editTypeField.text.trim(),
-                                        parseFloat(editPriceField.text) || 0,
-                                        parseFloat(editStockField.text) || 0,
-                                        editColorField.text.trim(),
-                                        parseFloat(editWidthField.text) || 0
-                                    )
-                                } else {
-                                    DatabaseManager.updateComponentFurniture(
-                                        productEditDialog.currentRow,
-                                        editNameField.text.trim(),
-                                        editTypeField.text.trim(),
-                                        parseFloat(editPriceField.text) || 0,
-                                        parseInt(editStockField.text) || 0
-                                    )
-                                }
-                                refreshTable()
-                                productEditDialog.close()
-                            }
-                        }
+                Button {
+                    text: "Отмена"
+                    Layout.preferredWidth: 120
+                    Layout.preferredHeight: 40
+                    background: Rectangle {
+                        color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+                    onClicked: productEditDialog.close()
+                }
 
-                        function validateEditForm() {
-                            var errors = []
-
-                            if (!editNameField.text.trim()) errors.push("• Введите название")
-                            if (!editTypeField.text.trim()) errors.push("• Введите тип")
-
-                            var price = parseFloat(editPriceField.text)
-                            if (isNaN(price) || price <= 0) errors.push("• Введите корректную цену")
-
+                Button {
+                    text: "Сохранить"
+                    Layout.preferredWidth: 120
+                    Layout.preferredHeight: 40
+                    background: Rectangle {
+                        color: parent.down ? "#27ae60" : "#2ecc71"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+                    onClicked: {
+                        if (validateEditForm()) {
                             if (root.currentTable === "frame_materials") {
-                                var stock = parseFloat(editStockField.text)
-                                if (isNaN(stock) || stock < 0) errors.push("• Введите корректное количество")
+                                DatabaseManager.updateFrameMaterial(
+                                    productEditDialog.currentRow,
+                                    editNameField.text.trim(),
+                                    editTypeField.text.trim(),
+                                    parseFloat(editPriceField.text) || 0,
+                                    parseFloat(editStockField.text) || 0,
+                                    editColorField.text.trim(),
+                                    parseFloat(editWidthField.text) || 0
+                                )
                             } else {
-                                var stockInt = parseInt(editStockField.text)
-                                if (isNaN(stockInt) || stockInt < 0) errors.push("• Введите корректное количество")
+                                DatabaseManager.updateComponentFurniture(
+                                    productEditDialog.currentRow,
+                                    editNameField.text.trim(),
+                                    editTypeField.text.trim(),
+                                    parseFloat(editPriceField.text) || 0,
+                                    parseInt(editStockField.text) || 0
+                                )
                             }
-
-                            if (root.currentTable === "frame_materials") {
-                                if (!editColorField.text.trim()) errors.push("• Введите цвет")
-
-                                var width = parseFloat(editWidthField.text)
-                                if (isNaN(width) || width <= 0) errors.push("• Введите корректную ширину")
-                            }
-
-                            if (errors.length > 0) {
-                                editValidationError.text = errors.join("\n")
-                                editValidationError.visible = true
-                                return false
-                            }
-
-                            editValidationError.visible = false
-                            return true
+                            refreshTable()
+                            productEditDialog.close()
                         }
                     }
 
-                    Button {
-                        text: "Отмена"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
-                        background: Rectangle {
-                            color: parent.down ? "#7f8c8d" : "#95a5a6"
-                            radius: 8
+                    function validateEditForm() {
+                        var errors = []
+                        if (!editNameField.text.trim()) errors.push("• Введите название")
+                        if (!editTypeField.text.trim()) errors.push("• Введите тип")
+                        var price = parseFloat(editPriceField.text)
+                        if (isNaN(price) || price <= 0) errors.push("• Введите корректную цену")
+
+                        if (root.currentTable === "frame_materials") {
+                            var stock = parseFloat(editStockField.text)
+                            if (isNaN(stock) || stock < 0) errors.push("• Введите корректное количество")
+                            if (!editColorField.text.trim()) errors.push("• Введите цвет")
+                            var width = parseFloat(editWidthField.text)
+                            if (isNaN(width) || width <= 0) errors.push("• Введите ширину")
+                        } else {
+                            var stockInt = parseInt(editStockField.text)
+                            if (isNaN(stockInt) || stockInt < 0) errors.push("• Введите корректное количество")
                         }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.bold: true
-                            font.pixelSize: 14
+
+                        if (errors.length > 0) {
+                            editValidationError.text = errors.join("\n")
+                            editValidationError.visible = true
+                            return false
                         }
-                        onClicked: productEditDialog.close()
+                        return true
                     }
                 }
             }
@@ -928,229 +712,140 @@ Page {
 
             editValidationError.visible = false
             open()
-            editNameField.forceActiveFocus()
+            editNameField.inputField.forceActiveFocus()
         }
     }
 
     Dialog {
         id: productAddDialog
         modal: true
-        title: root.currentTable === "frame_materials" ? "Добавить материал" : "Добавить фурнитуру"
-        width: 500
-        height: root.currentTable === "frame_materials" ? 600 : 450
+        header: null
+        width: 450
+        height: 550
         anchors.centerIn: parent
+        padding: 20
 
         background: Rectangle {
             color: "#ffffff"
             radius: 12
             border.color: "#e0e0e0"
+            border.width: 1
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 12
+            spacing: 15
 
             Label {
                 Layout.fillWidth: true
-                text: "Заполните информацию"
+                text: root.currentTable === "frame_materials" ? "Новый материал" : "Новая фурнитура"
                 font.bold: true
-                font.pixelSize: 16
+                font.pixelSize: 18
                 color: "#2c3e50"
-                padding: 10
                 horizontalAlignment: Text.AlignHCenter
+                Layout.alignment: Qt.AlignTop
             }
 
-            ScrollView {
+            Item { Layout.fillHeight: true }
+
+            ColumnLayout {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                Layout.alignment: Qt.AlignCenter
+                spacing: 12
 
-                Column {
-                    width: parent.width
-                    spacing: 15
+                component InputFieldAdd: ColumnLayout {
+                    property alias label: labelItemAdd.text
+                    property alias placeholder: fieldItemAdd.placeholderText
+                    property alias text: fieldItemAdd.text
+                    property alias validator: fieldItemAdd.validator
+                    property alias inputField: fieldItemAdd
 
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Название:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 13
-                        }
-                        TextField {
-                            id: addNameField
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Введите название"
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 6
-                                border.color: addNameField.activeFocus ? "#3498db" : "#dce0e3"
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Тип:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 13
-                        }
-                        TextField {
-                            id: addTypeField
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Введите тип"
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 6
-                                border.color: addTypeField.activeFocus ? "#3498db" : "#dce0e3"
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "Цена за метр (₽):" : "Цена за шт (₽):"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 13
-                        }
-                        TextField {
-                            id: addPriceField
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "0.00"
-                            validator: DoubleValidator { bottom: 0.01 }
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 6
-                                border.color: addPriceField.activeFocus ? "#3498db" : "#dce0e3"
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.currentTable === "frame_materials" ? "Количество на складе (м):" : "Количество на складе (шт):"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 13
-                        }
-                        TextField {
-                            id: addStockField
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: root.currentTable === "frame_materials" ? "0.0" : "0"
-                            validator: root.currentTable === "frame_materials" ? doubleValidator : intValidator
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 6
-                                border.color: addStockField.activeFocus ? "#3498db" : "#dce0e3"
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-                        visible: root.currentTable === "frame_materials"
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Цвет:"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 13
-                        }
-                        TextField {
-                            id: addColorField
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "Введите цвет"
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 6
-                                border.color: addColorField.activeFocus ? "#3498db" : "#dce0e3"
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 5
-                        visible: root.currentTable === "frame_materials"
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Ширина (см):"
-                            font.bold: true
-                            color: "#34495e"
-                            font.pixelSize: 13
-                        }
-                        TextField {
-                            id: addWidthField
-                            width: 300
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            placeholderText: "0.0"
-                            validator: DoubleValidator { bottom: 0.1 }
-                            background: Rectangle {
-                                color: "#f8f9fa"
-                                radius: 6
-                                border.color: addWidthField.activeFocus ? "#3498db" : "#dce0e3"
-                            }
-                        }
-                    }
+                    spacing: 4
+                    Layout.alignment: Qt.AlignHCenter
 
                     Label {
-                        id: addValidationError
-                        width: 300
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        color: "#e74c3c"
-                        visible: false
-                        wrapMode: Text.WordWrap
-                        font.pixelSize: 12
-                        padding: 8
-                        horizontalAlignment: Text.AlignHCenter
+                        id: labelItemAdd
+                        font.bold: true
+                        color: "#34495e"
+                        font.pixelSize: 14
+                    }
+                    TextField {
+                        id: fieldItemAdd
+                        Layout.preferredWidth: 300
+                        font.pixelSize: 14
+                        color: "black"
                         background: Rectangle {
-                            color: "#fdf2f2"
-                            radius: 6
-                            border.color: "#e74c3c"
+                            color: "#f8f9fa"
+                            radius: 8
+                            border.color: fieldItemAdd.activeFocus ? "#3498db" : "#dce0e3"
+                            border.width: 1
                         }
                     }
                 }
+
+                InputFieldAdd {
+                    id: addNameField
+                    label: "Название:"
+                    placeholder: "Введите название"
+                }
+
+                InputFieldAdd {
+                    id: addTypeField
+                    label: "Тип:"
+                    placeholder: "Введите тип"
+                }
+
+                InputFieldAdd {
+                    id: addPriceField
+                    label: root.currentTable === "frame_materials" ? "Цена за метр (₽):" : "Цена за шт (₽):"
+                    placeholder: "0.00"
+                    validator: DoubleValidator { bottom: 0.01 }
+                }
+
+                InputFieldAdd {
+                    id: addStockField
+                    label: root.currentTable === "frame_materials" ? "На складе (м):" : "На складе (шт):"
+                    placeholder: "0"
+                    validator: root.currentTable === "frame_materials" ? doubleValidator : intValidator
+                }
+
+                InputFieldAdd {
+                    id: addColorField
+                    visible: root.currentTable === "frame_materials"
+                    label: "Цвет:"
+                    placeholder: "Введите цвет"
+                }
+
+                InputFieldAdd {
+                    id: addWidthField
+                    visible: root.currentTable === "frame_materials"
+                    label: "Ширина (см):"
+                    placeholder: "0.0"
+                    validator: DoubleValidator { bottom: 0.1 }
+                }
+
+                Label {
+                    id: addValidationError
+                    Layout.preferredWidth: 300
+                    Layout.alignment: Qt.AlignHCenter
+                    color: "#e74c3c"
+                    visible: false
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
 
+            Item { Layout.fillHeight: true }
+
             RowLayout {
-                Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 15
 
                 Button {
                     text: "Отмена"
-                    font.bold: true
-                    font.pixelSize: 14
-                    padding: 12
                     Layout.preferredWidth: 120
+                    Layout.preferredHeight: 40
                     background: Rectangle {
                         color: parent.down ? "#7f8c8d" : "#95a5a6"
                         radius: 8
@@ -1160,17 +855,16 @@ Page {
                         color: "white"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        font: parent.font
+                        font.bold: true
+                        font.pixelSize: 14
                     }
                     onClicked: productAddDialog.reject()
                 }
 
                 Button {
-                    text: "Добавить"
-                    font.bold: true
-                    font.pixelSize: 14
-                    padding: 12
+                    text: "Создать"
                     Layout.preferredWidth: 120
+                    Layout.preferredHeight: 40
                     background: Rectangle {
                         color: parent.down ? "#27ae60" : "#2ecc71"
                         radius: 8
@@ -1180,7 +874,8 @@ Page {
                         color: "white"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        font: parent.font
+                        font.bold: true
+                        font.pixelSize: 14
                     }
                     onClicked: {
                         if (validateAddForm()) {
@@ -1208,26 +903,20 @@ Page {
 
                     function validateAddForm() {
                         var errors = []
-
                         if (!addNameField.text.trim()) errors.push("• Введите название")
                         if (!addTypeField.text.trim()) errors.push("• Введите тип")
-
                         var price = parseFloat(addPriceField.text)
                         if (isNaN(price) || price <= 0) errors.push("• Введите корректную цену")
 
                         if (root.currentTable === "frame_materials") {
                             var stock = parseFloat(addStockField.text)
                             if (isNaN(stock) || stock < 0) errors.push("• Введите корректное количество")
+                            if (!addColorField.text.trim()) errors.push("• Введите цвет")
+                            var width = parseFloat(addWidthField.text)
+                            if (isNaN(width) || width <= 0) errors.push("• Введите ширину")
                         } else {
                             var stockInt = parseInt(addStockField.text)
                             if (isNaN(stockInt) || stockInt < 0) errors.push("• Введите корректное количество")
-                        }
-
-                        if (root.currentTable === "frame_materials") {
-                            if (!addColorField.text.trim()) errors.push("• Введите цвет")
-
-                            var width = parseFloat(addWidthField.text)
-                            if (isNaN(width) || width <= 0) errors.push("• Введите корректную ширину")
                         }
 
                         if (errors.length > 0) {
@@ -1235,8 +924,6 @@ Page {
                             addValidationError.visible = true
                             return false
                         }
-
-                        addValidationError.visible = false
                         return true
                     }
                 }
@@ -1251,59 +938,60 @@ Page {
             addColorField.text = ""
             addWidthField.text = ""
             addValidationError.visible = false
-            addNameField.forceActiveFocus()
+            addNameField.inputField.forceActiveFocus()
         }
     }
 
     Dialog {
         id: deleteConfirmDialog
         modal: true
-        title: "Подтверждение удаления"
-        width: 400
+        header: null
+        width: 350
         height: 200
         anchors.centerIn: parent
+        padding: 20
 
         background: Rectangle {
             color: "#ffffff"
             radius: 12
             border.color: "#e0e0e0"
+            border.width: 1
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
             spacing: 15
 
             Label {
                 Layout.fillWidth: true
-                text: "Вы уверены, что хотите удалить эту запись?"
-                wrapMode: Text.WordWrap
-                font.pixelSize: 14
-                color: "#2c3e50"
+                text: "Удаление"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#c0392b"
                 horizontalAlignment: Text.AlignHCenter
             }
 
             Label {
                 Layout.fillWidth: true
-                text: "Это действие нельзя отменить."
-                wrapMode: Text.WordWrap
-                font.pixelSize: 12
-                color: "#7f8c8d"
-                font.italic: true
+                text: "Вы действительно хотите удалить эту запись? Это действие необратимо."
+                wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
+                color: "#2c3e50"
+                font.pixelSize: 14
+            }
+
+            Item {
+                Layout.fillHeight: true
             }
 
             RowLayout {
-                Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
-                spacing: 15
+                spacing: 10
 
                 Button {
                     text: "Нет"
-                    font.bold: true
-                    font.pixelSize: 14
-                    padding: 12
                     Layout.preferredWidth: 100
+                    Layout.preferredHeight: 40
                     background: Rectangle {
                         color: parent.down ? "#7f8c8d" : "#95a5a6"
                         radius: 8
@@ -1311,19 +999,17 @@ Page {
                     contentItem: Text {
                         text: parent.text
                         color: "white"
+                        font.bold: true
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        font: parent.font
                     }
-                    onClicked: deleteConfirmDialog.reject()
+                    onClicked: deleteConfirmDialog.close()
                 }
 
                 Button {
-                    text: "Да"
-                    font.bold: true
-                    font.pixelSize: 14
-                    padding: 12
+                    text: "Да, удалить"
                     Layout.preferredWidth: 100
+                    Layout.preferredHeight: 40
                     background: Rectangle {
                         color: parent.down ? "#c0392b" : "#e74c3c"
                         radius: 8
@@ -1331,9 +1017,9 @@ Page {
                     contentItem: Text {
                         text: parent.text
                         color: "white"
+                        font.bold: true
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        font: parent.font
                     }
                     onClicked: {
                         if (root.currentTable === "frame_materials") {
