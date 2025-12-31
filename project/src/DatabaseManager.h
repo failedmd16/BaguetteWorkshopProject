@@ -63,10 +63,10 @@ public:
     Q_INVOKABLE QSqlQueryModel* getComponentFurnitureModel();
 
     // Заказы
-    // ВАЖНО: Возвращает int (ID), а не bool
     Q_INVOKABLE int createOrder(const QString &orderNumber, int customerId, const QString &orderType, double totalAmount, const QString &status, const QString &notes);
+    Q_INVOKABLE void updateOrder(int id, const QString &status, double totalAmount, const QString &notes);
+    Q_INVOKABLE void deleteOrder(int id);
 
-    // ВАЖНО: Добавлен masterId
     Q_INVOKABLE bool createFrameOrder(int orderId, double width, double height, int frameMaterialId, int componentFurnitureId, int masterId, const QString &specialInstructions);
 
     Q_INVOKABLE bool createOrderItem(int orderId, int itemId, const QString &itemType, const QString &itemName, int quantity, double unitPrice);

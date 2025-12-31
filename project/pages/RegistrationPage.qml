@@ -164,7 +164,7 @@ Page {
                         passwordTF.clear()
                         codeTF.clear()
                     } else {
-                        infoLbl.text = "Ошибка при регистрации, проверьте введённый логин, пароль, код"
+                        infoLbl.text = "Ошибка при регистрации, проверьте введённый логин, пароль и код"
                         infoLbl.color = "red"
                     }
                 }
@@ -176,6 +176,7 @@ Page {
             text: "Введите учетные данные"
             font.pixelSize: 16
             wrapMode: Text.WordWrap
+            Layout.maximumWidth: 300
             Layout.alignment: Qt.AlignHCenter
         }
     }

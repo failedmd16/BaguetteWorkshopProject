@@ -38,6 +38,7 @@ bool DatabaseManager::initializeDatabase() {
         return false;
     }
 
+    //createTables();
     return true;
 }
 
@@ -159,6 +160,7 @@ void DatabaseManager::createTables() {
                                 "order_type TEXT NOT NULL CHECK(order_type IN ('Изготовление рамки', 'Продажа набора')), "
                                 "total_amount REAL NOT NULL, "
                                 "status TEXT NOT NULL CHECK(status IN ('Новый', 'В работе', 'Готов', 'Завершён', 'Отменён')), "
+                                "notes TEXT, "
                                 "created_by INTEGER NOT NULL, "
                                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
                                 "completed_at TIMESTAMP, "
@@ -491,17 +493,17 @@ QSqlQueryModel* DatabaseManager::getEmbroideryKitsModel() {
     return model;
 }
 
-int DatabaseManager::createOrder(const QString &orderNumber, int customerId, const QString &orderType,
-                                 double totalAmount, const QString &status, const QString &notes) {
+int DatabaseManager::createOrder(const QString &orderNumber, int customerId, const QString &orderType, double totalAmount, const QString &status, const QString &notes) {
     QSqlQuery query;
-    // Используем RETURNING id — это гарантирует получение правильного номера
-    query.prepare("INSERT INTO orders (order_number, customer_id, order_type, total_amount, status, created_by) "
-                  "VALUES (?, ?, ?, ?, ?, ?) RETURNING id");
+    // Добавили notes в INSERT
+    query.prepare("INSERT INTO orders (order_number, customer_id, order_type, total_amount, status, notes, created_by) "
+                  "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id");
     query.addBindValue(orderNumber);
     query.addBindValue(customerId);
     query.addBindValue(orderType);
     query.addBindValue(totalAmount);
     query.addBindValue(status);
+    query.addBindValue(notes); // Привязываем заметку
     query.addBindValue(currentUserId);
 
     if (query.exec() && query.next()) {
@@ -509,6 +511,46 @@ int DatabaseManager::createOrder(const QString &orderNumber, int customerId, con
     }
     qDebug() << "Create Order Error:" << query.lastError().text();
     return -1;
+}
+
+void DatabaseManager::updateOrder(int id, const QString &status, double totalAmount, const QString &notes)
+{
+    QSqlQuery query;
+    QString sql = "UPDATE orders SET status = ?, total_amount = ?, notes = ?";
+
+    // Если статус меняется на "Завершён", ставим метку времени
+    if (status == "Завершён") {
+        sql += ", completed_at = CURRENT_TIMESTAMP";
+    }
+
+    sql += " WHERE id = ?";
+
+    query.prepare(sql);
+    query.addBindValue(status);
+    query.addBindValue(totalAmount);
+    query.addBindValue(notes);
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error updating order:" << query.lastError().text();
+    } else {
+        qDebug() << "Order updated successfully. ID:" << id;
+    }
+}
+
+void DatabaseManager::deleteOrder(int id)
+{
+    // Благодаря ON DELETE CASCADE (который прописан в createTables для frame_orders и order_items),
+    // удаление заказа автоматически удалит связанные рамки и товары.
+    QSqlQuery query;
+    query.prepare("DELETE FROM orders WHERE id = ?");
+    query.addBindValue(id);
+
+    if (!query.exec()) {
+        qDebug() << "Error deleting order:" << query.lastError().text();
+    } else {
+        qDebug() << "Order deleted successfully. ID:" << id;
+    }
 }
 
 bool DatabaseManager::createFrameOrder(int orderId, double width, double height,
@@ -818,8 +860,9 @@ QVariantList DatabaseManager::getOrdersData() {
 
     query.setForwardOnly(true);
 
+    // Добавили o.notes в SELECT
     QString queryStr = "SELECT "
-                       "o.id, o.order_number, o.order_type, o.status, o.total_amount, o.created_at, "
+                       "o.id, o.order_number, o.order_type, o.status, o.total_amount, o.created_at, o.notes, "
                        "c.full_name as customer_name, c.phone as customer_phone, "
                        "u.login as created_by_user "
                        "FROM orders o "
@@ -842,6 +885,7 @@ QVariantList DatabaseManager::getOrdersData() {
     }
     return result;
 }
+
 void DatabaseManager::updateEmbroideryKitStock(int id, int newQuantity) {
     QSqlQuery query;
     query.prepare("UPDATE embroidery_kits SET stock_quantity = ? WHERE id = ?");
