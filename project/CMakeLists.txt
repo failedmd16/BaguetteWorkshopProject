@@ -30,6 +30,7 @@ qt_add_qml_module(appproject
         pages/SalePage.qml
     RESOURCES
         SOURCES src/DatabaseManager.h SOURCES src/DatabaseManager.cpp
+        SOURCES src/Logger.h SOURCES src/Logger.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
