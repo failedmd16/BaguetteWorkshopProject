@@ -23,11 +23,13 @@ qt_add_qml_module(appproject
         Main.qml
         pages/CustomersPage.qml
         pages/LoginPage.qml
-        pages/RegistrationPage.qml
+        pages/AccountManagementPage.qml
         pages/MastersOrdersPage.qml
         pages/MastersProductsPage.qml
         pages/OrdersPage.qml
         pages/SalePage.qml
+        pages/LogsPage.qml
+        pages/CreateFirstAdminPage.qml
     RESOURCES
         SOURCES src/DatabaseManager.h SOURCES src/DatabaseManager.cpp
         SOURCES src/Logger.h SOURCES src/Logger.cpp

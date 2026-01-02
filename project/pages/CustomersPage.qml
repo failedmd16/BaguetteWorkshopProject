@@ -8,15 +8,79 @@ Page {
     id: root
     property string tableName: "customers"
     property int selectedRow: -1
+    property bool isLoading: false
+
+    // Загрузка при старте
+    Component.onCompleted: refreshTable()
+
+    // Модель данных (вместо SQL model)
+    ListModel {
+        id: customersListModel
+    }
 
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
     }
 
-    onVisibleChanged: {
-        if (visible)
-            refreshTable()
+    // Блокировщик интерфейса при загрузке
+    MouseArea {
+        anchors.fill: parent
+        visible: root.isLoading
+        hoverEnabled: true
+        onClicked: {} // Поглощаем клики
+        z: 99
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: root.isLoading
+        }
+    }
+
+    // Обработка сигналов от C++
+    Connections {
+        target: DatabaseManager
+
+        // Загрузка списка клиентов
+        function onCustomersLoaded(data) {
+            customersListModel.clear()
+            for (var i = 0; i < data.length; i++) {
+                customersListModel.append(data[i])
+            }
+            root.isLoading = false
+        }
+
+        // Результат операций (добавление/обновление/удаление)
+        function onCustomerOperationResult(success, message) {
+            root.isLoading = false
+            if (success) {
+                refreshTable() // Обновляем список
+                if (customerAddDialog.opened) customerAddDialog.close()
+                if (customerEditDialog.opened) customerEditDialog.close()
+                if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
+
+                // Если удаляли из просмотра карточки, закрываем и её
+                if (customerViewDialog.opened && deleteConfirmDialog.opened) {
+                     customerViewDialog.close()
+                }
+            } else {
+                messageDialog.showError(message)
+            }
+        }
+
+        // Загрузка отчета
+        function onReportDataLoaded(data) {
+            root.isLoading = false
+            filterResultsDialog.openWithData(data)
+        }
+
+        // Загрузка истории заказов
+        function onCustomerOrdersLoaded(data) {
+            customerViewDialog.ordersModel.clear()
+            for (var i = 0; i < data.length; i++) {
+                customerViewDialog.ordersModel.append(data[i])
+            }
+            customerViewDialog.isLoadingOrders = false
+        }
     }
 
     function getOrderTypeText(type) {
@@ -49,10 +113,16 @@ Page {
         }
     }
 
-    function formatDate(dateString) {
-        if (!dateString) return "Не указана"
-        var date = new Date(dateString)
-        if (isNaN(date.getTime())) return "Неверная дата"
+    function formatDate(dateInput) {
+        if (!dateInput) return "Не указана"
+        var date
+        if (dateInput instanceof Date) {
+            date = dateInput
+        } else {
+            var safeDateString = String(dateInput).replace(" ", "T")
+            date = new Date(safeDateString)
+        }
+        if (isNaN(date.getTime())) return String(dateInput)
         return date.toLocaleDateString(Qt.locale("ru_RU"), "dd.MM.yyyy")
     }
 
@@ -60,26 +130,16 @@ Page {
         var regex = /^(\d{2})\.(\d{2})\.(\d{4})$/
         var match = dateString.match(regex)
         if (!match) return false
-
         var day = parseInt(match[1], 10)
         var month = parseInt(match[2], 10)
-        var year = parseInt(match[3], 10)
-
         if (month < 1 || month > 12) return false
         if (day < 1 || day > 31) return false
-
         return true
     }
 
-    function convertToSqlDate(dateString) {
-        var parts = dateString.split('.')
-        if (parts.length !== 3) return dateString
-        return parts[2] + '-' + parts[1] + '-' + parts[0]
-    }
-
     function refreshTable() {
-        tableview.model = null
-        tableview.model = DatabaseManager.getTableModel(root.tableName)
+        root.isLoading = true
+        DatabaseManager.fetchCustomers()
     }
 
     ColumnLayout {
@@ -118,7 +178,7 @@ Page {
                 width: parent.width
 
                 Label {
-                    text: "🔍 Фильтр по периоду:"
+                    text: "Фильтр по периоду:"
                     font.bold: true
                     color: "#2c3e50"
                     font.pixelSize: 14
@@ -136,6 +196,7 @@ Page {
                     placeholderText: "дд.мм.гггг"
                     font.pixelSize: 14
                     padding: 10
+                    enabled: !root.isLoading
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 8
@@ -156,6 +217,7 @@ Page {
                     placeholderText: "дд.мм.гггг"
                     font.pixelSize: 14
                     padding: 10
+                    enabled: !root.isLoading
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 8
@@ -170,6 +232,7 @@ Page {
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 140
                     font.pixelSize: 14
+                    enabled: !root.isLoading
                     background: Rectangle {
                         color: parent.down ? "#2980b9" : "#3498db"
                         radius: 8
@@ -179,16 +242,14 @@ Page {
                         color: "white"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        font: parent.font                    }
+                        font: parent.font
+                    }
                     onClicked: {
                         if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
-                            var customers = DatabaseManager.getCustomersWithOrdersInPeriod(
-                                convertToSqlDate(startDateField.text),
-                                convertToSqlDate(endDateField.text)
-                            )
-                            filterResultsDialog.openWithData(customers)
+                            root.isLoading = true
+                            DatabaseManager.fetchReportAsync(startDateField.text, endDateField.text)
                         } else {
-                            messageDialog.open()
+                            messageDialog.showError("Введите корректные даты для фильтрации")
                         }
                     }
                 }
@@ -199,6 +260,7 @@ Page {
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 120
                     font.pixelSize: 14
+                    enabled: !root.isLoading
                     background: Rectangle {
                         color: parent.down ? "#7f8c8d" : "#95a5a6"
                         radius: 8
@@ -214,13 +276,14 @@ Page {
                         var endDate = new Date()
                         var startDate = new Date()
                         startDate.setDate(startDate.getDate() - 30)
-                        startDateField.text = formatDate(startDate.toISOString())
-                        endDateField.text = formatDate(endDate.toISOString())
+                        startDateField.text = formatDate(startDate)
+                        endDateField.text = formatDate(endDate)
                     }
                 }
             }
         }
 
+        // ШАПКА ТАБЛИЦЫ
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -236,7 +299,7 @@ Page {
                     model: ["ФИО", "Телефон", "Email", "Адрес", "Дата создания"]
 
                     Rectangle {
-                        width: tableview.width / 5
+                        width: customersListView.width / 5
                         height: parent.height
                         color: "transparent"
 
@@ -252,6 +315,7 @@ Page {
             }
         }
 
+        // ТАБЛИЦА (ListView вместо TableView для ListModel)
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -268,30 +332,35 @@ Page {
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                TableView {
-                    id: tableview
+                ListView {
+                    id: customersListView
                     anchors.fill: parent
                     clip: true
-                    model: DatabaseManager.getTableModel(root.tableName)
-
-                    columnWidthProvider: function(column) {
-                        return tableview.width / 5
-                    }
+                    model: customersListModel
 
                     delegate: Rectangle {
                         implicitHeight: 45
-                        color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
+                        width: customersListView.width
+                        color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
+                        border.width: 1
 
-                        property var rowData: model ? DatabaseManager.getRowData(root.tableName, row) : ({})
+                        // Данные строки для диалога
+                        property var rowData: {
+                            "id": id,
+                            "full_name": full_name,
+                            "phone": phone,
+                            "email": email,
+                            "address": address,
+                            "created_at": created_at
+                        }
 
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.selectedRow = row
-                                customerViewDialog.openWithData(row)
+                                customerViewDialog.openWithData(parent.rowData)
                             }
 
                             Rectangle {
@@ -300,26 +369,70 @@ Page {
                             }
                         }
 
-                        Text {
+                        // Эмуляция столбцов
+                        Row {
                             anchors.fill: parent
-                            anchors.margins: 12
-                            text: {
-                                if (!parent.rowData) return ""
 
-                                switch(column) {
-                                    case 0: return parent.rowData.full_name || ""
-                                    case 1: return parent.rowData.phone || ""
-                                    case 2: return parent.rowData.email || ""
-                                    case 3: return parent.rowData.address || ""
-                                    case 4: return formatDate(parent.rowData.created_at)
-                                    default: return ""
+                            // 1. ФИО
+                            Rectangle {
+                                width: parent.width / 5
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent; anchors.margins: 12
+                                    text: full_name || ""
+                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
                                 }
                             }
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                            color: "#2c3e50"
-                            font.pixelSize: 13
+                            // 2. Телефон
+                            Rectangle {
+                                width: parent.width / 5
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent; anchors.margins: 12
+                                    text: phone || ""
+                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                }
+                            }
+                            // 3. Email
+                            Rectangle {
+                                width: parent.width / 5
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent; anchors.margins: 12
+                                    text: email || ""
+                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                }
+                            }
+                            // 4. Адрес
+                            Rectangle {
+                                width: parent.width / 5
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent; anchors.margins: 12
+                                    text: address || ""
+                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                }
+                            }
+                            // 5. Дата
+                            Rectangle {
+                                width: parent.width / 5
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent; anchors.margins: 12
+                                    text: formatDate(created_at)
+                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                }
+                            }
                         }
                     }
                 }
@@ -337,6 +450,7 @@ Page {
                 font.pixelSize: 14
                 padding: 12
                 Layout.preferredWidth: 200
+                enabled: !root.isLoading
                 background: Rectangle {
                     color: parent.down ? "#27ae60" : "#2ecc71"
                     radius: 8
@@ -358,6 +472,7 @@ Page {
                 font.pixelSize: 14
                 padding: 12
                 Layout.preferredWidth: 120
+                enabled: !root.isLoading
                 background: Rectangle {
                     color: parent.down ? "#2980b9" : "#3498db"
                     radius: 8
@@ -566,14 +681,13 @@ Page {
                     }
                     onClicked: {
                         if (validateAddForm()) {
-                            DatabaseManager.addCustomer(
+                            root.isLoading = true
+                            DatabaseManager.addCustomerAsync(
                                 addNameField.text.trim(),
                                 addPhoneField.text.trim(),
                                 addEmailField.text.trim(),
                                 addAddressField.text.trim()
                             )
-                            refreshTable()
-                            customerAddDialog.close()
                         }
                     }
                     function validateAddForm() {
@@ -626,6 +740,7 @@ Page {
         padding: 20
 
         property int currentRow: -1
+        property int customerId: -1 // Важно для асинхронного вызова
         property var currentData: ({})
 
         background: Rectangle {
@@ -811,15 +926,14 @@ Page {
                     }
                     onClicked: {
                         if (validateEditForm()) {
-                            DatabaseManager.updateCustomer(
-                                customerEditDialog.currentRow,
+                            root.isLoading = true
+                            DatabaseManager.updateCustomerAsync(
+                                customerEditDialog.customerId,
                                 editNameField.text.trim(),
                                 editPhoneField.text.trim(),
                                 editEmailField.text.trim(),
                                 editAddressField.text.trim()
                             )
-                            refreshTable()
-                            customerEditDialog.close()
                         }
                     }
 
@@ -856,6 +970,7 @@ Page {
         function openWithData(row, data) {
             currentRow = row
             currentData = data
+            customerId = data.id // Сохраняем ID для UPDATE
             editNameField.text = data.full_name || ""
             editPhoneField.text = data.phone || ""
             editEmailField.text = data.email || ""
@@ -878,7 +993,10 @@ Page {
 
         property int currentRow: -1
         property var currentData: ({})
-        property var customerOrders: ([])
+        property bool isLoadingOrders: false
+
+        // Модель для истории заказов (асинхронная)
+        property ListModel ordersModel: ListModel {}
 
         background: Rectangle {
             color: "#ffffff"
@@ -971,8 +1089,16 @@ Page {
                             font.pixelSize: 14
                         }
 
+                        // Индикатор загрузки заказов
+                        BusyIndicator {
+                            visible: customerViewDialog.isLoadingOrders
+                            Layout.alignment: Qt.AlignHCenter
+                            running: true
+                        }
+
                         Repeater {
-                            model: customerViewDialog.customerOrders
+                            model: customerViewDialog.ordersModel
+                            visible: !customerViewDialog.isLoadingOrders
 
                             Rectangle {
                                 Layout.alignment: Qt.AlignHCenter
@@ -989,13 +1115,13 @@ Page {
                                     spacing: 2
 
                                     Label {
-                                        text: "№ " + (modelData.order_number || "?")
+                                        text: "№ " + (model.order_number || "?")
                                         font.bold: true
                                         Layout.fillWidth: true
                                         font.pixelSize: 14
                                     }
                                     Label {
-                                        text: getOrderTypeText(modelData.order_type)
+                                        text: getOrderTypeText(model.order_type)
                                         Layout.fillWidth: true
                                         font.pixelSize: 14
                                     }
@@ -1003,13 +1129,13 @@ Page {
                                     RowLayout {
                                         Layout.fillWidth: true
                                         Label {
-                                            text: getStatusText(modelData.status)
-                                            color: getStatusColor(modelData.status)
+                                            text: getStatusText(model.status)
+                                            color: getStatusColor(model.status)
                                             font.bold: true
                                         }
                                         Item { Layout.fillWidth: true }
                                         Label {
-                                            text: (modelData.total_amount || "0") + " ₽"
+                                            text: (model.total_amount || "0") + " ₽"
                                             color: "#27ae60"
                                             font.bold: true
                                             font.pixelSize: 16
@@ -1019,7 +1145,7 @@ Page {
                                     Item { Layout.fillHeight: true }
 
                                     Label {
-                                        text: formatDate(modelData.created_at)
+                                        text: formatDate(model.created_at)
                                         font.pixelSize: 12
                                         color: "#7f8c8d"
                                         Layout.alignment: Qt.AlignRight
@@ -1029,7 +1155,7 @@ Page {
                         }
 
                         Label {
-                            visible: customerViewDialog.customerOrders.length === 0
+                            visible: customerViewDialog.ordersModel.count === 0 && !customerViewDialog.isLoadingOrders
                             text: "Заказов не найдено"
                             color: "#95a5a6"
                             Layout.alignment: Qt.AlignHCenter
@@ -1109,10 +1235,12 @@ Page {
             }
         }
 
-        function openWithData(row) {
-            currentRow = row
-            currentData = DatabaseManager.getRowData(root.tableName, row)
-            customerOrders = DatabaseManager.getCustomerOrders(currentData.id)
+        function openWithData(data) {
+            currentRow = -1 // Индекс в ListView может отличаться от ID, но нам важен сам объект data
+            currentData = data
+            ordersModel.clear()
+            isLoadingOrders = true
+            DatabaseManager.fetchCustomerOrdersAsync(data.id)
             open()
         }
     }
@@ -1126,7 +1254,7 @@ Page {
         anchors.centerIn: parent
         padding: 20
 
-        property var filteredCustomers: []
+        property ListModel filteredCustomers: ListModel{}
 
         background: Rectangle {
             color: "#ffffff"
@@ -1215,7 +1343,7 @@ Page {
                                     Text {
                                         id: txtName
                                         anchors.fill: parent
-                                        text: modelData.full_name
+                                        text: model.full_name
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
                                         elide: Text.ElideRight
@@ -1234,7 +1362,7 @@ Page {
                                 Text {
                                     width: headerRow.getColWidth(1)
                                     height: parent.height
-                                    text: modelData.phone
+                                    text: model.phone
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                     elide: Text.ElideRight
@@ -1248,7 +1376,7 @@ Page {
                                     Text {
                                         id: txtEmail
                                         anchors.fill: parent
-                                        text: modelData.email
+                                        text: model.email
                                         verticalAlignment: Text.AlignVCenter
                                         horizontalAlignment: Text.AlignHCenter
                                         elide: Text.ElideRight
@@ -1267,7 +1395,7 @@ Page {
                                 Text {
                                     width: headerRow.getColWidth(3)
                                     height: parent.height
-                                    text: modelData.order_count
+                                    text: model.order_count
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                     font.bold: true
@@ -1277,7 +1405,7 @@ Page {
                                 Text {
                                     width: headerRow.getColWidth(4)
                                     height: parent.height
-                                    text: (modelData.total_amount || "0") + " ₽"
+                                    text: (model.total_amount || "0") + " ₽"
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                     color: "#27ae60"
@@ -1291,7 +1419,7 @@ Page {
             }
 
             Label {
-                visible: filterResultsDialog.filteredCustomers.length === 0
+                visible: filterResultsDialog.filteredCustomers.count === 0
                 text: "Нет покупателей за указанный период"
                 Layout.alignment: Qt.AlignHCenter
                 color: "#e74c3c"
@@ -1318,8 +1446,11 @@ Page {
             }
         }
 
-        function openWithData(customers) {
-            filteredCustomers = customers
+        function openWithData(data) {
+            filteredCustomers.clear()
+            for (var i = 0; i < data.length; i++) {
+                filteredCustomers.append(data[i])
+            }
             open()
         }
     }
@@ -1404,10 +1535,8 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
-                        DatabaseManager.deleteCustomer(customerViewDialog.currentRow)
-                        refreshTable()
-                        customerViewDialog.close()
-                        deleteConfirmDialog.close()
+                        root.isLoading = true
+                        DatabaseManager.deleteCustomerAsync(customerViewDialog.currentData.id)
                     }
                 }
             }
@@ -1418,10 +1547,8 @@ Page {
         id: messageDialog
         modal: true
         header: null
-        width: 350
-        height: 180
-        anchors.centerIn: parent
-        padding: 20
+        width: 350; height: 180; anchors.centerIn: parent; padding: 20
+        property string errorMsg: "Введите корректные даты для фильтрации"
 
         background: Rectangle {
             color: "#ffffff"
@@ -1431,45 +1558,23 @@ Page {
         }
 
         ColumnLayout {
-            anchors.fill: parent
-            spacing: 10
-
+            anchors.fill: parent; spacing: 10
+            Label { text: "Сообщение"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
             Label {
-                text: "Ошибка"
-                font.bold: true
-                font.pixelSize: 18
-                color: "#e74c3c"
-                Layout.alignment: Qt.AlignHCenter
+                id: msgTextLabel
+                Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14
             }
-
-            Label {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                text: "Введите корректные даты для фильтрации"
-                wrapMode: Text.Wrap
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                font.pixelSize: 14
-            }
-
             Button {
-                text: "OK"
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 100
-                Layout.preferredHeight: 40
-                background: Rectangle {
-                    color: parent.down ? "#27ae60" : "#2ecc71"
-                    radius: 8
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
+                text: "OK"; Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 100; Layout.preferredHeight: 40
+                background: Rectangle { color: parent.down ? "#27ae60" : "#2ecc71"; radius: 8 }
+                contentItem: Text { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 onClicked: messageDialog.accept()
             }
+        }
+        function showError(msg) {
+            errorMsg = msg
+            msgTextLabel.text = msg
+            open()
         }
     }
 }

@@ -7,7 +7,7 @@ import Database
 Page {
     signal loginSellerSuccess()
     signal loginMasterSuccess()
-    signal registrationButtonClicked()
+    signal loginAdminSuccess
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -54,79 +54,54 @@ Page {
             }
         }
 
-        RowLayout {
-            spacing: 60
+        Button {
+            id: enterBtn
+            text: "Войти"
+            font.pixelSize: 16
             Layout.fillWidth: true
 
-            Button {
-                id: registrationBtn
-                text: "Регистрация"
-                font.pixelSize: 16
-                Layout.fillWidth: true
-
-                background: Rectangle {
-                    color: parent.down ? "#CECECE" : "#798081"
-                    radius: 4
-                }
-
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                onClicked: registrationButtonClicked()
+            background: Rectangle {
+                color: parent.down ? "#2980b9" : "#3498db"
+                radius: 4
             }
 
-            Button {
-                id: enterBtn
-                text: "Войти"
-                font.pixelSize: 16
-                Layout.fillWidth: true
+            contentItem: Text {
+                text: parent.text
+                font: parent.font
+                color: "white"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
 
-                background: Rectangle {
-                    color: parent.down ? "#2980b9" : "#3498db"
-                    radius: 4
+            onClicked: {
+                var user_name = loginTF.text.trim()
+                var user_password = passwordTF.text.trim()
+
+                if (user_name === "") {
+                    infoLbl.text = "Логин не может быть пустым"
+                    infoLbl.color = "red"
+                    return
                 }
 
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                if (user_password === "") {
+                    infoLbl.text = "Пароль не может быть пустым"
+                    infoLbl.color = "red"
+                    return
                 }
 
-                onClicked: {
-                    var user_name = loginTF.text.trim()
-                    var user_password = passwordTF.text.trim()
+                if (DatabaseManager.loginUser(user_name, user_password)) {
+                    infoLbl.text = "Вход успешен"
+                    infoLbl.color = "green"
 
-                    if (user_name === "") {
-                        infoLbl.text = "Логин не может быть пустым"
-                        infoLbl.color = "red"
-                        return
-                    }
-
-                    if (user_password === "") {
-                        infoLbl.text = "Пароль не может быть пустым"
-                        infoLbl.color = "red"
-                        return
-                    }
-
-                    if (DatabaseManager.loginUser(user_name, user_password)) {
-                        infoLbl.text = "Вход успешен"
-                        infoLbl.color = "green"
-
-                        if (DatabaseManager.getCurrentUserRole() === "Продавец")
-                            loginSellerSuccess()
-                            else if (DatabaseManager.getCurrentUserRole() === "Мастер производства")
-                            loginMasterSuccess()
-                    } else {
-                        infoLbl.text = "Неверный логин или пароль"
-                        infoLbl.color = "red"
-                    }
+                    if (DatabaseManager.getCurrentUserRole() === "Продавец")
+                        loginSellerSuccess()
+                    else if (DatabaseManager.getCurrentUserRole() === "Мастер производства")
+                        loginMasterSuccess()
+                    else if (DatabaseManager.getCurrentUserRole() === "Администратор")
+                        loginAdminSuccess()
+                } else {
+                    infoLbl.text = "Неверный логин или пароль"
+                    infoLbl.color = "red"
                 }
             }
         }

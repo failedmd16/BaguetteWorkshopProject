@@ -20,6 +20,10 @@ int main(int argc, char *argv[])
             return DatabaseManager::instance();
         });
 
+    Logger::instance();
+
+    qmlRegisterSingletonInstance("AppLogger", 1, 0, "Logger", &Logger::instance());
+
     QQmlApplicationEngine engine;
 
     QObject::connect(
