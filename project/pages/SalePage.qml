@@ -86,7 +86,7 @@ Page {
         Label {
             Layout.fillWidth: true
             Layout.preferredHeight: 70
-            text: "🛍️ Продажа наборов и фурнитуры"
+            text: "💰 Продажа наборов и фурнитуры"
             font.bold: true
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
@@ -165,6 +165,7 @@ Page {
                     id: kitsRadio
                     text: "Наборы для вышивки"
                     checked: true
+                    font.pixelSize: 14
                     ButtonGroup.group: productTypeGroup
 
                     indicator: Rectangle {
@@ -197,6 +198,7 @@ Page {
                 RadioButton {
                     id: consumablesRadio
                     text: "Расходная фурнитура"
+                    font.pixelSize: 14
                     ButtonGroup.group: productTypeGroup
 
                     indicator: Rectangle {

@@ -24,8 +24,6 @@ void LogWorker::connectToDatabase() {
 
     if (!db.open()) {
         qDebug() << "AsyncLogger: Connection failed:" << db.lastError().text();
-    } else {
-        qDebug() << "AsyncLogger: Connected in background thread.";
     }
 }
 

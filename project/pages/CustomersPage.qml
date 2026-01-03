@@ -1447,6 +1447,9 @@ Page {
         }
 
         function openWithData(data) {
+            if (filterResultsDialog.opened) {
+                filterResultsDialog.close()
+            }
             filteredCustomers.clear()
             for (var i = 0; i < data.length; i++) {
                 filteredCustomers.append(data[i])
