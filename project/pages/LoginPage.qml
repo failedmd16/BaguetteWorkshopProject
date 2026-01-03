@@ -5,9 +5,49 @@ import QtQuick.LocalStorage
 import Database
 
 Page {
+    id: root
     signal loginSellerSuccess()
     signal loginMasterSuccess()
     signal loginAdminSuccess
+
+    property bool isLoading: false
+
+    // Индикатор загрузки (блокирует интерфейс во время входа)
+    MouseArea {
+        anchors.fill: parent
+        visible: root.isLoading
+        hoverEnabled: true
+        z: 99
+        onClicked: {} // Перехватываем клики
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: root.isLoading
+        }
+    }
+
+    // Обработка сигналов от C++
+    Connections {
+        target: DatabaseManager
+
+        function onLoginResult(success, role, message) {
+            root.isLoading = false
+            if (success) {
+                infoLbl.text = "Вход успешен"
+                infoLbl.color = "green"
+
+                // Маршрутизация в зависимости от роли
+                if (role === "Продавец")
+                    loginSellerSuccess()
+                else if (role === "Мастер производства")
+                    loginMasterSuccess()
+                else if (role === "Администратор")
+                    loginAdminSuccess()
+            } else {
+                infoLbl.text = message
+                infoLbl.color = "red"
+            }
+        }
+    }
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -33,6 +73,7 @@ Page {
             placeholderText: "Логин"
             font.pixelSize: 14
             Layout.fillWidth: true
+            enabled: !root.isLoading
             background: Rectangle {
                 border.color: loginTF.activeFocus ? "#3498db" : "#dce0e3"
                 border.width: 1
@@ -47,6 +88,7 @@ Page {
             echoMode: TextInput.Password
             font.pixelSize: 14
             Layout.fillWidth: true
+            enabled: !root.isLoading
             background: Rectangle {
                 border.color: passwordTF.activeFocus ? "#3498db" : "#dce0e3"
                 border.width: 1
@@ -59,6 +101,7 @@ Page {
             text: "Войти"
             font.pixelSize: 16
             Layout.fillWidth: true
+            enabled: !root.isLoading
 
             background: Rectangle {
                 color: parent.down ? "#2980b9" : "#3498db"
@@ -89,20 +132,12 @@ Page {
                     return
                 }
 
-                if (DatabaseManager.loginUser(user_name, user_password)) {
-                    infoLbl.text = "Вход успешен"
-                    infoLbl.color = "green"
+                root.isLoading = true
+                infoLbl.text = "Выполняется вход..."
+                infoLbl.color = "black"
 
-                    if (DatabaseManager.getCurrentUserRole() === "Продавец")
-                        loginSellerSuccess()
-                    else if (DatabaseManager.getCurrentUserRole() === "Мастер производства")
-                        loginMasterSuccess()
-                    else if (DatabaseManager.getCurrentUserRole() === "Администратор")
-                        loginAdminSuccess()
-                } else {
-                    infoLbl.text = "Неверный логин или пароль"
-                    infoLbl.color = "red"
-                }
+                // Асинхронный вызов
+                DatabaseManager.loginUserAsync(user_name, user_password)
             }
         }
 

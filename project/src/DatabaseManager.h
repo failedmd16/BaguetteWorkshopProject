@@ -11,10 +11,10 @@
 #include <QMutex>
 #include <QCryptographicHash>
 #include <QRegularExpression>
-#include <QtConcurrent>  // Для QtConcurrent::run
-#include <QSqlRecord>    // Для query.record()
-#include <QSqlField>     // Для работы с полями записи (иногда нужно, если query.value() не хватает)
-#include <QVariant>  // Для QVariantMap и QVariantList
+#include <QtConcurrent>
+#include <QSqlRecord>
+#include <QSqlField>
+#include <QVariant>
 #include <QThread>
 #include "Logger.h"
 
@@ -26,82 +26,18 @@ public:
     static DatabaseManager* instance();
     static void destroyInstance();
 
-    // Методы управления аккаунтами
-    Q_INVOKABLE bool loginUser(const QString &login, const QString &password);
-    Q_INVOKABLE bool registrationUser(const QString &login, const QString &password, const QString &role);
-    Q_INVOKABLE bool updateUserPassword(const QString &login, const QString &newPassword);
-    Q_INVOKABLE bool deleteUser(const QString &login);
-
-    Q_INVOKABLE int getCurrentUserID();
-    Q_INVOKABLE QString getCurrentUserRole() const;
-
-    // Общие методы работы с таблицами
-    Q_INVOKABLE QSqlQueryModel* getTableModel(const QString &name);
-    Q_INVOKABLE QVariantMap getRowData(const QString &table, int row);
-    Q_INVOKABLE int getRowCount(const QString &table);
-
-    // Покупатели
-    Q_INVOKABLE void addCustomer(const QString &name, const QString &phone, const QString &email, const QString &address);
-    Q_INVOKABLE void updateCustomer(int row, const QString &name, const QString &phone, const QString &email, const QString &address);
-    Q_INVOKABLE void deleteCustomer(int row);
-    Q_INVOKABLE QSqlQueryModel* getCustomersModel();
-    Q_INVOKABLE QVariantList getCustomersWithOrdersInPeriod(const QString &startDate, const QString &endDate);
-    Q_INVOKABLE int getRetailCustomerId(); // <--- НОВЫЙ МЕТОД
-
-    // Товары (Наборы и фурнитура)
-    Q_INVOKABLE void addEmbroideryKit(const QString &name, const QString &description, double price, int stockQuantity);
-    Q_INVOKABLE void updateEmbroideryKit(int id, const QString &name, const QString &description, double price, int stockQuantity);
-    Q_INVOKABLE void deleteEmbroideryKit(int id);
-    Q_INVOKABLE void updateEmbroideryKitStock(int id, int newQuantity);
-    Q_INVOKABLE QSqlQueryModel* getEmbroideryKitsModel();
-
-    Q_INVOKABLE void addConsumableFurniture(const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit);
-    Q_INVOKABLE void updateConsumableFurniture(int id, const QString &name, const QString &type, double pricePerUnit, int stockQuantity, const QString &unit);
-    Q_INVOKABLE void deleteConsumableFurniture(int id);
-    Q_INVOKABLE void updateConsumableStock(int id, int newQuantity);
-
-    // Материалы (Для мастера)
-    Q_INVOKABLE void addFrameMaterial(const QString &name, const QString &type, double pricePerMeter, double stockQuantity, const QString &color, double width);
-    Q_INVOKABLE void updateFrameMaterial(int row, const QString &name, const QString &type, double pricePerMeter, double stockQuantity, const QString &color, double width);
-    Q_INVOKABLE void deleteFrameMaterial(int row);
-    Q_INVOKABLE QSqlQueryModel* getFrameMaterialsModel();
-
-    Q_INVOKABLE void addComponentFurniture(const QString &name, const QString &type, double pricePerUnit, int stockQuantity);
-    Q_INVOKABLE void updateComponentFurniture(int row, const QString &name, const QString &type, double pricePerUnit, int stockQuantity);
-    Q_INVOKABLE void deleteComponentFurniture(int row);
-    Q_INVOKABLE QSqlQueryModel* getComponentFurnitureModel();
-
-    // Заказы
-    Q_INVOKABLE int createOrder(const QString &orderNumber, int customerId, const QString &orderType, double totalAmount, const QString &status, const QString &notes);
-    Q_INVOKABLE void updateOrder(int id, const QString &status, double totalAmount, const QString &notes);
-    Q_INVOKABLE void deleteOrder(int id);
-
-    Q_INVOKABLE bool createFrameOrder(int orderId, double width, double height, int frameMaterialId, int componentFurnitureId, int masterId, const QString &specialInstructions);
-
-    Q_INVOKABLE bool createOrderItem(int orderId, int itemId, const QString &itemType, const QString &itemName, int quantity, double unitPrice);
-    Q_INVOKABLE bool updateOrderStatus(int orderId, const QString &newStatus);
-    Q_INVOKABLE QVariantList getOrdersData();
-    Q_INVOKABLE QVariantList getCustomerOrders(int customerId);
-
-    // Мастер
-    Q_INVOKABLE QVariantList getMasterOrdersData();
-    Q_INVOKABLE QSqlQueryModel* getMastersModel();
-
-    Q_INVOKABLE int getLastInsertedOrderId();
-
-    // Администратор
-    Q_INVOKABLE bool hasAdminAccount();
-    Q_INVOKABLE bool createFirstAdmin(const QString &login, const QString &password);
-
-    // Логи
-    Q_INVOKABLE void fetchLogs();
-    Q_INVOKABLE void fetchLogsCount();
-    Q_INVOKABLE void fetchLogsByPeriod(const QString &dateFrom, const QString &dateTo);
-
-    // Управление аккаунтами
+    // Основные асинхронные методы
+    Q_INVOKABLE void loginUserAsync(const QString &login, const QString &password);
     Q_INVOKABLE void registerUserAsync(const QString &login, const QString &password, const QString &role);
     Q_INVOKABLE void updateUserPasswordAsync(const QString &login, const QString &newPassword);
     Q_INVOKABLE void deleteUserAsync(const QString &login);
+    Q_INVOKABLE void createFirstAdminAsync(const QString &login, const QString &password);
+
+    // Геттеры
+    Q_INVOKABLE int getCurrentUserID();
+    Q_INVOKABLE QString getCurrentUserRole() const;
+    Q_INVOKABLE bool hasAdminAccount();
+    Q_INVOKABLE int getRetailCustomerId();
 
     // Клиенты
     Q_INVOKABLE void fetchCustomers();
@@ -113,53 +49,85 @@ public:
 
     // Заказы
     Q_INVOKABLE void fetchOrders();
-    Q_INVOKABLE void fetchReferenceData(); // Загрузит списки для ComboBox
-
-    // Создание заказа одной транзакцией (принимает Map со всеми данными)
-    Q_INVOKABLE void createOrderTransactionAsync(const QVariantMap &orderData);
-
+    Q_INVOKABLE void fetchReferenceData();
+    Q_INVOKABLE void createOrderTransactionAsync(const QVariantMap &data);
     Q_INVOKABLE void updateOrderAsync(int id, const QString &status, double amount, const QString &notes);
     Q_INVOKABLE void deleteOrderAsync(int id);
+    Q_INVOKABLE void updateOrderStatusAsync(int id, const QString &newStatus);
+
+    // Продажи (товары)
+    Q_INVOKABLE void fetchProductsAsync(bool isKit);
+    Q_INVOKABLE void addEmbroideryKitAsync(const QString &name, const QString &description, double price, int quantity);
+    Q_INVOKABLE void updateEmbroideryKitAsync(int id, const QString &name, const QString &description, double price, int quantity);
+    Q_INVOKABLE void deleteEmbroideryKitAsync(int id);
+    Q_INVOKABLE void addConsumableAsync(const QString &name, const QString &type, double price, int quantity, const QString &unit);
+    Q_INVOKABLE void updateConsumableAsync(int id, const QString &name, const QString &type, double price, int quantity, const QString &unit);
+    Q_INVOKABLE void deleteConsumableAsync(int id);
+    Q_INVOKABLE void processRetailSaleAsync(int productId, bool isKit, int quantity, double unitPrice);
+
+    // Материалы (мастер)
+    Q_INVOKABLE void fetchMaterialsAsync(const QString &tableName);
+    Q_INVOKABLE void addFrameMaterialAsync(const QString &name, const QString &type, double price, double stock, const QString &color, double width);
+    Q_INVOKABLE void updateFrameMaterialAsync(int id, const QString &name, const QString &type, double price, double stock, const QString &color, double width);
+    Q_INVOKABLE void deleteFrameMaterialAsync(int id);
+    Q_INVOKABLE void addComponentFurnitureAsync(const QString &name, const QString &type, double price, int stock);
+    Q_INVOKABLE void updateComponentFurnitureAsync(int id, const QString &name, const QString &type, double price, int stock);
+    Q_INVOKABLE void deleteComponentFurnitureAsync(int id);
+
+    // Заказы мастера
+    Q_INVOKABLE void fetchMasterOrdersAsync();
+
+    // Логи
+    Q_INVOKABLE void fetchLogs();
+    Q_INVOKABLE void fetchLogsCount();
+    Q_INVOKABLE void fetchLogsByPeriod(const QString &dateFrom, const QString &dateTo);
 
 signals:
-    // Логи
-    void logsLoaded(QVariantList logs);
-    void logsCountLoaded(int count);
-
-    // Управление аккаунтами
+    // Авторизация
+    void loginResult(bool success, QString role, QString message);
+    void firstAdminCreatedResult(bool success, QString message);
     void userOperationResult(bool success, QString message);
 
     // Клиенты
-    void customersLoaded(QVariantList data);       // Основной список
-    void customerOrdersLoaded(QVariantList data);  // История заказов одного клиента
-    void reportDataLoaded(QVariantList data);      // Отчет фильтрации
-    void customerOperationResult(bool success, QString message); // Результат (добавление/удаление)
+    void customersLoaded(QVariantList data);
+    void customerOrdersLoaded(QVariantList data);
+    void reportDataLoaded(QVariantList data);
+    void customerOperationResult(bool success, QString message);
 
     // Заказы
-    void ordersLoaded(QVariantList data);
-    void referenceDataLoaded(QVariantMap data); // Загрузка справочников (клиенты, материалы, наборы, мастера) одним пакетом
-    void orderOperationResult(bool success, QString message);
+    void ordersLoaded(const QVariantList &data);
+    void referenceDataLoaded(const QVariantMap &data);
+    void orderOperationResult(bool success, const QString &message);
+    void statusUpdateResult(bool success, QString message);
 
-    // Продажи
+    // Продажи (товары)
+    void productsLoaded(QVariantList data);
+    void productOperationResult(bool success, QString message);
 
+    // Заказы мастера
+    void masterOrdersLoaded(QVariantList data);
 
-    // Заказы от лица мастера
+    // Материалы мастера
+    void materialsLoaded(QVariantList data);
+    void materialOperationResult(bool success, QString message);
 
-
-    // Материалы от лица мастера
+    // Логи
+    void logsLoaded(QVariantList logs);
+    void logsCountLoaded(int count);
 
 private:
     explicit DatabaseManager(QObject *parent = nullptr);
     ~DatabaseManager();
     DatabaseManager(const DatabaseManager&) = delete;
     DatabaseManager& operator=(const DatabaseManager&) = delete;
+    static QMutex m_connectionMutex;
 
     bool initializeDatabase();
     void createTables();
-    void insertTestData();
     QString hashPassword(const QString &password);
     bool validateLogin(const QString &login);
     bool validatePassword(const QString &password);
+    QSqlDatabase getThreadLocalConnection();
 
     static DatabaseManager* m_instance;
     static QMutex m_mutex;
@@ -168,9 +136,6 @@ private:
     int currentUserId = -1;
     QString currentUserRole;
 
-    QSqlDatabase getThreadLocalConnection();
-
-    // Параметры для клонирования соединения
     struct DbParams {
         QString host;
         QString name;

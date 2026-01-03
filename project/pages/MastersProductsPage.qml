@@ -8,6 +8,7 @@ Page {
     id: root
     property string currentTable: "frame_materials"
     property int selectedRow: -1
+    property bool isLoading: false
 
     DoubleValidator {
         id: doubleValidator
@@ -22,6 +23,56 @@ Page {
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
+    }
+
+    // Индикатор загрузки
+    MouseArea {
+        anchors.fill: parent
+        visible: root.isLoading
+        hoverEnabled: true
+        z: 99
+        onClicked: {}
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: root.isLoading
+        }
+    }
+
+    // Модель данных
+    ListModel {
+        id: materialsModel
+    }
+
+    // Обработка сигналов C++
+    Connections {
+        target: DatabaseManager
+
+        function onMaterialsLoaded(data) {
+            materialsModel.clear()
+            for (var i = 0; i < data.length; i++) {
+                materialsModel.append(data[i])
+            }
+            root.isLoading = false
+        }
+
+        function onMaterialOperationResult(success, message) {
+            root.isLoading = false
+            if (success) {
+                refreshTable()
+                if (productAddDialog.opened) productAddDialog.close()
+                if (productEditDialog.opened) productEditDialog.close()
+                if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
+                // Если мы были в просмотре, закрываем его
+                if (productViewDialog.opened) productViewDialog.close()
+            } else {
+                console.log("Error: " + message)
+            }
+        }
+    }
+
+    function refreshTable() {
+        root.isLoading = true
+        DatabaseManager.fetchMaterialsAsync(root.currentTable)
     }
 
     ColumnLayout {
@@ -106,6 +157,7 @@ Page {
             }
         }
 
+        // ЗАГОЛОВОК ТАБЛИЦЫ
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -139,6 +191,7 @@ Page {
             }
         }
 
+        // ТАБЛИЦА (ListView)
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -154,32 +207,30 @@ Page {
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                TableView {
+                ListView {
                     id: tableview
                     anchors.fill: parent
                     clip: true
-                    model: DatabaseManager.getTableModel(root.currentTable)
-
-                    columnWidthProvider: function(column) {
-                        var columnsCount = root.currentTable === "frame_materials" ? 6 : 4
-                        return tableview.width / columnsCount
-                    }
+                    model: materialsModel // Используем ListModel
 
                     delegate: Rectangle {
                         implicitHeight: 45
-                        color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
+                        color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
+                        width: tableview.width
                         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: "#e9ecef" }
 
-                        property var rowData: model ? DatabaseManager.getRowData(root.currentTable, row) : ({})
+                        // Храним данные строки
+                        property var rowData: materialsModel.get(index)
 
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.selectedRow = row
-                                productViewDialog.openWithData(row)
+                                root.selectedRow = index
+                                // Передаем данные из модели
+                                productViewDialog.openWithData(index, parent.rowData)
                             }
 
                             Rectangle {
@@ -188,37 +239,53 @@ Page {
                             }
                         }
 
-                        Text {
+                        // Имитация колонок
+                        Row {
                             anchors.fill: parent
                             anchors.margins: 12
-                            text: {
-                                if (!parent.rowData) return ""
 
-                                if (root.currentTable === "frame_materials") {
-                                    switch(column) {
-                                        case 0: return parent.rowData.name || ""
-                                        case 1: return parent.rowData.type || ""
-                                        case 2: return (parent.rowData.price_per_meter || 0).toFixed(2) + " ₽"
-                                        case 3: return (parent.rowData.stock_quantity || 0) + " м"
-                                        case 4: return parent.rowData.color || ""
-                                        case 5: return (parent.rowData.width || 0) + " см"
-                                        default: return ""
-                                    }
-                                } else {
-                                    switch(column) {
-                                        case 0: return parent.rowData.name || ""
-                                        case 1: return parent.rowData.type || ""
-                                        case 2: return (parent.rowData.price_per_unit || 0).toFixed(2) + " ₽"
-                                        case 3: return (parent.rowData.stock_quantity || 0) + " шт"
-                                        default: return ""
+                            Repeater {
+                                model: root.currentTable === "frame_materials" ? 6 : 4
+
+                                Rectangle {
+                                    width: tableview.width / (root.currentTable === "frame_materials" ? 6 : 4)
+                                    height: parent.height
+                                    color: "transparent"
+
+                                    Text {
+                                        anchors.fill: parent
+                                        text: {
+                                            if (!parent.parent.parent.rowData) return ""
+                                            var d = parent.parent.parent.rowData
+
+                                            if (root.currentTable === "frame_materials") {
+                                                switch(index) {
+                                                    case 0: return d.name || ""
+                                                    case 1: return d.type || ""
+                                                    case 2: return (d.price_per_meter || 0).toFixed(2) + " ₽"
+                                                    case 3: return (d.stock_quantity || 0) + " м"
+                                                    case 4: return d.color || ""
+                                                    case 5: return (d.width || 0) + " см"
+                                                    default: return ""
+                                                }
+                                            } else {
+                                                switch(index) {
+                                                    case 0: return d.name || ""
+                                                    case 1: return d.type || ""
+                                                    case 2: return (d.price_per_unit || 0).toFixed(2) + " ₽"
+                                                    case 3: return (d.stock_quantity || 0) + " шт"
+                                                    default: return ""
+                                                }
+                                            }
+                                        }
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+                                        elide: Text.ElideRight
+                                        color: "#2c3e50"
+                                        font.pixelSize: 14
                                     }
                                 }
                             }
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                            color: "#2c3e50"
-                            font.pixelSize: 14
                         }
                     }
                 }
@@ -283,21 +350,38 @@ Page {
         }
     }
 
-    function refreshTable() {
-        tableview.model = DatabaseManager.getTableModel(root.currentTable)
-    }
-
     Dialog {
         id: productViewDialog
         modal: true
         header: null
         width: 450
-        height: 450
+        height: 400
         anchors.centerIn: parent
         padding: 20
 
         property int currentRow: -1
         property var currentData: ({})
+
+        // --- ИСПРАВЛЕНИЕ: Функция для безопасного получения цены ---
+        // Вынос логики сюда устраняет ошибку Binding loop
+        function getPriceText() {
+            if (!currentData) return "0.00 ₽"
+
+            // Выбираем нужное поле в зависимости от таблицы
+            var val
+            if (root.currentTable === "frame_materials") {
+                val = currentData.price_per_meter
+            } else {
+                val = currentData.price_per_unit
+            }
+
+            // Безопасное преобразование в число
+            var num = parseFloat(val)
+            if (isNaN(num)) return "0.00 ₽"
+
+            return num.toFixed(2) + " ₽"
+        }
+        // -----------------------------------------------------------
 
         background: Rectangle {
             color: "#ffffff"
@@ -361,27 +445,27 @@ Page {
 
                     DetailRow {
                         labelText: "Название:"
-                        valueText: productViewDialog.currentData.name || "—"
+                        valueText: (productViewDialog.currentData && productViewDialog.currentData.name) ? productViewDialog.currentData.name : "—"
                         isBold: true
                     }
                     DetailRow {
                         labelText: "Тип:"
-                        valueText: productViewDialog.currentData.type || "—"
+                        valueText: (productViewDialog.currentData && productViewDialog.currentData.type) ? productViewDialog.currentData.type : "—"
                     }
+
+                    // --- ИСПРАВЛЕННЫЙ БЛОК ---
                     DetailRow {
                         labelText: "Цена:"
-                        valueText: {
-                             var price = (root.currentTable === "frame_materials") ?
-                                productViewDialog.currentData.price_per_meter :
-                                productViewDialog.currentData.price_per_unit
-                             return (price ? price.toFixed(2) : "0.00") + " ₽"
-                        }
+                        valueText: productViewDialog.getPriceText() // Вызов функции вместо блока кода
                         valueColor: "#27ae60"
                         isBold: true
                     }
+                    // --------------------------
+
                     DetailRow {
                         labelText: "На складе:"
                         valueText: {
+                            if (!productViewDialog.currentData) return "0"
                             var stock = productViewDialog.currentData.stock_quantity || 0
                             var unit = (root.currentTable === "frame_materials") ? " м" : " шт"
                             return stock + unit
@@ -390,12 +474,15 @@ Page {
                     DetailRow {
                         visible: root.currentTable === "frame_materials"
                         labelText: "Цвет:"
-                        valueText: productViewDialog.currentData.color || "—"
+                        valueText: (productViewDialog.currentData && productViewDialog.currentData.color) ? productViewDialog.currentData.color : "—"
                     }
                     DetailRow {
                         visible: root.currentTable === "frame_materials"
                         labelText: "Ширина:"
-                        valueText: (productViewDialog.currentData.width || 0) + " см"
+                        valueText: {
+                            if (!productViewDialog.currentData) return "—"
+                            return (productViewDialog.currentData.width || 0) + " см"
+                        }
                     }
                 }
             }
@@ -423,8 +510,11 @@ Page {
                         font.pixelSize: 14
                     }
                     onClicked: {
-                        productViewDialog.close()
-                        productEditDialog.openWithData(productViewDialog.currentRow, productViewDialog.currentData)
+                        if (productViewDialog.currentData) {
+                            var dataToPass = productViewDialog.currentData
+                            productViewDialog.close()
+                            productEditDialog.openWithData(productViewDialog.currentRow, dataToPass)
+                        }
                     }
                 }
 
@@ -468,13 +558,15 @@ Page {
             }
         }
 
-        function openWithData(row) {
+        function openWithData(row, data) {
             currentRow = row
-            currentData = DatabaseManager.getRowData(root.currentTable, row)
+            currentData = data || {}
             open()
         }
     }
 
+    // ... [ProductEditDialog без изменений] ...
+    // Вставьте сюда ProductEditDialog из вашего предыдущего сообщения, он полностью корректен.
     Dialog {
         id: productEditDialog
         modal: true
@@ -641,9 +733,10 @@ Page {
                     }
                     onClicked: {
                         if (validateEditForm()) {
+                            root.isLoading = true
                             if (root.currentTable === "frame_materials") {
-                                DatabaseManager.updateFrameMaterial(
-                                    productEditDialog.currentRow,
+                                DatabaseManager.updateFrameMaterialAsync(
+                                    productEditDialog.currentData.id,
                                     editNameField.text.trim(),
                                     editTypeField.text.trim(),
                                     parseFloat(editPriceField.text) || 0,
@@ -652,16 +745,14 @@ Page {
                                     parseFloat(editWidthField.text) || 0
                                 )
                             } else {
-                                DatabaseManager.updateComponentFurniture(
-                                    productEditDialog.currentRow,
+                                DatabaseManager.updateComponentFurnitureAsync(
+                                    productEditDialog.currentData.id,
                                     editNameField.text.trim(),
                                     editTypeField.text.trim(),
                                     parseFloat(editPriceField.text) || 0,
                                     parseInt(editStockField.text) || 0
                                 )
                             }
-                            refreshTable()
-                            productEditDialog.close()
                         }
                     }
 
@@ -716,6 +807,7 @@ Page {
         }
     }
 
+    // ... [ProductAddDialog без изменений] ...
     Dialog {
         id: productAddDialog
         modal: true
@@ -879,8 +971,9 @@ Page {
                     }
                     onClicked: {
                         if (validateAddForm()) {
+                            root.isLoading = true
                             if (root.currentTable === "frame_materials") {
-                                DatabaseManager.addFrameMaterial(
+                                DatabaseManager.addFrameMaterialAsync(
                                     addNameField.text.trim(),
                                     addTypeField.text.trim(),
                                     parseFloat(addPriceField.text) || 0,
@@ -889,15 +982,13 @@ Page {
                                     parseFloat(addWidthField.text) || 0
                                 )
                             } else {
-                                DatabaseManager.addComponentFurniture(
+                                DatabaseManager.addComponentFurnitureAsync(
                                     addNameField.text.trim(),
                                     addTypeField.text.trim(),
                                     parseFloat(addPriceField.text) || 0,
                                     parseInt(addStockField.text) || 0
                                 )
                             }
-                            refreshTable()
-                            productAddDialog.close()
                         }
                     }
 
@@ -1022,14 +1113,13 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                     }
                     onClicked: {
+                        root.isLoading = true
+                        // Используем новые АСИНХРОННЫЕ методы
                         if (root.currentTable === "frame_materials") {
-                            DatabaseManager.deleteFrameMaterial(productViewDialog.currentRow)
+                            DatabaseManager.deleteFrameMaterialAsync(productViewDialog.currentData.id)
                         } else {
-                            DatabaseManager.deleteComponentFurniture(productViewDialog.currentRow)
+                            DatabaseManager.deleteComponentFurnitureAsync(productViewDialog.currentData.id)
                         }
-                        refreshTable()
-                        productViewDialog.close()
-                        deleteConfirmDialog.close()
                     }
                 }
             }

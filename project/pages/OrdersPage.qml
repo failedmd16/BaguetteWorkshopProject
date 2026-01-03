@@ -31,6 +31,7 @@ Page {
     ListModel { id: kitsModel }
     ListModel { id: frameMaterialsModel }
     ListModel { id: mastersModel }
+    ListModel { id: furnitureModel } // <--- НОВАЯ МОДЕЛЬ
 
     Component.onCompleted: {
         root.isLoading = true
@@ -74,6 +75,11 @@ Page {
             var mats = data["materials"] || []
             for(var k=0; k<mats.length; k++) frameMaterialsModel.append(mats[k])
 
+            // Фурнитура (НОВОЕ)
+            furnitureModel.clear()
+            var furn = data["furniture"] || []
+            for(var f=0; f<furn.length; f++) furnitureModel.append(furn[f])
+
             // Мастера
             mastersModel.clear()
             mastersModel.append({id: -1, display: "Не назначен"})
@@ -101,6 +107,18 @@ Page {
                 addOrderValidationError.text = message
                 addOrderValidationError.visible = true
                 console.log("Order Error: " + message)
+            }
+        }
+
+        function onStatusUpdateResult(success, message) {
+            root.isLoading = false
+            if (success) {
+                // Обновляем список заказов в таблице
+                DatabaseManager.fetchOrders()
+                // Можно закрыть диалог, если нужно, или оставить открытым
+                // orderDetailsDialog.close()
+            } else {
+                console.log("Ошибка смены статуса: " + message)
             }
         }
     }
@@ -155,7 +173,11 @@ Page {
         if (orderTypeComboBox.currentText === "Изготовление рамки") {
             orderData["width"] = parseFloat(frameWidthField.text)
             orderData["height"] = parseFloat(frameHeightField.text)
+
+            // Получаем ID материалов и фурнитуры
             orderData["material_id"] = (materialComboBox.currentIndex >= 0) ? frameMaterialsModel.get(materialComboBox.currentIndex).id : 1
+            orderData["component_id"] = (furnitureComboBox.currentIndex >= 0) ? furnitureModel.get(furnitureComboBox.currentIndex).id : -1
+
             var mIndex = masterComboBox.currentIndex
             orderData["master_id"] = (mIndex >= 0) ? mastersModel.get(mIndex).id : -1
         } else {
@@ -177,6 +199,8 @@ Page {
         if (orderTypeComboBox.currentText === "Изготовление рамки") {
             if (!frameWidthField.text) errors.push("• Введите ширину")
             if (!frameHeightField.text) errors.push("• Введите высоту")
+            if (materialComboBox.currentIndex === -1) errors.push("• Выберите багет")
+            if (furnitureComboBox.currentIndex === -1) errors.push("• Выберите фурнитуру") // Проверка
         } else if (orderTypeComboBox.currentText === "Продажа набора") {
             if (kitComboBox.currentIndex === -1) errors.push("• Выберите набор")
         }
@@ -237,10 +261,14 @@ Page {
         } else if (orderTypeComboBox.currentText === "Изготовление рамки") {
             var width = parseFloat(frameWidthField.text) || 0
             var height = parseFloat(frameHeightField.text) || 0
-            if (width > 0 && height > 0 && materialComboBox.currentIndex >= 0) {
+
+            if (width > 0 && height > 0 && materialComboBox.currentIndex >= 0 && furnitureComboBox.currentIndex >= 0) {
                 var matPrice = frameMaterialsModel.get(materialComboBox.currentIndex).price
-                var cost = ((width + height) * 2 / 100.0 * 1.15 * matPrice) + 500
-                total = cost * 2.0
+                var furnPrice = furnitureModel.get(furnitureComboBox.currentIndex).price // Цена фурнитуры
+
+                // Периметр в метрах * 1.15 (обрезки) * цену + цена фурнитуры + работа (500)
+                var cost = ((width + height) * 2 / 100.0 * 1.15 * matPrice) + furnPrice + 500
+                total = cost * 2.0 // Наценка х2
             }
         }
         totalAmountField.text = total > 0 ? total.toFixed(2) : ""
@@ -440,6 +468,18 @@ Page {
                                 contentItem: Text { text: materialComboBox.displayText; color: "#000000"; font: materialComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
                                 onActivated: calculateTotal()
                             }
+
+                            // --- НОВЫЙ БЛОК: ФУРНИТУРА (СТИЛЬ КАК У БАГЕТА) ---
+                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Фурнитура:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+                            ComboBox {
+                                id: furnitureComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
+                                model: furnitureModel; textRole: "display"
+                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: furnitureComboBox.activeFocus ? "#3498db" : "#dce0e3" }
+                                contentItem: Text { text: furnitureComboBox.displayText; color: "#000000"; font: furnitureComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
+                                onActivated: calculateTotal()
+                            }
+                            // ----------------------------------------------------
+
                             Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Мастер:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
                             ComboBox {
                                 id: masterComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
@@ -481,6 +521,7 @@ Page {
                                 id: kitComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
                                 model: kitsModel; textRole: "display"
                                 background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: kitComboBox.activeFocus ? "#3498db" : "#dce0e3" }
+                                contentItem: Text { text: kitComboBox.displayText; color: "#000000"; font: kitComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
                                 onActivated: calculateKitTotal()
                             }
                             Row {
@@ -551,7 +592,7 @@ Page {
             }
         }
         onOpened: {
-            customerComboBox.currentIndex = -1; kitComboBox.currentIndex = -1; orderTypeComboBox.currentIndex = 0
+            customerComboBox.currentIndex = -1; kitComboBox.currentIndex = -1; orderTypeComboBox.currentIndex = 0; furnitureComboBox.currentIndex = -1
             totalAmountField.text = ""; frameWidthField.text = ""; frameHeightField.text = ""; kitQuantityField.text = "1"
             notesField.text = ""; addOrderValidationError.visible = false
             customerPhoneLabel.text = "Телефон: Не выбран"; customerEmailLabel.text = "Email: Не выбран"
@@ -562,8 +603,44 @@ Page {
     Dialog {
         id: orderDetailsDialog
         modal: true; header: null; width: 500; height: 400; anchors.centerIn: parent; padding: 20
+
+        // Храним данные как обычный JS-объект (копию), чтобы они не исчезали при обновлении таблицы
         property var currentOrderData: ({})
+        // Модель для Repeater, которая будет обновляться
+        property var detailsList: []
+
         background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+
+        // Функция пересборки списка для отображения
+        function updateDetailsList() {
+            var data = currentOrderData || {};
+            detailsList = [
+                {l: "№ заказа:", v: data.order_number},
+                {l: "Статус:",   v: data.status, isStatus: true}, // Маркер статуса
+                {l: "Тип:",      v: data.order_type},
+                {l: "Сумма:",    v: (data.total_amount || 0) + " ₽", isPrice: true},
+                {l: "Клиент:",   v: data.customer_name},
+                {l: "Телефон:",  v: data.customer_phone},
+                {l: "Дата:",     v: formatDate(data.created_at)}
+            ];
+        }
+
+        // При открытии делаем КОПИЮ данных
+        function openWithData(sourceModel) {
+            currentOrderData = {
+                id: sourceModel.id,
+                order_number: sourceModel.order_number,
+                status: sourceModel.status,
+                order_type: sourceModel.order_type,
+                total_amount: sourceModel.total_amount,
+                customer_name: sourceModel.customer_name,
+                customer_phone: sourceModel.customer_phone,
+                created_at: sourceModel.created_at,
+                notes: sourceModel.notes // Не забудьте заметки для передачи в редактирование
+            };
+            updateDetailsList(); // Генерируем список для отображения
+            open();
+        }
 
         ColumnLayout {
             anchors.fill: parent; spacing: 10
@@ -577,24 +654,64 @@ Page {
                         Layout.fillWidth: true; Layout.preferredHeight: detailsCol.implicitHeight + 20; color: "#f8f9fa"; radius: 8
                         ColumnLayout {
                             id: detailsCol; anchors.fill: parent; anchors.margins: 15; spacing: 10
+
+                            // Repeater теперь смотрит на свойство detailsList
                             Repeater {
-                                model: [
-                                    {l: "№ заказа:", v: (orderDetailsDialog.currentOrderData || {}).order_number},
-                                    {l: "Статус:", v: (orderDetailsDialog.currentOrderData || {}).status, isStatus: true},
-                                    {l: "Тип:", v: (orderDetailsDialog.currentOrderData || {}).order_type},
-                                    {l: "Сумма:", v: ((orderDetailsDialog.currentOrderData || {}).total_amount || 0) + " ₽", isPrice: true},
-                                    {l: "Клиент:", v: (orderDetailsDialog.currentOrderData || {}).customer_name},
-                                    {l: "Телефон:", v: (orderDetailsDialog.currentOrderData || {}).customer_phone},
-                                    {l: "Дата:", v: formatDate((orderDetailsDialog.currentOrderData || {}).created_at)}
-                                ]
+                                model: orderDetailsDialog.detailsList
+
                                 RowLayout {
                                     Layout.fillWidth: true
                                     Label { text: modelData.l; font.bold: true; color: "#34495e"; Layout.preferredWidth: 100; font.pixelSize: 16 }
-                                    Label {
-                                        text: modelData.v || "—"
-                                        color: (modelData.isStatus === true) ? getStatusColor(modelData.v) : ((modelData.isPrice === true) ? "#27ae60" : "#2c3e50")
-                                        font.bold: (modelData.isStatus === true) || (modelData.isPrice === true)
-                                        Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 16
+
+                                    Item {
+                                        Layout.fillWidth: true; Layout.preferredHeight: 30
+
+                                        // 1. Обычный текст (для всего кроме статуса)
+                                        Label {
+                                            visible: !modelData.isStatus
+                                            anchors.verticalCenter: parent.verticalCenter; width: parent.width
+                                            text: modelData.v || "—"
+                                            color: (modelData.isPrice === true) ? "#27ae60" : "#2c3e50"
+                                            font.bold: modelData.isPrice === true
+                                            wrapMode: Text.Wrap; font.pixelSize: 16
+                                        }
+
+                                        // 2. Выпадающий список (ТОЛЬКО для статуса)
+                                        ComboBox {
+                                            visible: modelData.isStatus === true
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: parent.width; height: 30
+                                            model: ["Новый", "В работе", "Готов", "Завершён", "Отменён"]
+
+                                            background: Rectangle { color: "transparent"; border.color: "transparent"
+                                                Rectangle { width: parent.width; height: 1; color: "#bdc3c7"; anchors.bottom: parent.bottom }
+                                            }
+                                            contentItem: Text {
+                                                text: parent.displayText
+                                                color: getStatusColor(parent.displayText)
+                                                font.bold: true; font.pixelSize: 16; verticalAlignment: Text.AlignVCenter
+                                            }
+
+                                            // Устанавливаем текущее значение при отрисовке
+                                            Component.onCompleted: currentIndex = indexOfValue(modelData.v)
+
+                                            // Если модель обновилась извне (через updateDetailsList)
+                                            onModelChanged: currentIndex = indexOfValue(modelData.v)
+
+                                            onActivated: {
+                                                if (currentIndex >= 0 && currentText !== modelData.v) {
+                                                    root.isLoading = true
+                                                    // 1. Шлем запрос в БД
+                                                    DatabaseManager.updateOrderStatusAsync(orderDetailsDialog.currentOrderData.id, currentText)
+
+                                                    // 2. Обновляем ЛОКАЛЬНУЮ копию данных не дожидаясь ответа (оптимистичный UI)
+                                                    // чтобы не было мерцания
+                                                    orderDetailsDialog.currentOrderData.status = currentText;
+                                                    // 3. Обновляем список, чтобы ComboBox получил новое значение в modelData
+                                                    orderDetailsDialog.updateDetailsList();
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -611,7 +728,11 @@ Page {
                         text: "Изменить"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
                         background: Rectangle { color: parent.down ? "#f39c12" : "#f1c40f"; radius: 8 }
                         contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
-                        onClicked: { orderDetailsDialog.close(); orderEditDialog.openWithData(orderDetailsDialog.currentOrderData) }
+                        onClicked: {
+                            // Передаем текущие (возможно обновленные) данные в диалог редактирования
+                            orderEditDialog.openWithData(orderDetailsDialog.currentOrderData)
+                            orderDetailsDialog.close()
+                        }
                     }
                     Button {
                         text: "Удалить"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
@@ -628,7 +749,6 @@ Page {
                 }
             }
         }
-        function openWithData(orderModel) { currentOrderData = orderModel; open() }
     }
 
     Dialog {
@@ -643,29 +763,22 @@ Page {
 
             ColumnLayout {
                 Layout.fillWidth: true; Layout.fillHeight: true; Layout.alignment: Qt.AlignCenter; spacing: 20
+
+                // --- УБРАН БЛОК СМЕНЫ СТАТУСА ---
+
                 Column {
                     Layout.alignment: Qt.AlignHCenter; width: 300; spacing: 5
-                    Label { text: "Статус заказа:"; font.bold: true; color: "#34495e" }
-                    ComboBox {
-                        id: editStatusCombo; width: parent.width
-                        model: ["Новый", "В работе", "Готов", "Завершён", "Отменён"]
-                        background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: editStatusCombo.activeFocus ? "#3498db" : "#dce0e3" }
-                        contentItem: Text { text: editStatusCombo.displayText; color: "#000000"; font: editStatusCombo.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
-                    }
-                }
-                Column {
-                    Layout.alignment: Qt.AlignHCenter; width: 300; spacing: 5
-                    Label { text: "Сумма заказа:"; font.bold: true; color: "#34495e" }
+                    Label { text: "Сумма заказа:"; font.bold: true; color: "#34495e"; font.pixelSize: 14 }
                     TextField {
-                        id: editTotalAmountField; width: parent.width; validator: DoubleValidator { bottom: 0.0 }
+                        id: editTotalAmountField; width: parent.width; font.pixelSize: 14; validator: DoubleValidator { bottom: 0.0 }
                         background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: editTotalAmountField.activeFocus ? "#3498db" : "#dce0e3" }
                     }
                 }
                 Column {
                     Layout.alignment: Qt.AlignHCenter; width: 300; spacing: 5
-                    Label { text: "Примечания:"; font.bold: true; color: "#34495e" }
+                    Label { text: "Примечания:"; font.bold: true; color: "#34495e"; font.pixelSize: 14 }
                     TextArea {
-                        id: editNotesField; width: parent.width; height: 80; wrapMode: TextArea.Wrap
+                        id: editNotesField; width: parent.width; font.pixelSize: 14; height: 80; wrapMode: TextArea.Wrap
                         background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: editNotesField.activeFocus ? "#3498db" : "#dce0e3" }
                     }
                 }
@@ -689,7 +802,7 @@ Page {
                             root.isLoading = true
                             DatabaseManager.updateOrderAsync(
                                 orderEditDialog.currentData.id,
-                                editStatusCombo.currentText,
+                                orderEditDialog.currentData.status, // <-- Передаем ТЕКУЩИЙ статус (не меняем его)
                                 parseFloat(editTotalAmountField.text),
                                 editNotesField.text
                             )
@@ -699,8 +812,8 @@ Page {
             }
         }
         function openWithData(data) {
+            // Здесь тоже делаем копию на всякий случай, хотя не обязательно, если она пришла из updateDetailsList
             currentData = data
-            editStatusCombo.currentIndex = editStatusCombo.indexOfValue(data.status)
             editTotalAmountField.text = data.total_amount
             editNotesField.text = data.notes || ""
             open()
@@ -732,6 +845,7 @@ Page {
                     onClicked: {
                         root.isLoading = true
                         DatabaseManager.deleteOrderAsync(orderDetailsDialog.currentOrderData.id)
+                        orderDetailsDialog.close()
                     }
                 }
             }

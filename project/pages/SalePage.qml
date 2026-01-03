@@ -8,11 +8,74 @@ Page {
     property string tableName: "embroidery_kits"
     property string consumablesTable: "consumable_furniture"
     property int selectedRow: -1
-
+    property bool isLoading: false
 
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
+    }
+
+    // Индикатор загрузки
+    MouseArea {
+        anchors.fill: parent
+        visible: root.isLoading
+        hoverEnabled: true
+        z: 99
+        onClicked: {}
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: root.isLoading
+        }
+    }
+
+    // ЛОКАЛЬНАЯ МОДЕЛЬ ДАННЫХ
+    ListModel {
+        id: productsModel
+    }
+
+    // СВЯЗЬ С C++
+    Connections {
+        target: DatabaseManager
+
+        function onProductsLoaded(data) {
+            productsModel.clear()
+            for (var i = 0; i < data.length; i++) {
+                productsModel.append(data[i])
+            }
+            root.isLoading = false
+        }
+
+        function onProductOperationResult(success, message) {
+            root.isLoading = false
+            if (success) {
+                // Если успешно - обновляем список и закрываем окна
+                updateProductList()
+
+                if (kitAddDialog.opened) {
+                    kitAddDialog.close()
+                }
+                if (consumableAddDialog.opened) {
+                    consumableAddDialog.close()
+                }
+                if (productEditDialog.opened) {
+                    productEditDialog.close()
+                }
+                if (deleteConfirmationDialog.opened) {
+                    deleteConfirmationDialog.close()
+                }
+
+                // Для продажи - открываем окно успеха
+                if (saleDialog.opened) {
+                    var sName = saleDialog.tempName
+                    var sQty = saleDialog.tempQty
+                    var sTotal = saleDialog.tempTotal
+                    saleDialog.close()
+                    saleSuccessDialog.openWithData(sName, sQty, sTotal)
+                }
+            } else {
+                console.log("Error: " + message)
+            }
+        }
     }
 
     ColumnLayout {
@@ -218,37 +281,35 @@ Page {
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                TableView {
+                // ИСПРАВЛЕНИЕ ЗДЕСЬ: TableView заменен на ListView для корректного отображения колонок
+                ListView {
                     id: tableview
                     anchors.fill: parent
                     clip: true
-                    model: productTypeGroup.checkedButton === kitsRadio ?
-                        DatabaseManager.getTableModel("embroidery_kits") :
-                        DatabaseManager.getTableModel("consumable_furniture")
+                    model: productsModel
 
                     property int columnCount: productTypeGroup.checkedButton === kitsRadio ? 5 : 6
 
-                    columnWidthProvider: function (column) {
-                        return tableview.width / columnCount
-                    }
-
                     delegate: Rectangle {
-                        implicitHeight: 45
-                        color: row % 2 === 0 ? "#ffffff" : "#f8f9fa"
+                        id: rowDelegate
+                        width: tableview.width
+                        height: 45
+                        color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
                         border.width: 1
 
-                        property var rowData: model ? (productTypeGroup.checkedButton === kitsRadio ?
-                            DatabaseManager.getRowData("embroidery_kits", row) :
-                            DatabaseManager.getRowData("consumable_furniture", row)) : ({})
+                        // Данные строки
+                        property var rowData: productsModel.get(index)
 
+                        // Обработка клика по строке
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.selectedRow = row
-                                productEditDialog.openWithData(row, productTypeGroup.checkedButton === kitsRadio)
+                                root.selectedRow = index
+                                // Передаем данные из модели в диалог
+                                productEditDialog.openWithData(rowDelegate.rowData, productTypeGroup.checkedButton === kitsRadio)
                             }
 
                             Rectangle {
@@ -257,51 +318,59 @@ Page {
                             }
                         }
 
-                        Text {
+                        // Отрисовка ячеек (столбцов)
+                        Row {
                             anchors.fill: parent
-                            anchors.margins: 8
-                            text: {
-                                if (!parent.rowData) return ""
 
-                                if (productTypeGroup.checkedButton === kitsRadio) {
-                                    switch (column) {
-                                    case 0:
-                                        return parent.rowData.id || "—"
-                                    case 1:
-                                        return parent.rowData.name || "—"
-                                    case 2:
-                                        return parent.rowData.description || "—"
-                                    case 3:
-                                        return parent.rowData.price ? parent.rowData.price + " ₽" : "—"
-                                    case 4:
-                                        return parent.rowData.stock_quantity || "0"
-                                    default:
-                                        return ""
-                                    }
-                                } else {
-                                    switch (column) {
-                                    case 0:
-                                        return parent.rowData.id || "—"
-                                    case 1:
-                                        return parent.rowData.name || "—"
-                                    case 2:
-                                        return parent.rowData.type || "—"
-                                    case 3:
-                                        return parent.rowData.price_per_unit ? parent.rowData.price_per_unit + " ₽" : "—"
-                                    case 4:
-                                        return parent.rowData.stock_quantity || "0"
-                                    case 5:
-                                        return parent.rowData.unit || "—"
-                                    default:
-                                        return ""
+                            Repeater {
+                                model: tableview.columnCount
+
+                                Rectangle {
+                                    width: tableview.width / tableview.columnCount
+                                    height: parent.height
+                                    color: "transparent"
+
+                                    Text {
+                                        anchors.fill: parent
+                                        anchors.margins: 5
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+                                        elide: Text.ElideRight
+                                        color: "#2c3e50"
+                                        font.pixelSize: 13
+
+                                        // Логика отображения текста в зависимости от индекса столбца
+                                        text: {
+                                            var col = index // индекс столбца из Repeater
+                                            var data = rowDelegate.rowData // данные строки
+
+                                            if (!data) return ""
+
+                                            if (productTypeGroup.checkedButton === kitsRadio) {
+                                                // Наборы
+                                                switch(col) {
+                                                    case 0: return data.id
+                                                    case 1: return data.name
+                                                    case 2: return data.description || "—"
+                                                    case 3: return data.price + " ₽"
+                                                    case 4: return data.stock_quantity
+                                                }
+                                            } else {
+                                                // Фурнитура
+                                                switch(col) {
+                                                    case 0: return data.id
+                                                    case 1: return data.name
+                                                    case 2: return data.type || "—"
+                                                    case 3: return data.price_per_unit + " ₽"
+                                                    case 4: return data.stock_quantity
+                                                    case 5: return data.unit || "—"
+                                                }
+                                            }
+                                            return ""
+                                        }
                                     }
                                 }
                             }
-                            verticalAlignment: Text.AlignVCenter
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                            color: "#2c3e50"
-                            font.pixelSize: 13
                         }
                     }
                 }
@@ -701,8 +770,10 @@ Page {
                     }
                     onClicked: {
                         if (productEditDialog.validateForm()) {
+                            root.isLoading = true
                             if (productEditDialog.isKit) {
-                                DatabaseManager.updateEmbroideryKit(
+                                // АСИНХРОННЫЙ ВЫЗОВ
+                                DatabaseManager.updateEmbroideryKitAsync(
                                     productEditDialog.currentData.id,
                                     editNameField.text,
                                     editDescriptionField.text,
@@ -710,7 +781,8 @@ Page {
                                     editQuantityField.value
                                 )
                             } else {
-                                DatabaseManager.updateConsumableFurniture(
+                                // АСИНХРОННЫЙ ВЫЗОВ
+                                DatabaseManager.updateConsumableAsync(
                                     productEditDialog.currentData.id,
                                     editNameField.text,
                                     editTypeField.currentText,
@@ -719,8 +791,6 @@ Page {
                                     editUnitField.currentText
                                 )
                             }
-                            updateProductList()
-                            productEditDialog.close()
                         }
                     }
                 }
@@ -742,17 +812,25 @@ Page {
             return true
         }
 
-        function openWithData(row, isKit) {
-            productEditDialog.currentRow = row
+        function openWithData(data, isKit) {
             productEditDialog.isKit = isKit
-            productEditDialog.currentData = isKit ? DatabaseManager.getRowData("embroidery_kits", row) : DatabaseManager.getRowData("consumable_furniture", row)
+            // Клонируем данные из переданного объекта (rowData)
+            productEditDialog.currentData = {
+                id: data.id,
+                name: data.name,
+                price: data.price || data.price_per_unit, // Учитываем разницу в полях
+                stock_quantity: data.stock_quantity,
+                description: data.description,
+                type: data.type,
+                unit: data.unit
+            }
             loadCurrentData()
             open()
         }
 
         function loadCurrentData() {
             editNameField.text = productEditDialog.currentData.name || ""
-            editPriceField.text = productEditDialog.isKit ? (productEditDialog.currentData.price || "") : (productEditDialog.currentData.price_per_unit || "")
+            editPriceField.text = productEditDialog.currentData.price || ""
             editQuantityField.value = productEditDialog.currentData.stock_quantity || 0
             editValidationError.visible = false
 
@@ -847,14 +925,14 @@ Page {
                         font.bold: true
                     }
                     onClicked: {
+                        root.isLoading = true
                         if (productEditDialog.isKit) {
-                            DatabaseManager.deleteEmbroideryKit(productEditDialog.currentData.id)
+                            // АСИНХРОННЫЙ ВЫЗОВ
+                            DatabaseManager.deleteEmbroideryKitAsync(productEditDialog.currentData.id)
                         } else {
-                            DatabaseManager.deleteConsumableFurniture(productEditDialog.currentData.id)
+                            // АСИНХРОННЫЙ ВЫЗОВ
+                            DatabaseManager.deleteConsumableAsync(productEditDialog.currentData.id)
                         }
-                        updateProductList()
-                        deleteConfirmationDialog.close()
-                        productEditDialog.close()
                     }
                 }
             }
@@ -874,6 +952,11 @@ Page {
         property int availableStock: 0
         property int productId: -1
         property bool isKit: true
+
+        // Временные переменные для передачи в диалог успеха после закрытия этого диалога
+        property string tempName: ""
+        property int tempQty: 0
+        property double tempTotal: 0
 
         background: Rectangle {
             color: "#ffffff"
@@ -906,6 +989,7 @@ Page {
                 ComboBox {
                     id: productComboBox
                     Layout.fillWidth: true
+                    // ИСПОЛЬЗУЕМ ЛОКАЛЬНУЮ МОДЕЛЬ
                     model: ListModel {
                         id: productsComboModel
                     }
@@ -1181,38 +1265,30 @@ Page {
                 saleValidationError.visible = true
                 return
             }
+
             var productItem = productsComboModel.get(productComboBox.currentIndex)
-            var retailId = DatabaseManager.getRetailCustomerId()
-            if (retailId === -1) return
+            tempName = productItem.name
+            tempQty = quantitySpinBox.value
+            tempTotal = saleDialog.unitPrice * quantitySpinBox.value
 
-            var orderId = DatabaseManager.createOrder("SALE-" + new Date().getTime(), retailId, "Продажа набора", saleDialog.unitPrice * quantitySpinBox.value, "Завершён", "Быстрая продажа")
-
-            if (orderId !== -1) {
-                var itemType = saleDialog.isKit ? "Готовый набор" : "Фурнитура"
-                DatabaseManager.createOrderItem(orderId, productItem.id, itemType, productItem.name, quantitySpinBox.value, saleDialog.unitPrice)
-                saleDialog.close()
-                updateProductList()
-                saleSuccessDialog.openWithData(productItem.name, quantitySpinBox.value, saleDialog.unitPrice * quantitySpinBox.value)
-            }
+            root.isLoading = true
+            // АСИНХРОННЫЙ ВЫЗОВ (Транзакция)
+            DatabaseManager.processRetailSaleAsync(saleDialog.productId, saleDialog.isKit, quantitySpinBox.value, saleDialog.unitPrice)
         }
         onOpened: {
             saleValidationError.visible = false
             quantitySpinBox.value = 1
             productsComboModel.clear()
-            var tableName = productTypeGroup.checkedButton === kitsRadio ? "embroidery_kits" : "consumable_furniture"
-            var rowCount = DatabaseManager.getRowCount(tableName)
-            for (var i = 0; i < rowCount; i++) {
-                var item = DatabaseManager.getRowData(tableName, i)
-                if (item) {
-                    var price = productTypeGroup.checkedButton === kitsRadio ? item.price : item.price_per_unit
-                    productsComboModel.append({
-                        id: item.id,
-                        name: item.name,
-                        display: item.name + " - " + (price || 0) + " ₽",
-                        price: price,
-                        stock_quantity: item.stock_quantity
-                    })
-                }
+            for (var i = 0; i < productsModel.count; i++) {
+                var item = productsModel.get(i)
+                var price = productTypeGroup.checkedButton === kitsRadio ? item.price : item.price_per_unit
+                productsComboModel.append({
+                    id: item.id,
+                    name: item.name,
+                    display: item.name + " - " + (price || 0) + " ₽",
+                    price: price,
+                    stock_quantity: item.stock_quantity
+                })
             }
             updateProductInfo()
         }
@@ -1538,9 +1614,9 @@ Page {
                         }
                         onClicked: {
                             if (addKitNameField.text.length > 0 && parseFloat(addKitPriceField.text) > 0) {
-                                DatabaseManager.addEmbroideryKit(addKitNameField.text, addKitDescriptionField.text, parseFloat(addKitPriceField.text), addKitQuantityField.value)
-                                updateProductList()
-                                kitAddDialog.close()
+                                root.isLoading = true
+                                // АСИНХРОННЫЙ ВЫЗОВ
+                                DatabaseManager.addEmbroideryKitAsync(addKitNameField.text, addKitDescriptionField.text, parseFloat(addKitPriceField.text), addKitQuantityField.value)
                             } else {
                                 kitValidationError.text = "Проверьте данные"
                                 kitValidationError.visible = true
@@ -1834,15 +1910,15 @@ Page {
                         }
                         onClicked: {
                             if (addConsumableNameField.text.length > 0 && parseFloat(addConsumablePriceField.text) > 0) {
-                                DatabaseManager.addConsumableFurniture(
+                                root.isLoading = true
+                                // АСИНХРОННЫЙ ВЫЗОВ
+                                DatabaseManager.addConsumableAsync(
                                     addConsumableNameField.text,
                                     addConsumableTypeField.currentText,
                                     parseFloat(addConsumablePriceField.text),
                                     addConsumableQuantityField.value,
                                     addConsumableUnitField.currentText
                                 )
-                                updateProductList()
-                                consumableAddDialog.close()
                             } else {
                                 consumableValidationError.text = "Проверьте данные (Цена > 0)"
                                 consumableValidationError.visible = true
@@ -1866,9 +1942,9 @@ Page {
     }
 
     function updateProductList() {
-        tableview.model = productTypeGroup.checkedButton === kitsRadio ?
-            DatabaseManager.getTableModel("embroidery_kits") :
-            DatabaseManager.getTableModel("consumable_furniture")
+        root.isLoading = true
+        var isKit = (productTypeGroup.checkedButton === kitsRadio)
+        DatabaseManager.fetchProductsAsync(isKit)
     }
 
     onVisibleChanged: {

@@ -1537,6 +1537,7 @@ Page {
                     onClicked: {
                         root.isLoading = true
                         DatabaseManager.deleteCustomerAsync(customerViewDialog.currentData.id)
+                        customerViewDialog.close()
                     }
                 }
             }

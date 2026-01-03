@@ -7,10 +7,47 @@ import Database
 Page {
     id: root
     property int selectedRow: -1
+    property bool isLoading: false
+
+    // Хранилище сырых данных
+    property var allOrdersData: []
 
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        visible: root.isLoading
+        hoverEnabled: true
+        z: 99
+        onClicked: {}
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: root.isLoading
+        }
+    }
+
+    Connections {
+        target: DatabaseManager
+
+        function onMasterOrdersLoaded(data) {
+            root.allOrdersData = data
+            applyFilters()
+            root.isLoading = false
+        }
+
+        function onStatusUpdateResult(success, message) {
+            root.isLoading = false
+            if (success) {
+                loadData()
+                orderDetailsDialog.close()
+                statusUpdatedMessage.open()
+            } else {
+                console.log("Error updating status: " + message)
+            }
+        }
     }
 
     function getStatusColor(status) {
@@ -39,20 +76,24 @@ Page {
         return day + "." + month + "." + year + " " + hours + ":" + minutes
     }
 
-    function refreshTable() {
+    function loadData() {
+        root.isLoading = true
+        DatabaseManager.fetchMasterOrdersAsync()
+    }
+
+    function applyFilters() {
         ordersModel.clear()
 
-        var ordersData = DatabaseManager.getMasterOrdersData()
-        if (!ordersData || ordersData.length === 0)
+        if (!root.allOrdersData || root.allOrdersData.length === 0)
             return
 
-        for (var i = 0; i < ordersData.length; i++) {
-            var order = ordersData[i]
+        var statusFilterText = statusFilter.currentText
+        var searchText = searchField.text.toLowerCase()
+
+        for (var i = 0; i < root.allOrdersData.length; i++) {
+            var order = root.allOrdersData[i]
 
             if (!order) continue
-
-            var statusFilterText = statusFilter.currentText
-            var searchText = searchField.text.toLowerCase()
 
             if (statusFilterText !== "Все статусы" && order.status !== statusFilterText)
                 continue
@@ -75,10 +116,15 @@ Page {
                 height: order.height || 0,
                 special_instructions: order.special_instructions || "",
                 material_name: order.material_name || "Неизвестный материал",
-                material_color: order.material_color || "Не указан"
+                material_color: order.material_color || "Не указан",
+                furniture_name: order.furniture_name || "Не указана" // <-- НОВОЕ ПОЛЕ
             }
             ordersModel.append(orderData)
         }
+    }
+
+    function refreshTable() {
+        applyFilters()
     }
 
     ListModel {
@@ -139,7 +185,7 @@ Page {
                         elide: Text.ElideRight
                         leftPadding: 12
                     }
-                    onCurrentTextChanged: refreshTable()
+                    onCurrentTextChanged: applyFilters()
                 }
 
                 TextField {
@@ -153,7 +199,7 @@ Page {
                         radius: 6
                         border.color: searchField.activeFocus ? "#3498db" : "#dce0e3"
                     }
-                    onTextChanged: refreshTable()
+                    onTextChanged: applyFilters()
                 }
             }
         }
@@ -340,7 +386,7 @@ Page {
                 verticalAlignment: Text.AlignVCenter
                 font: parent.font
             }
-            onClicked: refreshTable()
+            onClicked: loadData()
         }
     }
 
@@ -443,6 +489,12 @@ Page {
                             valueColor: "#d35400"
                             isBold: true
                         }
+                        // --- НОВАЯ СТРОКА ДЛЯ ФУРНИТУРЫ ---
+                        DetailRow {
+                            labelText: "Фурнитура:"
+                            valueText: orderDetailsDialog.currentData.furniture_name || "—"
+                        }
+                        // ----------------------------------
                         DetailRow {
                             labelText: "Сумма:"
                             valueText: (orderDetailsDialog.currentData.total_amount || 0) + " ₽"
@@ -555,11 +607,8 @@ Page {
                         }
                         onClicked: {
                             if (orderDetailsDialog.currentData && orderDetailsDialog.currentData.id) {
-                                if (DatabaseManager.updateOrderStatus(orderDetailsDialog.currentData.id, statusComboBox.currentText)) {
-                                    refreshTable()
-                                    orderDetailsDialog.close()
-                                    statusUpdatedMessage.open()
-                                }
+                                root.isLoading = true
+                                DatabaseManager.updateOrderStatusAsync(orderDetailsDialog.currentData.id, statusComboBox.currentText)
                             }
                         }
                     }
@@ -600,6 +649,7 @@ Page {
                     height: orderModel.height,
                     material_name: orderModel.material_name,
                     material_color: orderModel.material_color,
+                    furniture_name: orderModel.furniture_name, // <-- Передаем данные
                     total_amount: orderModel.total_amount,
                     status: orderModel.status,
                     created_at: orderModel.created_at,
@@ -686,12 +736,12 @@ Page {
     }
 
     Component.onCompleted: {
-        refreshTable()
+        loadData()
     }
 
     onVisibleChanged: {
         if (visible) {
-            refreshTable()
+            loadData()
         }
     }
 }

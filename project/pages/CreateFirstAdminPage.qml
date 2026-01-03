@@ -1,11 +1,52 @@
 ﻿import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Database // Предполагаем, что этот импорт нужен, как в примере
+import Database
 
 Page {
     id: root
     signal adminCreated()
+
+    property bool isLoading: false
+
+    // Индикатор загрузки (блокирует интерфейс во время создания)
+    MouseArea {
+        anchors.fill: parent
+        visible: root.isLoading
+        hoverEnabled: true
+        z: 99
+        onClicked: {} // Блокируем клики
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: root.isLoading
+        }
+    }
+
+    // Обработка ответов от базы данных
+    Connections {
+        target: DatabaseManager
+
+        function onFirstAdminCreatedResult(success, message) {
+            root.isLoading = false
+            if (success) {
+                infoLbl.text = "Администратор создан успешно"
+                infoLbl.color = "green"
+                // Даем пользователю увидеть сообщение перед переходом
+                timer.start()
+            } else {
+                infoLbl.text = message
+                infoLbl.color = "red"
+            }
+        }
+    }
+
+    // Таймер для небольшой задержки перед переходом (для красоты UX)
+    Timer {
+        id: timer
+        interval: 1000
+        repeat: false
+        onTriggered: root.adminCreated()
+    }
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -25,7 +66,6 @@ Page {
             color: "black"
         }
 
-        // Информационный текст перенесен сюда, чтобы соответствовать стилю заголовков
         Label {
             text: "В системе нет администратора.\nСоздайте первую учетную запись."
             font.pixelSize: 14
@@ -41,6 +81,7 @@ Page {
             placeholderText: "Придумайте логин"
             font.pixelSize: 14
             Layout.fillWidth: true
+            enabled: !root.isLoading
             background: Rectangle {
                 border.color: loginField.activeFocus ? "#3498db" : "#dce0e3"
                 border.width: 1
@@ -55,6 +96,7 @@ Page {
             echoMode: TextInput.Password
             font.pixelSize: 14
             Layout.fillWidth: true
+            enabled: !root.isLoading
             background: Rectangle {
                 border.color: passField.activeFocus ? "#3498db" : "#dce0e3"
                 border.width: 1
@@ -69,6 +111,7 @@ Page {
             echoMode: TextInput.Password
             font.pixelSize: 14
             Layout.fillWidth: true
+            enabled: !root.isLoading
             background: Rectangle {
                 border.color: (confirmPassField.text !== passField.text && confirmPassField.text.length > 0) ? "red" : (confirmPassField.activeFocus ? "#3498db" : "#dce0e3")
                 border.width: 1
@@ -81,6 +124,7 @@ Page {
             text: "Создать и войти"
             font.pixelSize: 16
             Layout.fillWidth: true
+            enabled: !root.isLoading
 
             background: Rectangle {
                 color: parent.down ? "#2980b9" : "#3498db"
@@ -96,7 +140,7 @@ Page {
             }
 
             onClicked: {
-                // Валидация полей в стиле примера (через нижний Label)
+                // Валидация полей
                 if (loginField.text.length < 3) {
                     infoLbl.text = "Логин слишком короткий (минимум 3 символа)"
                     infoLbl.color = "red"
@@ -115,15 +159,12 @@ Page {
                     return
                 }
 
-                // Попытка создания в базе
-                if (DatabaseManager.createFirstAdmin(loginField.text, passField.text)) {
-                    infoLbl.text = "Администратор создан успешно"
-                    infoLbl.color = "green"
-                    root.adminCreated()
-                } else {
-                    infoLbl.text = "Ошибка создания записи"
-                    infoLbl.color = "red"
-                }
+                // Запуск асинхронного процесса
+                root.isLoading = true
+                infoLbl.text = "Создание учетной записи..."
+                infoLbl.color = "black"
+
+                DatabaseManager.createFirstAdminAsync(loginField.text, passField.text)
             }
         }
 
