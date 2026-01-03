@@ -201,10 +201,15 @@ Page {
                     background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 4 }
                     contentItem: Text { text: parent.text; font: parent.font; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
 
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Зарегистрировать новый аккаунт сотрудника")
+
                     onClicked: {
                         // Предварительная валидация на клиенте
                         if (regLogin.text.length < 3 || regPass.text.length < 6) {
-                            infoLbl.text = "Логин (мин 3) или пароль (мин 6) слишком короткие"
+                            infoLbl.text = "Логин (минимум 3 символа) или пароль (минимум 6 символов) слишком короткие"
                             infoLbl.color = "red"
                             return
                         }
@@ -257,6 +262,11 @@ Page {
                     background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 4 }
                     contentItem: Text { text: parent.text; font: parent.font; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
 
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Сменить пароль для аккаунта")
+
                     onClicked: {
                         if (editLogin.text === "") {
                             infoLbl.text = "Введите логин пользователя"
@@ -302,12 +312,17 @@ Page {
                 }
 
                 Button {
-                    text: "Удалить навсегда"
+                    text: "Удалить"
                     Layout.fillWidth: true
                     font.pixelSize: 16
                     enabled: !root.isLoading
                     background: Rectangle { color: parent.down ? "#c0392b" : "#e74c3c"; radius: 4 }
                     contentItem: Text { text: parent.text; font: parent.font; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Удалить аккаунт пользователя навсегда")
 
                     onClicked: {
                         if (delLogin.text === "") {

@@ -36,6 +36,31 @@ Page {
         }
     }
 
+    Shortcut {
+        sequence: "Ctrl+N"
+        enabled: root.visible && !root.isLoading && !customerAddDialog.opened && !customerEditDialog.opened
+        onActivated: customerAddDialog.open()
+    }
+
+    Shortcut {
+        sequence: "F5"
+        enabled: root.visible && !root.isLoading
+        onActivated: refreshTable()
+    }
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.visible
+        onActivated: {
+            if (customerAddDialog.opened) customerAddDialog.close()
+            else if (customerEditDialog.opened) customerEditDialog.close()
+            else if (customerViewDialog.opened) customerViewDialog.close()
+            else if (filterResultsDialog.opened) filterResultsDialog.close()
+            else if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
+            else if (messageDialog.opened) messageDialog.close()
+        }
+    }
+
     // Обработка сигналов от C++
     Connections {
         target: DatabaseManager
@@ -69,6 +94,7 @@ Page {
 
         // Загрузка отчета
         function onReportDataLoaded(data) {
+            if (!root.isLoading) return
             root.isLoading = false
             filterResultsDialog.openWithData(data)
         }
@@ -244,12 +270,17 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         font: parent.font
                     }
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Найти заказы покупателей за указанный период")
+
                     onClicked: {
                         if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
                             root.isLoading = true
                             DatabaseManager.fetchReportAsync(startDateField.text, endDateField.text)
                         } else {
-                            messageDialog.showError("Введите корректные даты для фильтрации")
+                            messageDialog.showError("Введите корректные даты для фильтрации (дд.мм.гг)")
                         }
                     }
                 }
@@ -272,6 +303,11 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         font: parent.font
                     }
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Сбросить даты в ячейках ввода")
+
                     onClicked: {
                         var endDate = new Date()
                         var startDate = new Date()
@@ -462,6 +498,12 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                     font: parent.font
                 }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Создать нового покупателя (Ctrl+N)")
+
                 onClicked: customerAddDialog.open()
             }
 
@@ -484,6 +526,12 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                     font: parent.font
                 }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Обновить таблицу (F5)")
+
                 onClicked: refreshTable()
             }
         }
@@ -1191,6 +1239,7 @@ Page {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
+
                     onClicked: {
                         customerViewDialog.close()
                         customerEditDialog.openWithData(customerViewDialog.currentRow, customerViewDialog.currentData)
@@ -1447,9 +1496,6 @@ Page {
         }
 
         function openWithData(data) {
-            if (filterResultsDialog.opened) {
-                filterResultsDialog.close()
-            }
             filteredCustomers.clear()
             for (var i = 0; i < data.length; i++) {
                 filteredCustomers.append(data[i])
@@ -1552,7 +1598,7 @@ Page {
         modal: true
         header: null
         width: 350; height: 180; anchors.centerIn: parent; padding: 20
-        property string errorMsg: "Введите корректные даты для фильтрации"
+        property string errorMsg: "Введите корректные даты для фильтрации (дд.мм.гг)"
 
         background: Rectangle {
             color: "#ffffff"
@@ -1569,9 +1615,26 @@ Page {
                 Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14
             }
             Button {
-                text: "OK"; Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 100; Layout.preferredHeight: 40
-                background: Rectangle { color: parent.down ? "#27ae60" : "#2ecc71"; radius: 8 }
-                contentItem: Text { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                text: "Закрыть"
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 40
+
+                background: Rectangle {
+                    color: parent.down ? "#7f8c8d" : "#95a5a6"
+                    radius: 8
+                }
+                font.bold: true
+                font.pixelSize: 14
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+
+                    font: parent.font
+                }
+
                 onClicked: messageDialog.accept()
             }
         }

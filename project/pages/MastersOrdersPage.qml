@@ -29,6 +29,21 @@ Page {
         }
     }
 
+    Shortcut {
+        sequence: "F5"
+        enabled: root.visible && !root.isLoading
+        onActivated: loadData()
+    }
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.visible
+        onActivated: {
+            if (statusUpdatedMessage.opened) statusUpdatedMessage.close()
+            else if (orderDetailsDialog.opened) orderDetailsDialog.close()
+        }
+    }
+
     Connections {
         target: DatabaseManager
 
@@ -369,6 +384,7 @@ Page {
         }
 
         Button {
+            id: refreshButton
             Layout.alignment: Qt.AlignRight
             text: "Обновить"
             font.pixelSize: 14
@@ -386,6 +402,12 @@ Page {
                 verticalAlignment: Text.AlignVCenter
                 font: parent.font
             }
+
+            ToolTip.delay: 1000
+            ToolTip.timeout: 5000
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Обновить таблицу (F5)")
+
             onClicked: loadData()
         }
     }
@@ -741,6 +763,7 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            forceActiveFocus()
             loadData()
         }
     }

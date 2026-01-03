@@ -351,6 +351,11 @@ ApplicationWindow {
             verticalAlignment: Text.AlignVCenter
         }
 
+        ToolTip.delay: 1000
+        ToolTip.timeout: 5000
+        ToolTip.visible: hovered
+        ToolTip.text: qsTr("Завершить работу приложения")
+
         onClicked: Qt.quit()
     }
 }

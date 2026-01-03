@@ -42,8 +42,37 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            forceActiveFocus()
             root.isLoading = true
             DatabaseManager.fetchOrders()
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+N"
+        enabled: root.visible && !root.isLoading
+        onActivated: {
+            if (!orderAddDialog.opened && !orderEditDialog.opened) {
+                orderAddDialog.open()
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: "F5"
+        enabled: root.visible && !root.isLoading
+        onActivated: refreshTable()
+    }
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.visible
+        onActivated: {
+            if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
+            else if (orderCreatedMessage.opened) orderCreatedMessage.close()
+            else if (orderAddDialog.opened) orderAddDialog.close()
+            else if (orderEditDialog.opened) orderEditDialog.close()
+            else if (orderDetailsDialog.opened) orderDetailsDialog.close()
         }
     }
 
@@ -390,6 +419,12 @@ Page {
                 enabled: !root.isLoading
                 background: Rectangle { color: parent.down ? "#27ae60" : "#2ecc71"; radius: 8 }
                 contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Оформить новый заказ (Ctrl+N)")
+
                 onClicked: orderAddDialog.open()
             }
             Button {
@@ -398,6 +433,12 @@ Page {
                 enabled: !root.isLoading
                 background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 8 }
                 contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Обновить таблицу (F5)")
+
                 onClicked: refreshTable()
             }
         }

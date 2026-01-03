@@ -139,6 +139,11 @@ Page {
                 verticalAlignment: Text.AlignVCenter
             }
 
+            ToolTip.delay: 1000
+            ToolTip.timeout: 5000
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Зарегистрировать первый аккаунт в системе")
+
             onClicked: {
                 // Валидация полей
                 if (loginField.text.length < 3) {

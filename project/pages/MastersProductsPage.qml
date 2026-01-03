@@ -43,6 +43,33 @@ Page {
         id: materialsModel
     }
 
+    Shortcut {
+        sequence: "Ctrl+N"
+        enabled: root.visible && !root.isLoading
+        onActivated: {
+            if (!productAddDialog.opened && !productEditDialog.opened) {
+                productAddDialog.open()
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: "F5"
+        enabled: root.visible && !root.isLoading
+        onActivated: refreshTable()
+    }
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.visible
+        onActivated: {
+            if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
+            else if (productAddDialog.opened) productAddDialog.close()
+            else if (productEditDialog.opened) productEditDialog.close()
+            else if (productViewDialog.opened) productViewDialog.close()
+        }
+    }
+
     // Обработка сигналов C++
     Connections {
         target: DatabaseManager
@@ -316,10 +343,10 @@ Page {
                 }
                 onClicked: productAddDialog.open()
 
-                Shortcut {
-                    sequence: "Ctrl+N"
-                    onActivated: addProductButton.click()
-                }
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Добавить новый материал (Ctrl+N)")
             }
 
             Button {
@@ -342,10 +369,10 @@ Page {
                 }
                 onClicked: refreshTable()
 
-                Shortcut {
-                    sequence: "F5"
-                    onActivated: refreshButton.click()
-                }
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Обновить таблицу (F5)")
             }
         }
     }
@@ -1129,7 +1156,10 @@ Page {
     Component.onCompleted: refreshTable()
 
     onVisibleChanged: {
-        if (visible) refreshTable()
+        if (visible) {
+            forceActiveFocus()
+            refreshTable()
+        }
     }
 
     function formatDate(dateString) {

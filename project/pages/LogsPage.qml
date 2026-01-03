@@ -29,6 +29,22 @@ Page {
         id: logListModel
     }
 
+    Shortcut {
+        sequence: "F5"
+        enabled: root.visible && !root.isLoading
+        onActivated: refreshTable()
+    }
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.visible
+        onActivated: {
+            // Закрываем диалоги в порядке вложенности
+            if (logDetailsDialog.opened) logDetailsDialog.close()
+            else if (messageDialog.opened) messageDialog.close()
+        }
+    }
+
     // 2. Обработка сигналов от C++
     Connections {
         target: DatabaseManager
@@ -56,8 +72,10 @@ Page {
     }
 
     onVisibleChanged: {
-        if (visible)
+        if (visible) {
+            forceActiveFocus()
             refreshTable()
+        }
     }
 
     // --- Вспомогательные функции ---
@@ -191,6 +209,12 @@ Page {
                     contentItem: Text {
                         text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font
                     }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Найти логи за указанный период")
+
                     onClicked: {
                         if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
                             // Включаем индикатор загрузки
@@ -200,7 +224,7 @@ Page {
                             DatabaseManager.fetchLogsByPeriod(startDateField.text, endDateField.text)
 
                         } else {
-                            messageDialog.showError("Введите корректные даты (дд.мм.гггг)")
+                            messageDialog.showError("Введите корректные даты для фильтрации (дд.мм.гг)")
                         }
                     }
                 }
@@ -215,6 +239,12 @@ Page {
                     contentItem: Text {
                         text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font
                     }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Сбросить даты в ячейках ввода и обновить таблицу")
+
                     onClicked: {
                         var endDate = new Date()
                         var startDate = new Date()
@@ -340,7 +370,6 @@ Page {
                                     elide: Text.ElideRight
                                     font.pixelSize: 13
 
-                                    // Логика выбора текста в зависимости от номера колонки (index)
                                     text: {
                                         switch(index) {
                                             case 0: return formatDate(timestamp) // timestamp берется из модели
@@ -383,6 +412,11 @@ Page {
                 verticalAlignment: Text.AlignVCenter
                 font: parent.font
             }
+
+            ToolTip.delay: 1000
+            ToolTip.timeout: 5000
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Обновить таблицу")
             onClicked: refreshTable()
         }
     }
@@ -439,7 +473,6 @@ Page {
         function openWithData(data) { currentData = data; open() }
     }
 
-    // Диалог сообщений
     Dialog {
         id: messageDialog
         modal: true; header: null; width: 350; height: 180; anchors.centerIn: parent; padding: 20
@@ -456,7 +489,6 @@ Page {
                 Layout.preferredWidth: 120
                 Layout.preferredHeight: 40
 
-                // 1. Задаем настройки шрифта в самой кнопке
                 font.bold: true
                 font.pixelSize: 14
 
@@ -471,7 +503,6 @@ Page {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
 
-                    // 2. В contentItem просто наследуем шрифт от кнопки
                     font: parent.font
                 }
                 onClicked: {

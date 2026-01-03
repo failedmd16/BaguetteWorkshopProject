@@ -33,6 +33,46 @@ Page {
         id: productsModel
     }
 
+    Shortcut {
+        sequence: "Ctrl+N"
+        enabled: root.visible && !root.isLoading
+        onActivated: {
+            if (!kitAddDialog.opened && !consumableAddDialog.opened && !productEditDialog.opened && !saleDialog.opened) {
+                addProductButton.click()
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+B"
+        enabled: root.visible && !root.isLoading
+        onActivated: {
+            if (!kitAddDialog.opened && !consumableAddDialog.opened && !productEditDialog.opened && !saleDialog.opened) {
+                saleDialog.open()
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: "F5"
+        enabled: root.visible && !root.isLoading
+        onActivated: updateProductList()
+    }
+
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.visible
+        onActivated: {
+            if (deleteConfirmationDialog.opened) deleteConfirmationDialog.close()
+            else if (saleDialog.opened) saleDialog.close()
+            else if (saleSuccessDialog.opened) saleSuccessDialog.close()
+            else if (kitAddDialog.opened) kitAddDialog.close()
+            else if (consumableAddDialog.opened) consumableAddDialog.close()
+            else if (productEditDialog.opened) productEditDialog.close()
+        }
+    }
+
     // СВЯЗЬ С C++
     Connections {
         target: DatabaseManager
@@ -401,6 +441,12 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                     font: parent.font
                 }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Добавить новый товар (Ctrl+N)")
+
                 onClicked: {
                     if (productTypeGroup.checkedButton === kitsRadio) {
                         kitAddDialog.open()
@@ -427,6 +473,12 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                     font: parent.font
                 }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Оформить продажу товара (Ctrl+B)")
+
                 onClicked: saleDialog.open()
             }
         }
@@ -1950,7 +2002,10 @@ Page {
     }
 
     onVisibleChanged: {
-        if (visible) updateProductList()
+        if (visible) {
+            forceActiveFocus()
+            updateProductList()
+        }
     }
 
     Component.onCompleted: {
