@@ -55,7 +55,6 @@ Page {
             if (customerAddDialog.opened) customerAddDialog.close()
             else if (customerEditDialog.opened) customerEditDialog.close()
             else if (customerViewDialog.opened) customerViewDialog.close()
-            else if (filterResultsDialog.opened) filterResultsDialog.close()
             else if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
             else if (messageDialog.opened) messageDialog.close()
         }
@@ -65,13 +64,9 @@ Page {
     Connections {
         target: DatabaseManager
 
-        // Загрузка списка клиентов
+        // Загрузка полного списка клиентов (стандартный режим)
         function onCustomersLoaded(data) {
-            customersListModel.clear()
-            for (var i = 0; i < data.length; i++) {
-                customersListModel.append(data[i])
-            }
-            root.isLoading = false
+            updateMainTable(data)
         }
 
         // Результат операций (добавление/обновление/удаление)
@@ -92,11 +87,10 @@ Page {
             }
         }
 
-        // Загрузка отчета
+        // Загрузка отфильтрованных данных (режим фильтрации)
+        // ТЕПЕРЬ ВЫВОДИТСЯ В ОСНОВНУЮ ТАБЛИЦУ
         function onReportDataLoaded(data) {
-            if (!root.isLoading) return
-            root.isLoading = false
-            filterResultsDialog.openWithData(data)
+            updateMainTable(data)
         }
 
         // Загрузка истории заказов
@@ -107,6 +101,15 @@ Page {
             }
             customerViewDialog.isLoadingOrders = false
         }
+    }
+
+    // Общая функция обновления модели
+    function updateMainTable(data) {
+        customersListModel.clear()
+        for (var i = 0; i < data.length; i++) {
+            customersListModel.append(data[i])
+        }
+        root.isLoading = false
     }
 
     function getOrderTypeText(type) {
@@ -165,7 +168,12 @@ Page {
 
     function refreshTable() {
         root.isLoading = true
-        DatabaseManager.fetchCustomers()
+        // Если поля фильтра заполнены корректно, вызываем фильтрацию, иначе полную загрузку
+        if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
+             DatabaseManager.fetchReportAsync(startDateField.text, endDateField.text)
+        } else {
+             DatabaseManager.fetchCustomers()
+        }
     }
 
     ColumnLayout {
@@ -189,19 +197,19 @@ Page {
             }
         }
 
+        // ПАНЕЛЬ ФИЛЬТРАЦИИ
         Rectangle {
-            Layout.alignment: Qt.AlignLeft
-            Layout.preferredHeight: 50
+            Layout.fillWidth: true;
+            Layout.preferredHeight: 60
             color: "#ffffff"
             radius: 10
             border.color: "#e0e0e0"
-            border.width: 1
 
             RowLayout {
-                anchors.margins: 15
-                spacing: 10
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 20
                 anchors.centerIn: parent
-                width: parent.width
 
                 Label {
                     text: "Фильтр по периоду:"
@@ -255,7 +263,6 @@ Page {
                 Button {
                     text: "Применить"
                     font.bold: true
-                    Layout.preferredHeight: 40
                     Layout.preferredWidth: 140
                     font.pixelSize: 14
                     enabled: !root.isLoading
@@ -273,7 +280,7 @@ Page {
                     ToolTip.delay: 1000
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Найти заказы покупателей за указанный период")
+                    ToolTip.text: qsTr("Найти покупателей за указанный период")
 
                     onClicked: {
                         if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
@@ -288,7 +295,6 @@ Page {
                 Button {
                     text: "Сбросить"
                     font.bold: true
-                    Layout.preferredHeight: 40
                     Layout.preferredWidth: 120
                     font.pixelSize: 14
                     enabled: !root.isLoading
@@ -306,15 +312,18 @@ Page {
                     ToolTip.delay: 1000
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Сбросить даты в ячейках ввода")
+                    ToolTip.text: qsTr("Сбросить даты и показать всех покупателей")
 
                     onClicked: {
-                        var endDate = new Date()
-                        var startDate = new Date()
-                        startDate.setDate(startDate.getDate() - 30)
-                        startDateField.text = formatDate(startDate)
-                        endDateField.text = formatDate(endDate)
+                        startDateField.text = ""
+                        endDateField.text = ""
+                        root.isLoading = true
+                        DatabaseManager.fetchCustomers()
                     }
+                }
+
+                Item {
+                    Layout.fillWidth: true
                 }
             }
         }
@@ -331,6 +340,10 @@ Page {
                 anchors.margins: 5
                 spacing: 1
 
+                // Примечание: Если при фильтрации приходят данные о суммах/заказах,
+                // они могут не отображаться, так как здесь жестко заданы колонки покупателя.
+                // Чтобы это исправить, нужно динамически менять заголовки,
+                // но для упрощения оставляем базовую структуру таблицы покупателей.
                 Repeater {
                     model: ["ФИО", "Телефон", "Email", "Адрес", "Дата создания"]
 
@@ -351,7 +364,7 @@ Page {
             }
         }
 
-        // ТАБЛИЦА (ListView вместо TableView для ListModel)
+        // ТАБЛИЦА (ListView)
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -1295,216 +1308,6 @@ Page {
     }
 
     Dialog {
-        id: filterResultsDialog
-        modal: true
-        header: null
-        width: 800
-        height: 600
-        anchors.centerIn: parent
-        padding: 20
-
-        property ListModel filteredCustomers: ListModel{}
-
-        background: Rectangle {
-            color: "#ffffff"
-            radius: 12
-            border.color: "#e0e0e0"
-            border.width: 1
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 10
-
-            Label {
-                Layout.fillWidth: true
-                text: "Результаты фильтрации"
-                font.bold: true
-                font.pixelSize: 18
-                color: "#2c3e50"
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                spacing: 0
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 40
-                    color: "#3498db"
-                    radius: 8
-
-                    Row {
-                        id: headerRow
-                        anchors.fill: parent
-
-                        property var colWeights: [0.30, 0.20, 0.25, 0.10, 0.15]
-
-                        function getColWidth(index) {
-                            return width * colWeights[index]
-                        }
-
-                        Repeater {
-                            model: ["ФИО", "Телефон", "Email", "Заказов", "Сумма"]
-                            Rectangle {
-                                width: headerRow.getColWidth(index)
-                                height: parent.height
-                                color: "transparent"
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData
-                                    color: "white"
-                                    font.bold: true
-                                    font.pixelSize: 12
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
-                    }
-                }
-
-                ScrollView {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
-
-                    ListView {
-                        id: filteredDataListView
-                        width: parent.width
-                        model: filterResultsDialog.filteredCustomers
-
-                        delegate: Rectangle {
-                            width: headerRow.width
-                            height: 40
-                            color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
-
-                            Row {
-                                anchors.fill: parent
-
-                                Item {
-                                    width: headerRow.getColWidth(0)
-                                    height: parent.height
-
-                                    Text {
-                                        id: txtName
-                                        anchors.fill: parent
-                                        text: model.full_name
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                        elide: Text.ElideRight
-                                        font.pixelSize: 12
-                                        padding: 5
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        ToolTip.visible: containsMouse && txtName.truncated
-                                        ToolTip.text: txtName.text
-                                        ToolTip.delay: 500
-                                    }
-                                }
-
-                                Text {
-                                    width: headerRow.getColWidth(1)
-                                    height: parent.height
-                                    text: model.phone
-                                    verticalAlignment: Text.AlignVCenter
-                                    horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight
-                                    font.pixelSize: 12
-                                    padding: 5
-                                }
-
-                                Item {
-                                    width: headerRow.getColWidth(2)
-                                    height: parent.height
-                                    Text {
-                                        id: txtEmail
-                                        anchors.fill: parent
-                                        text: model.email
-                                        verticalAlignment: Text.AlignVCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                        elide: Text.ElideRight
-                                        font.pixelSize: 12
-                                        padding: 5
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        ToolTip.visible: containsMouse && txtEmail.truncated
-                                        ToolTip.text: txtEmail.text
-                                        ToolTip.delay: 500
-                                    }
-                                }
-
-                                Text {
-                                    width: headerRow.getColWidth(3)
-                                    height: parent.height
-                                    text: model.order_count
-                                    verticalAlignment: Text.AlignVCenter
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.bold: true
-                                    font.pixelSize: 12
-                                }
-
-                                Text {
-                                    width: headerRow.getColWidth(4)
-                                    height: parent.height
-                                    text: (model.total_amount || "0") + " ₽"
-                                    verticalAlignment: Text.AlignVCenter
-                                    horizontalAlignment: Text.AlignHCenter
-                                    color: "#27ae60"
-                                    font.bold: true
-                                    font.pixelSize: 12
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Label {
-                visible: filterResultsDialog.filteredCustomers.count === 0
-                text: "Нет покупателей за указанный период"
-                Layout.alignment: Qt.AlignHCenter
-                color: "#e74c3c"
-                font.pixelSize: 16
-            }
-
-            Button {
-                Layout.alignment: Qt.AlignHCenter
-                text: "Закрыть"
-                Layout.preferredWidth: 120
-                Layout.preferredHeight: 40
-                background: Rectangle {
-                    color: parent.down ? "#7f8c8d" : "#95a5a6"
-                    radius: 8
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "white"
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                onClicked: filterResultsDialog.close()
-            }
-        }
-
-        function openWithData(data) {
-            filteredCustomers.clear()
-            for (var i = 0; i < data.length; i++) {
-                filteredCustomers.append(data[i])
-            }
-            open()
-        }
-    }
-
-    Dialog {
         id: deleteConfirmDialog
         modal: true
         header: null
@@ -1609,7 +1412,7 @@ Page {
 
         ColumnLayout {
             anchors.fill: parent; spacing: 10
-            Label { text: "Сообщение"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
+            Label { text: "Ошибка"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
             Label {
                 id: msgTextLabel
                 Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14

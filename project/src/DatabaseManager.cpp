@@ -134,7 +134,7 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
 }
 
 void DatabaseManager::loginUserAsync(const QString &login, const QString &password) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit loginResult(false, "", "Ошибка подключения к базе данных");
@@ -292,7 +292,7 @@ bool DatabaseManager::hasAdminAccount() {
 }
 
 void DatabaseManager::createFirstAdminAsync(const QString &login, const QString &password) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit firstAdminCreatedResult(false, "Ошибка подключения к БД");
@@ -593,7 +593,7 @@ void DatabaseManager::fetchReferenceData() {
         // Мастера
         QVariantList masters;
         QSqlQuery qMas(db);
-        if(qMas.exec("SELECT id, login FROM users WHERE role = 'Мастер производства' ORDER BY login")) {
+        if(qMas.exec("SELECT id, login FROM users WHERE role = 'Мастер производства' AND role != 'Администратор' ORDER BY login")) {
             while(qMas.next()) {
                 QVariantMap ms;
                 ms["id"] = qMas.value("id");
@@ -827,7 +827,7 @@ void DatabaseManager::updateOrderStatusAsync(int id, const QString &newStatus) {
 
 // Продажи (товары)
 void DatabaseManager::fetchProductsAsync(bool isKit) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         QVariantList result;
 
@@ -858,7 +858,7 @@ void DatabaseManager::fetchProductsAsync(bool isKit) {
 }
 
 void DatabaseManager::addEmbroideryKitAsync(const QString &name, const QString &description, double price, int quantity) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit productOperationResult(false, "Нет соединения с БД");
@@ -882,7 +882,7 @@ void DatabaseManager::addEmbroideryKitAsync(const QString &name, const QString &
 }
 
 void DatabaseManager::updateEmbroideryKitAsync(int id, const QString &name, const QString &description, double price, int quantity) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit productOperationResult(false, "Нет соединения с БД");
@@ -906,7 +906,7 @@ void DatabaseManager::updateEmbroideryKitAsync(int id, const QString &name, cons
 }
 
 void DatabaseManager::deleteEmbroideryKitAsync(int id) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit productOperationResult(false, "Нет соединения с БД");
@@ -926,7 +926,7 @@ void DatabaseManager::deleteEmbroideryKitAsync(int id) {
 }
 
 void DatabaseManager::addConsumableAsync(const QString &name, const QString &type, double price, int quantity, const QString &unit) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit productOperationResult(false, "Нет соединения с БД");
@@ -951,7 +951,7 @@ void DatabaseManager::addConsumableAsync(const QString &name, const QString &typ
 }
 
 void DatabaseManager::updateConsumableAsync(int id, const QString &name, const QString &type, double price, int quantity, const QString &unit) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit productOperationResult(false, "Нет соединения с БД");
@@ -976,7 +976,7 @@ void DatabaseManager::updateConsumableAsync(int id, const QString &name, const Q
 }
 
 void DatabaseManager::deleteConsumableAsync(int id) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit productOperationResult(false, "Нет соединения с БД");
@@ -996,7 +996,7 @@ void DatabaseManager::deleteConsumableAsync(int id) {
 }
 
 void DatabaseManager::processRetailSaleAsync(int productId, bool isKit, int quantity, double unitPrice) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) {
             emit productOperationResult(false, "Нет соединения с БД");
@@ -1101,7 +1101,7 @@ void DatabaseManager::processRetailSaleAsync(int productId, bool isKit, int quan
 
 // Заказы мастера
 void DatabaseManager::fetchMasterOrdersAsync() {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         QVariantList result;
 
@@ -1148,7 +1148,7 @@ void DatabaseManager::fetchMasterOrdersAsync() {
 
 // Материалы мастера
 void DatabaseManager::fetchMaterialsAsync(const QString &tableName) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         QVariantList result;
 
@@ -1183,7 +1183,7 @@ void DatabaseManager::fetchMaterialsAsync(const QString &tableName) {
 }
 
 void DatabaseManager::addFrameMaterialAsync(const QString &name, const QString &type, double price, double stock, const QString &color, double width) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) { emit materialOperationResult(false, "Нет соединения"); return; }
 
@@ -1203,7 +1203,7 @@ void DatabaseManager::addFrameMaterialAsync(const QString &name, const QString &
 }
 
 void DatabaseManager::updateFrameMaterialAsync(int id, const QString &name, const QString &type, double price, double stock, const QString &color, double width) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) { emit materialOperationResult(false, "Нет соединения"); return; }
 
@@ -1223,7 +1223,7 @@ void DatabaseManager::updateFrameMaterialAsync(int id, const QString &name, cons
 }
 
 void DatabaseManager::deleteFrameMaterialAsync(int id) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) { emit materialOperationResult(false, "Нет соединения"); return; }
 
@@ -1237,7 +1237,7 @@ void DatabaseManager::deleteFrameMaterialAsync(int id) {
 }
 
 void DatabaseManager::addComponentFurnitureAsync(const QString &name, const QString &type, double price, int stock) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) { emit materialOperationResult(false, "Нет соединения"); return; }
 
@@ -1255,7 +1255,7 @@ void DatabaseManager::addComponentFurnitureAsync(const QString &name, const QStr
 }
 
 void DatabaseManager::updateComponentFurnitureAsync(int id, const QString &name, const QString &type, double price, int stock) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) { emit materialOperationResult(false, "Нет соединения"); return; }
 
@@ -1273,7 +1273,7 @@ void DatabaseManager::updateComponentFurnitureAsync(int id, const QString &name,
 }
 
 void DatabaseManager::deleteComponentFurnitureAsync(int id) {
-    QtConcurrent::run([=]() {
+    auto future = QtConcurrent::run([=]() {
         QSqlDatabase db = getThreadLocalConnection();
         if (!db.isOpen()) { emit materialOperationResult(false, "Нет соединения"); return; }
 
@@ -1372,5 +1372,393 @@ void DatabaseManager::fetchLogsByPeriod(const QString &dateFrom, const QString &
         }
 
         emit logsLoaded(result);
+    });
+}
+
+// --- СТАТИСТИКА И АДМИНИСТРИРОВАНИЕ ---
+
+void DatabaseManager::fetchStatisticsAsync(int days) {
+    auto future = QtConcurrent::run([=]() {
+        QSqlDatabase db = getThreadLocalConnection();
+        QVariantList result;
+
+        if (!db.isOpen()) {
+            emit statisticsLoaded(result);
+            return;
+        }
+
+        QSqlQuery query(db);
+        // Запрос для PostgreSQL: группировка по дням, подсчет кол-ва и суммы
+        // COALESCE(SUM(...), 0) нужен, чтобы возвращать 0 вместо NULL, если продаж не было
+        QString sql = QString(
+                          "SELECT to_char(created_at, 'DD.MM') as date_label, "
+                          "COUNT(id) as order_count, "
+                          "COALESCE(SUM(total_amount), 0) as total_revenue "
+                          "FROM orders "
+                          "WHERE created_at >= CURRENT_DATE - INTERVAL '%1 days' "
+                          "GROUP BY date_label, date_trunc('day', created_at) "
+                          "ORDER BY date_trunc('day', created_at) ASC"
+                          ).arg(days);
+
+        if (query.exec(sql)) {
+            while (query.next()) {
+                QVariantMap item;
+                item["date"] = query.value("date_label");
+                item["count"] = query.value("order_count");
+                item["revenue"] = query.value("total_revenue");
+                result.append(item);
+            }
+        } else {
+            Logger::instance().log("Система", "СТАТИСТИКА", "ОШИБКА", query.lastError().text());
+        }
+
+        emit statisticsLoaded(result);
+    });
+}
+
+void DatabaseManager::exportTableAsync(const QString &tableName, const QString &filePath) {
+    auto future = QtConcurrent::run([=]() {
+        if (!ALLOWED_TABLES.contains(tableName)) {
+            emit operationResult(false, "Экспорт запрещен");
+            return;
+        }
+
+        QSqlDatabase db = getThreadLocalConnection();
+        if (!db.isOpen()) {
+            emit operationResult(false, "Нет соединения с БД");
+            return;
+        }
+
+        // Чистим путь
+        QString cleanPath = filePath;
+        if (cleanPath.startsWith("file:///")) cleanPath.remove(0, 8);
+        else if (cleanPath.startsWith("file://")) cleanPath.remove(0, 7);
+        cleanPath = QDir::toNativeSeparators(cleanPath);
+
+        QFile file(cleanPath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            emit operationResult(false, "Не удалось создать файл");
+            return;
+        }
+
+        QTextStream out(&file);
+        // ВАЖНО: Добавляем BOM для корректного открытия в Excel
+        out.setGenerateByteOrderMark(true);
+        out.setEncoding(QStringConverter::Utf8);
+
+        QSqlQuery query(db);
+        if (!query.exec("SELECT * FROM " + tableName)) {
+            file.close();
+            emit operationResult(false, "Ошибка SQL");
+            return;
+        }
+
+        // Для CSV стандарта используем запятую.
+        // Excel в России ждет ";", но если есть BOM и кавычки, он часто понимает и ",".
+        // Если нужно строго для русского Excel, поменяйте separator на ";"
+        const QString separator = ",";
+
+        QSqlRecord record = query.record();
+        QStringList headers;
+        for (int i = 0; i < record.count(); ++i) {
+            // Заголовки тоже в кавычки
+            headers << "\"" + record.fieldName(i) + "\"";
+        }
+        out << headers.join(separator) << "\n";
+
+        while (query.next()) {
+            QStringList rowData;
+            for (int i = 0; i < record.count(); ++i) {
+                QString val = query.value(i).toString();
+                // Экранирование двойных кавычек (стандарт CSV: " -> "")
+                val.replace("\"", "\"\"");
+                // Оборачиваем значение в кавычки
+                rowData << "\"" + val + "\"";
+            }
+            out << rowData.join(separator) << "\n";
+        }
+
+        file.close();
+        Logger::instance().log("Админ", "ЭКСПОРТ", "УСПЕХ", tableName);
+        emit operationResult(true, "Экспорт завершен успешно");
+    });
+}
+
+void DatabaseManager::importTableAsync(const QString &tableName, const QString &filePath) {
+    auto future = QtConcurrent::run([=]() {
+        // Проверка белого списка (безопасность)
+        if (!ALLOWED_TABLES.contains(tableName)) {
+            emit operationResult(false, "Импорт в таблицу '" + tableName + "' запрещен");
+            return;
+        }
+
+        QSqlDatabase db = getThreadLocalConnection();
+        if (!db.isOpen()) {
+            emit operationResult(false, "Нет соединения с БД");
+            return;
+        }
+
+        // Чистка пути (удаление file:///)
+        QString cleanPath = filePath;
+        if (cleanPath.startsWith("file:///")) cleanPath.remove(0, 8);
+        else if (cleanPath.startsWith("file://")) cleanPath.remove(0, 7);
+        cleanPath = QDir::toNativeSeparators(cleanPath);
+
+        QFile file(cleanPath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            emit operationResult(false, "Не удалось открыть файл:\n" + cleanPath);
+            return;
+        }
+
+        QTextStream in(&file);
+        // ВАЖНО: Автоопределение кодировки (UTF-8 с BOM или Windows-1251)
+        in.setAutoDetectUnicode(true);
+
+        QString headerLine = in.readLine();
+        if (headerLine.isEmpty()) {
+            emit operationResult(false, "Файл пуст");
+            return;
+        }
+
+        // Очистка заголовков от кавычек и пробелов
+        QStringList columnsRaw = headerLine.split(",");
+        QStringList columns;
+        for (const QString &col : columnsRaw) {
+            QString c = col.trimmed();
+            if (c.startsWith('"')) c.remove(0, 1);
+            if (c.endsWith('"')) c.chop(1);
+            columns << c;
+        }
+
+        // Подготовка SQL запроса
+        QStringList placeholders;
+        for(int i=0; i<columns.size(); ++i) placeholders << "?";
+        QString sql = "INSERT INTO " + tableName + " (" + columns.join(", ") + ") VALUES (" + placeholders.join(", ") + ")";
+
+        if (!db.transaction()) {
+            emit operationResult(false, "Ошибка БД: Не удалось начать транзакцию");
+            return;
+        }
+
+        QSqlQuery query(db);
+        query.prepare(sql);
+
+        int rowsImported = 0;
+        int errors = 0;
+
+        while (!in.atEnd()) {
+            QString line = in.readLine();
+            if (line.trimmed().isEmpty()) continue;
+
+            // --- Парсинг CSV ---
+            // Excel CSV обычно: "Value","Value","Value"
+            // Но может быть и: Value,Value (без кавычек, если нет спецсимволов)
+            // Здесь используется упрощенный парсинг, ориентированный на наш Экспорт.
+            // Мы делим строку по `","` (кавычка-запятая-кавычка).
+
+            // Удаляем первую и последнюю кавычку в строке, если они есть
+            QString cleanLine = line.trimmed();
+            if (cleanLine.startsWith('"')) cleanLine.remove(0, 1);
+            if (cleanLine.endsWith('"')) cleanLine.chop(1);
+
+            // Сплитим по разделителю полей.
+            // Внимание: если в ячейке будет текст `","`, этот парсер сломается.
+            // Для идеального парсинга нужна полноценная библиотека CSV, но для простых данных пойдет.
+            QStringList values = cleanLine.split("\",\"");
+
+            // Если количество колонок не совпадает - пропускаем (или заполняем NULL)
+            if (values.size() != columns.size()) {
+                // Пытаемся распарсить простой сплит по запятым (случай, если Excel убрал кавычки у чисел)
+                if (values.size() == 1 && cleanLine.contains(",")) {
+                    values = cleanLine.split(",");
+                }
+
+                if (values.size() != columns.size()) {
+                    errors++;
+                    continue;
+                }
+            }
+
+            for(const QString &val : values) {
+                QString v = val;
+                v.replace("\"\"", "\""); // Замена двойных кавычек на одинарные (экранирование CSV)
+
+                if (v == "NULL" || v.isEmpty()) {
+                    query.addBindValue(QVariant(QVariant::String)); // NULL
+                } else {
+                    query.addBindValue(v);
+                }
+            }
+
+            if (!query.exec()) {
+                // Ошибки (например, дубликат ID) игнорируем, но считаем
+                errors++;
+            } else {
+                rowsImported++;
+            }
+        }
+
+        if (rowsImported > 0) {
+            db.commit();
+            Logger::instance().log("Админ", "ИМПОРТ", "УСПЕХ", tableName + " +" + QString::number(rowsImported));
+            emit operationResult(true, "Успешно импортировано строк: " + QString::number(rowsImported) +
+                                           "\nПропущено/Ошибок: " + QString::number(errors));
+        } else {
+            db.rollback();
+            emit operationResult(false, "Не удалось импортировать данные");
+        }
+
+        file.close();
+    });
+}
+
+void DatabaseManager::createBackupAsync(const QString &filePath) {
+    auto future = QtConcurrent::run([=]() {
+        QSqlDatabase db = getThreadLocalConnection();
+        if (!db.isOpen()) {
+            emit operationResult(false, "Нет соединения с БД");
+            return;
+        }
+
+        // Чистим путь
+        QString cleanPath = filePath;
+        if (cleanPath.startsWith("file:///")) cleanPath.remove(0, 8);
+        else if (cleanPath.startsWith("file://")) cleanPath.remove(0, 7);
+        cleanPath = QDir::toNativeSeparators(cleanPath);
+
+        QFile file(cleanPath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            emit operationResult(false, "Не удалось создать файл бэкапа");
+            return;
+        }
+
+        QTextStream out(&file);
+        out.setEncoding(QStringConverter::Utf8);
+
+        // --- ЗАГОЛОВОК ФАЙЛА ---
+        out << "-- Бэкап базы данных BagetWorkshop\n";
+        out << "-- Дата: " << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n";
+        out << "BEGIN;\n\n";
+
+        // Отключаем проверки внешних ключей на время восстановления,
+        // чтобы не было ошибок "нельзя добавить заказ, пока нет клиента"
+        out << "SET session_replication_role = 'replica';\n\n";
+
+        // Список таблиц. ВАЖНО: порядок удаления имеет значение, если не использовать 'replica',
+        // но мы его используем, поэтому порядок не критичен.
+        // Берем из вашего списка ALLOWED_TABLES
+        const QStringList tablesToBackup = ALLOWED_TABLES;
+
+        QSqlQuery query(db);
+        bool success = true;
+
+        for (const QString &tableName : tablesToBackup) {
+            // 1. Очистка таблицы перед вставкой (TRUNCATE быстрее и надежнее DELETE)
+            // CASCADE нужен, чтобы очистить зависимые данные, если они есть
+            out << "-- Таблица: " << tableName << "\n";
+            out << "TRUNCATE TABLE " << tableName << " CASCADE;\n";
+
+            // 2. Получаем данные
+            if (!query.exec("SELECT * FROM " + tableName)) {
+                Logger::instance().log("Админ", "БЭКАП", "ОШИБКА_ЧТЕНИЯ", tableName);
+                continue; // Пропускаем сбойную таблицу, но пробуем остальные
+            }
+
+            QSqlRecord record = query.record();
+            int colCount = record.count();
+
+            // Если таблица пустая, идем дальше
+            if (query.size() == 0) {
+                out << "\n";
+                continue;
+            }
+
+            // Генерируем INSERT
+            while (query.next()) {
+                QStringList values;
+                for (int i = 0; i < colCount; ++i) {
+                    QVariant val = query.value(i);
+
+                    if (val.isNull()) {
+                        values << "NULL";
+                    } else if (val.typeId() == QMetaType::QString ||
+                               val.typeId() == QMetaType::QDate ||
+                               val.typeId() == QMetaType::QDateTime ||
+                               val.typeId() == QMetaType::QTime) {
+                        // Экранирование кавычек для SQL (O'Connor -> O''Connor)
+                        QString str = val.toString();
+                        str.replace("'", "''");
+                        values << "'" + str + "'";
+                    } else if (val.typeId() == QMetaType::Bool) {
+                        values << (val.toBool() ? "TRUE" : "FALSE");
+                    } else {
+                        // Числа (int, double)
+                        values << val.toString();
+                    }
+                }
+
+                // Формируем строку INSERT
+                out << "INSERT INTO " << tableName << " VALUES (" << values.join(", ") << ");\n";
+            }
+            out << "\n";
+        }
+
+        // --- ПОДВАЛ ФАЙЛА ---
+        // Возвращаем проверки ключей
+        out << "SET session_replication_role = 'origin';\n";
+        out << "COMMIT;\n";
+
+        file.close();
+
+        Logger::instance().log("Админ", "БЭКАП", "УСПЕХ", "Ручной дамп создан: " + cleanPath);
+        emit operationResult(true, "Резервная копия успешно создана");
+    });
+}
+
+void DatabaseManager::restoreFromBackupAsync(const QString &filePath) {
+    auto future = QtConcurrent::run([=]() {
+        QSqlDatabase db = getThreadLocalConnection();
+        if (!db.isOpen()) {
+            emit operationResult(false, "Нет соединения с БД");
+            return;
+        }
+
+        // Чистим путь
+        QString cleanPath = filePath;
+        if (cleanPath.startsWith("file:///")) cleanPath.remove(0, 8);
+        else if (cleanPath.startsWith("file://")) cleanPath.remove(0, 7);
+        cleanPath = QDir::toNativeSeparators(cleanPath);
+
+        QFile file(cleanPath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            emit operationResult(false, "Не удалось открыть файл бэкапа");
+            return;
+        }
+
+        // Читаем весь файл целиком
+        QTextStream in(&file);
+        in.setAutoDetectUnicode(true);
+        QString sqlScript = in.readAll();
+        file.close();
+
+        if (sqlScript.isEmpty()) {
+            emit operationResult(false, "Файл пуст");
+            return;
+        }
+
+        // В PostgreSQL нельзя выполнить скрипт с несколькими командами через query.exec()
+        // напрямую, если драйвер этого не поддерживает, но QPSQL обычно поддерживает.
+        // Однако, лучше всего разбить по транзакциям или использовать спец. подход.
+        // Самый простой надежный способ для QPSQL:
+
+        QSqlQuery query(db);
+        if (query.exec(sqlScript)) {
+            Logger::instance().log("Админ", "ВОССТАНОВЛЕНИЕ", "УСПЕХ", "Файл: " + cleanPath);
+            emit operationResult(true, "База успешно восстановлена");
+        } else {
+            QString err = query.lastError().text();
+            Logger::instance().log("Админ", "ВОССТАНОВЛЕНИЕ", "ОШИБКА", err);
+            emit operationResult(false, "Ошибка восстановления");
+        }
     });
 }

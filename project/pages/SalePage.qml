@@ -10,6 +10,9 @@ Page {
     property int selectedRow: -1
     property bool isLoading: false
 
+    // Хранилище сырых данных для фильтрации
+    property var allProductsData: []
+
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
@@ -28,7 +31,7 @@ Page {
         }
     }
 
-    // ЛОКАЛЬНАЯ МОДЕЛЬ ДАННЫХ
+    // ЛОКАЛЬНАЯ МОДЕЛЬ ДАННЫХ (ОТОБРАЖАЕМАЯ)
     ListModel {
         id: productsModel
     }
@@ -78,10 +81,10 @@ Page {
         target: DatabaseManager
 
         function onProductsLoaded(data) {
-            productsModel.clear()
-            for (var i = 0; i < data.length; i++) {
-                productsModel.append(data[i])
-            }
+            // Сохраняем сырые данные
+            root.allProductsData = data
+            // Применяем фильтр (который заполнит productsModel)
+            applyFilters()
             root.isLoading = false
         }
 
@@ -118,6 +121,22 @@ Page {
         }
     }
 
+    // ЛОГИКА ФИЛЬТРАЦИИ
+    function applyFilters() {
+        productsModel.clear()
+        var searchText = searchField.text.toLowerCase().trim()
+
+        if (!root.allProductsData) return
+
+        for (var i = 0; i < root.allProductsData.length; i++) {
+            var item = root.allProductsData[i]
+            // Фильтрация по названию
+            if (searchText === "" || item.name.toLowerCase().includes(searchText)) {
+                productsModel.append(item)
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
@@ -140,6 +159,7 @@ Page {
             }
         }
 
+        // ПАНЕЛЬ УПРАВЛЕНИЯ (ТИП + ПОИСК)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -207,32 +227,16 @@ Page {
                     checked: true
                     font.pixelSize: 14
                     ButtonGroup.group: productTypeGroup
-
+                    // Стилизация индикатора (как была)
                     indicator: Rectangle {
-                        implicitWidth: 22
-                        implicitHeight: 22
+                        implicitWidth: 22; implicitHeight: 22
                         x: kitsRadio.leftPadding
                         y: parent.height / 2 - height / 2
                         radius: 11
-                        border.color: kitsRadio.checked ? "#3498db" : "#bdc3c7"
-                        border.width: 2
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 12
-                            height: 12
-                            radius: 6
-                            color: "#3498db"
-                            visible: kitsRadio.checked
-                        }
+                        border.color: kitsRadio.checked ? "#3498db" : "#bdc3c7"; border.width: 2
+                        Rectangle { anchors.centerIn: parent; width: 12; height: 12; radius: 6; color: "#3498db"; visible: kitsRadio.checked }
                     }
-                    contentItem: Text {
-                        text: kitsRadio.text
-                        font: kitsRadio.font
-                        color: "#2c3e50"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: kitsRadio.indicator.width + kitsRadio.spacing
-                    }
+                    contentItem: Text { text: kitsRadio.text; font: kitsRadio.font; color: "#2c3e50"; verticalAlignment: Text.AlignVCenter; leftPadding: kitsRadio.indicator.width + kitsRadio.spacing }
                 }
 
                 RadioButton {
@@ -240,36 +244,41 @@ Page {
                     text: "Расходная фурнитура"
                     font.pixelSize: 14
                     ButtonGroup.group: productTypeGroup
-
+                    // Стилизация индикатора (как была)
                     indicator: Rectangle {
-                        implicitWidth: 22
-                        implicitHeight: 22
+                        implicitWidth: 22; implicitHeight: 22
                         x: consumablesRadio.leftPadding
                         y: parent.height / 2 - height / 2
                         radius: 11
-                        border.color: consumablesRadio.checked ? "#3498db" : "#bdc3c7"
-                        border.width: 2
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 12
-                            height: 12
-                            radius: 6
-                            color: "#3498db"
-                            visible: consumablesRadio.checked
-                        }
+                        border.color: consumablesRadio.checked ? "#3498db" : "#bdc3c7"; border.width: 2
+                        Rectangle { anchors.centerIn: parent; width: 12; height: 12; radius: 6; color: "#3498db"; visible: consumablesRadio.checked }
                     }
-                    contentItem: Text {
-                        text: consumablesRadio.text
-                        font: consumablesRadio.font
-                        color: "#2c3e50"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: consumablesRadio.indicator.width + consumablesRadio.spacing
-                    }
+                    contentItem: Text { text: consumablesRadio.text; font: consumablesRadio.font; color: "#2c3e50"; verticalAlignment: Text.AlignVCenter; leftPadding: consumablesRadio.indicator.width + consumablesRadio.spacing }
                 }
 
-                Item {
-                    Layout.fillWidth: true
+                // РАЗДЕЛИТЕЛЬ И ПОЛЕ ПОИСКА
+                Item { Layout.fillWidth: true } // Растяжка, чтобы поиск прижался вправо или занял место
+
+                TextField {
+                    id: searchField
+                    Layout.preferredWidth: 250
+                    Layout.fillWidth: true // Если нужно, чтобы занимал все свободное место
+                    Layout.maximumWidth: 400
+                    Layout.rightMargin: 10
+
+                    placeholderText: "Поиск по названию..."
+                    font.pixelSize: 14
+                    color: "#000000"
+
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 8
+                        border.color: searchField.activeFocus ? "#3498db" : "#dce0e3"
+                        border.width: 1
+                    }
+
+                    // При изменении текста обновляем фильтр
+                    onTextChanged: applyFilters()
                 }
             }
         }
@@ -323,7 +332,6 @@ Page {
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                // ИСПРАВЛЕНИЕ ЗДЕСЬ: TableView заменен на ListView для корректного отображения колонок
                 ListView {
                     id: tableview
                     anchors.fill: parent
@@ -381,15 +389,13 @@ Page {
                                         color: "#2c3e50"
                                         font.pixelSize: 13
 
-                                        // Логика отображения текста в зависимости от индекса столбца
+                                        // Логика отображения текста
                                         text: {
-                                            var col = index // индекс столбца из Repeater
-                                            var data = rowDelegate.rowData // данные строки
-
+                                            var col = index
+                                            var data = rowDelegate.rowData
                                             if (!data) return ""
 
                                             if (productTypeGroup.checkedButton === kitsRadio) {
-                                                // Наборы
                                                 switch(col) {
                                                     case 0: return data.id
                                                     case 1: return data.name
@@ -398,7 +404,6 @@ Page {
                                                     case 4: return data.stock_quantity
                                                 }
                                             } else {
-                                                // Фурнитура
                                                 switch(col) {
                                                     case 0: return data.id
                                                     case 1: return data.name
@@ -484,6 +489,7 @@ Page {
         }
     }
 
+    // --- ДИАЛОГИ БЕЗ ИЗМЕНЕНИЙ (НИЖЕ) ---
     Dialog {
         id: productEditDialog
         modal: true

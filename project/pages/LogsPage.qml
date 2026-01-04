@@ -151,18 +151,18 @@ Page {
 
         // 2. Панель фильтрации (Оформление из вашего примера)
         Rectangle {
-            Layout.alignment: Qt.AlignLeft
-            Layout.preferredHeight: 50
+            Layout.fillWidth: true
+            Layout.preferredHeight: 60
             color: "#ffffff"
             radius: 10
             border.color: "#e0e0e0"
             border.width: 1
 
             RowLayout {
-                anchors.margins: 15
-                spacing: 10
+                anchors.margins: 10
+                spacing: 20
                 anchors.centerIn: parent
-                width: parent.width
+                anchors.fill: parent
 
                 Label {
                     text: "Фильтр по периоду:"
@@ -202,7 +202,6 @@ Page {
                 Button {
                     text: "Применить"
                     font.bold: true
-                    Layout.preferredHeight: 40
                     Layout.preferredWidth: 140
                     font.pixelSize: 14
                     background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 8 }
@@ -232,7 +231,6 @@ Page {
                 Button {
                     text: "Сбросить"
                     font.bold: true
-                    Layout.preferredHeight: 40
                     Layout.preferredWidth: 120
                     font.pixelSize: 14
                     background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
@@ -243,19 +241,17 @@ Page {
                     ToolTip.delay: 1000
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Сбросить даты в ячейках ввода и обновить таблицу")
+                    ToolTip.text: qsTr("Сбросить даты и обновить таблицу")
 
                     onClicked: {
-                        var endDate = new Date()
-                        var startDate = new Date()
-                        startDate.setDate(startDate.getDate() - 30)
-
-                        var formatInput = function(d) { return d.toLocaleDateString(Qt.locale("ru_RU"), "dd.MM.yyyy") }
-
-                        startDateField.text = formatInput(startDate)
-                        endDateField.text = formatInput(endDate)
+                        startDateField.text = ""
+                        endDateField.text = ""
+                        root.isLoading = true
                         refreshTable()
                     }
+                }
+                Item {
+                    Layout.fillWidth: true
                 }
             }
         }
@@ -481,7 +477,7 @@ Page {
 
         ColumnLayout {
             anchors.fill: parent; spacing: 10
-            Label { text: "Сообщение"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
+            Label { text: "Ошибка"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
             Label { id: msgTextLabel; Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14 }
             Button {
                 text: "Закрыть"

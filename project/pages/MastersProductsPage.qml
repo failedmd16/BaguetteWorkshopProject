@@ -10,6 +10,9 @@ Page {
     property int selectedRow: -1
     property bool isLoading: false
 
+    // Хранилище сырых данных для фильтрации
+    property var allMaterialsData: []
+
     DoubleValidator {
         id: doubleValidator
         bottom: 0
@@ -75,10 +78,10 @@ Page {
         target: DatabaseManager
 
         function onMaterialsLoaded(data) {
-            materialsModel.clear()
-            for (var i = 0; i < data.length; i++) {
-                materialsModel.append(data[i])
-            }
+            // Сохраняем сырые данные
+            root.allMaterialsData = data
+            // Применяем фильтр
+            applyFilters()
             root.isLoading = false
         }
 
@@ -89,7 +92,6 @@ Page {
                 if (productAddDialog.opened) productAddDialog.close()
                 if (productEditDialog.opened) productEditDialog.close()
                 if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
-                // Если мы были в просмотре, закрываем его
                 if (productViewDialog.opened) productViewDialog.close()
             } else {
                 console.log("Error: " + message)
@@ -97,9 +99,25 @@ Page {
         }
     }
 
+    // ЛОГИКА
     function refreshTable() {
         root.isLoading = true
         DatabaseManager.fetchMaterialsAsync(root.currentTable)
+    }
+
+    function applyFilters() {
+        materialsModel.clear()
+        var searchText = searchField.text.toLowerCase().trim()
+
+        if (!root.allMaterialsData) return
+
+        for (var i = 0; i < root.allMaterialsData.length; i++) {
+            var item = root.allMaterialsData[i]
+            // Фильтрация по названию
+            if (searchText === "" || (item.name && item.name.toLowerCase().includes(searchText))) {
+                materialsModel.append(item)
+            }
+        }
     }
 
     ColumnLayout {
@@ -124,6 +142,7 @@ Page {
             }
         }
 
+        // ПАНЕЛЬ ПЕРЕКЛЮЧЕНИЯ И ПОИСКА
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -140,7 +159,7 @@ Page {
                     text: "Материалы рамок"
                     font.bold: true
                     font.pixelSize: 14
-                    Layout.fillWidth: true
+                    Layout.preferredWidth: 180
                     background: Rectangle {
                         color: root.currentTable === "frame_materials" ? "#3498db" : "#f8f9fa"
                         radius: 6
@@ -160,10 +179,10 @@ Page {
                 }
 
                 Button {
-                    text: "Комплектующая фурнитура"
+                    text: "Комплектующие"
                     font.bold: true
                     font.pixelSize: 14
-                    Layout.fillWidth: true
+                    Layout.preferredWidth: 180
                     background: Rectangle {
                         color: root.currentTable === "component_furniture" ? "#3498db" : "#f8f9fa"
                         radius: 6
@@ -180,6 +199,31 @@ Page {
                         root.currentTable = "component_furniture"
                         refreshTable()
                     }
+                }
+
+                // РАЗДЕЛИТЕЛЬ
+                Item { Layout.fillWidth: true }
+
+                // ПОЛЕ ПОИСКА
+                TextField {
+                    id: searchField
+                    Layout.preferredWidth: 250
+                    Layout.maximumWidth: 400
+                    Layout.rightMargin: 10
+
+                    placeholderText: "Поиск по названию..."
+                    font.pixelSize: 14
+                    color: "#000000"
+
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 8
+                        border.color: searchField.activeFocus ? "#3498db" : "#dce0e3"
+                        border.width: 1
+                    }
+
+                    // При изменении текста обновляем фильтр
+                    onTextChanged: applyFilters()
                 }
             }
         }
@@ -377,6 +421,8 @@ Page {
         }
     }
 
+    // --- ДИАЛОГИ (Без изменений, вставлены для полноты) ---
+
     Dialog {
         id: productViewDialog
         modal: true
@@ -389,26 +435,18 @@ Page {
         property int currentRow: -1
         property var currentData: ({})
 
-        // --- ИСПРАВЛЕНИЕ: Функция для безопасного получения цены ---
-        // Вынос логики сюда устраняет ошибку Binding loop
         function getPriceText() {
             if (!currentData) return "0.00 ₽"
-
-            // Выбираем нужное поле в зависимости от таблицы
             var val
             if (root.currentTable === "frame_materials") {
                 val = currentData.price_per_meter
             } else {
                 val = currentData.price_per_unit
             }
-
-            // Безопасное преобразование в число
             var num = parseFloat(val)
             if (isNaN(num)) return "0.00 ₽"
-
             return num.toFixed(2) + " ₽"
         }
-        // -----------------------------------------------------------
 
         background: Rectangle {
             color: "#ffffff"
@@ -479,16 +517,12 @@ Page {
                         labelText: "Тип:"
                         valueText: (productViewDialog.currentData && productViewDialog.currentData.type) ? productViewDialog.currentData.type : "—"
                     }
-
-                    // --- ИСПРАВЛЕННЫЙ БЛОК ---
                     DetailRow {
                         labelText: "Цена:"
-                        valueText: productViewDialog.getPriceText() // Вызов функции вместо блока кода
+                        valueText: productViewDialog.getPriceText()
                         valueColor: "#27ae60"
                         isBold: true
                     }
-                    // --------------------------
-
                     DetailRow {
                         labelText: "На складе:"
                         valueText: {
@@ -592,8 +626,6 @@ Page {
         }
     }
 
-    // ... [ProductEditDialog без изменений] ...
-    // Вставьте сюда ProductEditDialog из вашего предыдущего сообщения, он полностью корректен.
     Dialog {
         id: productEditDialog
         modal: true
@@ -834,7 +866,6 @@ Page {
         }
     }
 
-    // ... [ProductAddDialog без изменений] ...
     Dialog {
         id: productAddDialog
         modal: true

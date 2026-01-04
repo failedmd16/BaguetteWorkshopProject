@@ -77,10 +77,8 @@ ApplicationWindow {
            stack.replace(firstRunComponent)
            let firstRunItem = stack.currentItem
 
-           // Когда админ создан, переходим на вход
            firstRunItem.adminCreated.connect(function() {
                loadLoginPage()
-               // Опционально: можно показать уведомление "Администратор создан"
            })
        } else {
             console.error("Error loading FirstRunPage:", firstRunComponent.errorString())
@@ -102,7 +100,7 @@ ApplicationWindow {
 
        loginItem.loginAdminSuccess.connect(function() {
            adminLogged = true
-           stack.push("pages/LogsPage.qml") // Или какая у вас главная для админа
+           stack.push("pages/LogsPage.qml")
            headerLabel.text = "Панель администратора"
        })
    }
@@ -143,8 +141,6 @@ ApplicationWindow {
                 background: Rectangle {
                     color: parent.down ? "#3498db" : "#34495e"
                     radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
                 }
 
                 contentItem: Text {
@@ -170,8 +166,6 @@ ApplicationWindow {
                 background: Rectangle {
                     color: parent.down ? "#3498db" : "#34495e"
                     radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
                 }
 
                 contentItem: Text {
@@ -197,8 +191,6 @@ ApplicationWindow {
                 background: Rectangle {
                     color: parent.down ? "#3498db" : "#34495e"
                     radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
                 }
 
                 contentItem: Text {
@@ -225,8 +217,6 @@ ApplicationWindow {
                 background: Rectangle {
                     color: parent.down ? "#3498db" : "#34495e"
                     radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
                 }
 
                 contentItem: Text {
@@ -252,8 +242,6 @@ ApplicationWindow {
                 background: Rectangle {
                     color: parent.down ? "#3498db" : "#34495e"
                     radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
                 }
 
                 contentItem: Text {
@@ -274,14 +262,12 @@ ApplicationWindow {
             // Кнопки для администратора
             Button {
                 visible: adminLogged
-                width: (tabRow.width - tabRow.spacing) / 2
+                width: (tabRow.width - tabRow.spacing) / 3
                 height: parent.height
 
                 background: Rectangle {
                     color: parent.down ? "#3498db" : "#34495e"
                     radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
                 }
 
                 contentItem: Text {
@@ -301,14 +287,12 @@ ApplicationWindow {
 
             Button {
                 visible: adminLogged
-                width: (tabRow.width - tabRow.spacing) / 2
+                width: (tabRow.width - tabRow.spacing) / 3
                 height: parent.height
 
                 background: Rectangle {
                     color: parent.down ? "#3498db" : "#34495e"
                     radius: 10
-                    border.color: "#3498db"
-                    border.width: parent.down ? 2 : 1
                 }
 
                 contentItem: Text {
@@ -323,6 +307,31 @@ ApplicationWindow {
                 onClicked: {
                     stack.push("pages/AccountManagementPage.qml")
                     headerLabel.text = "Управление аккаунтами"
+                }
+            }
+
+            Button {
+                visible: adminLogged
+                width: (tabRow.width - tabRow.spacing) / 3
+                height: parent.height
+
+                background: Rectangle {
+                    color: parent.down ? "#3498db" : "#34495e"
+                    radius: 10
+                }
+
+                contentItem: Text {
+                    text: "📊 Управление данными"
+                    color: "white"
+                    font.pixelSize: 14
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                onClicked: {
+                    stack.push("pages/DataManagementPage.qml")
+                    headerLabel.text = "Управление данными"
                 }
             }
         }

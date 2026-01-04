@@ -31,6 +31,7 @@ qt_add_qml_module(appproject
         pages/SalePage.qml
         pages/LogsPage.qml
         pages/CreateFirstAdminPage.qml
+        pages/DataManagementPage.qml
     RESOURCES
         SOURCES src/DatabaseManager.h SOURCES src/DatabaseManager.cpp
         SOURCES src/Logger.h SOURCES src/Logger.cpp

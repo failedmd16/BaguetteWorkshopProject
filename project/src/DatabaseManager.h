@@ -82,6 +82,13 @@ public:
     Q_INVOKABLE void fetchLogsCount();
     Q_INVOKABLE void fetchLogsByPeriod(const QString &dateFrom, const QString &dateTo);
 
+    // Администрирование
+    Q_INVOKABLE void fetchStatisticsAsync(int days);
+    Q_INVOKABLE void exportTableAsync(const QString &tableName, const QString &filePath);
+    Q_INVOKABLE void importTableAsync(const QString &tableName, const QString &filePath);
+    Q_INVOKABLE void createBackupAsync(const QString &filePath);
+    Q_INVOKABLE void restoreFromBackupAsync(const QString &filePath);
+
 signals:
     // Авторизация
     void loginResult(bool success, QString role, QString message);
@@ -114,6 +121,10 @@ signals:
     // Логи
     void logsLoaded(QVariantList logs);
     void logsCountLoaded(int count);
+
+    // Администрирование
+    void statisticsLoaded(QVariantList data);
+    void operationResult(bool success, QString message);
 
 private:
     explicit DatabaseManager(QObject *parent = nullptr);

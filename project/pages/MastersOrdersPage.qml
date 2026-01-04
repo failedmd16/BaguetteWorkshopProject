@@ -11,6 +11,8 @@ Page {
 
     // Хранилище сырых данных
     property var allOrdersData: []
+    // Флаг, что фильтр по датам активен
+    property bool dateFilterActive: false
 
     Rectangle {
         anchors.fill: parent
@@ -41,6 +43,7 @@ Page {
         onActivated: {
             if (statusUpdatedMessage.opened) statusUpdatedMessage.close()
             else if (orderDetailsDialog.opened) orderDetailsDialog.close()
+            else if (messageDialog.opened) messageDialog.close()
         }
     }
 
@@ -65,6 +68,24 @@ Page {
         }
     }
 
+    // --- ЛОГИКА ---
+
+    function isValidDate(dateString) {
+        var regex = /^(\d{2})\.(\d{2})\.(\d{4})$/
+        var match = dateString.match(regex)
+        if (!match) return false
+        var day = parseInt(match[1], 10)
+        var month = parseInt(match[2], 10)
+        if (month < 1 || month > 12) return false
+        if (day < 1 || day > 31) return false
+        return true
+    }
+
+    function parseDateString(dateString) {
+        var parts = dateString.split(".")
+        return new Date(parts[2], parts[1] - 1, parts[0])
+    }
+
     function getStatusColor(status) {
         if (!status) return "#7f8c8d"
         switch(status) {
@@ -80,7 +101,11 @@ Page {
     function formatDate(dateString) {
         if (!dateString) return "Не указана"
         var date = new Date(dateString)
-        if (isNaN(date.getTime())) return "Неверная дата"
+        if (isNaN(date.getTime())) {
+             var safe = String(dateString).replace(" ", "T")
+             date = new Date(safe)
+             if (isNaN(date.getTime())) return "Неверная дата"
+        }
 
         var day = date.getDate().toString().padStart(2, '0')
         var month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -103,16 +128,37 @@ Page {
             return
 
         var statusFilterText = statusFilter.currentText
-        var searchText = searchField.text.toLowerCase()
+        var searchText = searchField.text.toLowerCase().trim()
+
+        // Подготовка дат для фильтрации
+        var filterStartDate = null
+        var filterEndDate = null
+
+        if (root.dateFilterActive && startDateField.text && endDateField.text) {
+             filterStartDate = parseDateString(startDateField.text)
+             filterEndDate = parseDateString(endDateField.text)
+             filterEndDate.setHours(23, 59, 59, 999)
+        }
 
         for (var i = 0; i < root.allOrdersData.length; i++) {
             var order = root.allOrdersData[i]
-
             if (!order) continue
 
+            // 1. Фильтр по статусу
             if (statusFilterText !== "Все статусы" && order.status !== statusFilterText)
                 continue
 
+            // 2. Фильтр по дате
+            if (root.dateFilterActive && filterStartDate && filterEndDate) {
+                var orderDate = new Date(order.created_at)
+                if (isNaN(orderDate.getTime()) && typeof order.created_at === 'string') {
+                     var safeDate = order.created_at.replace(" ", "T")
+                     orderDate = new Date(safeDate)
+                }
+                if (orderDate < filterStartDate || orderDate > filterEndDate) continue
+            }
+
+            // 3. Поиск по тексту
             var orderNumber = order.order_number ? order.order_number.toLowerCase() : ""
             var customerName = order.customer_name ? order.customer_name.toLowerCase() : ""
 
@@ -132,19 +178,17 @@ Page {
                 special_instructions: order.special_instructions || "",
                 material_name: order.material_name || "Неизвестный материал",
                 material_color: order.material_color || "Не указан",
-                furniture_name: order.furniture_name || "Не указана" // <-- НОВОЕ ПОЛЕ
+                furniture_name: order.furniture_name || "Не указана"
             }
             ordersModel.append(orderData)
         }
     }
 
-    function refreshTable() {
-        applyFilters()
-    }
-
     ListModel {
         id: ordersModel
     }
+
+    // --- ИНТЕРФЕЙС ---
 
     ColumnLayout {
         anchors.fill: parent
@@ -168,6 +212,7 @@ Page {
             }
         }
 
+        // БЛОК ФИЛЬТРАЦИИ
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -180,6 +225,7 @@ Page {
                 anchors.margins: 10
                 spacing: 10
 
+                // 1. Статус
                 ComboBox {
                     id: statusFilter
                     Layout.preferredWidth: 200
@@ -203,9 +249,11 @@ Page {
                     onCurrentTextChanged: applyFilters()
                 }
 
+                // 2. Поиск
                 TextField {
                     id: searchField
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 150
                     placeholderText: "Поиск по номеру заказа или клиенту..."
                     font.pixelSize: 14
                     color: "#000000"
@@ -216,9 +264,84 @@ Page {
                     }
                     onTextChanged: applyFilters()
                 }
+
+                // --- ДАТЫ И КНОПКИ ---
+
+                Label { text: "С:"; color: "#34495e"; font.bold: true }
+
+                TextField {
+                    id: startDateField
+                    Layout.preferredWidth: 100
+                    placeholderText: "дд.мм.гггг"
+                    font.pixelSize: 14
+                    padding: 8
+                    enabled: !root.isLoading
+                    background: Rectangle {
+                        color: "#f8f9fa"; radius: 8
+                        border.color: startDateField.activeFocus ? "#3498db" : "#dce0e3"
+                        border.width: 1
+                    }
+                }
+
+                Label { text: "По:"; color: "#34495e"; font.bold: true }
+
+                TextField {
+                    id: endDateField
+                    Layout.preferredWidth: 100
+                    placeholderText: "дд.мм.гггг"
+                    font.pixelSize: 14
+                    padding: 8
+                    enabled: !root.isLoading
+                    background: Rectangle {
+                        color: "#f8f9fa"; radius: 8
+                        border.color: endDateField.activeFocus ? "#3498db" : "#dce0e3"
+                        border.width: 1
+                    }
+                }
+
+                Button {
+                    text: "Применить"
+                    font.bold: true
+                    Layout.preferredWidth: 110
+                    font.pixelSize: 13
+                    enabled: !root.isLoading
+                    background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 8 }
+                    contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
+                    ToolTip.delay: 1000; ToolTip.visible: hovered; ToolTip.text: qsTr("Найти заказы за указанный период")
+
+                    onClicked: {
+                        if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
+                            root.dateFilterActive = true
+                            applyFilters()
+                        } else {
+                            messageDialog.showError("Введите корректные даты (дд.мм.гггг)")
+                        }
+                    }
+                }
+
+                Button {
+                    text: "Сброс"
+                    font.bold: true
+                    Layout.preferredWidth: 80
+                    font.pixelSize: 13
+                    enabled: !root.isLoading
+                    background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
+                    contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
+                    ToolTip.delay: 1000; ToolTip.visible: hovered; ToolTip.text: qsTr("Сбросить даты и показать все заказы")
+
+                    onClicked: {
+                        startDateField.text = ""
+                        endDateField.text = ""
+                        root.dateFilterActive = false
+                        statusFilter.currentIndex = 0
+                        searchField.text = ""
+                        applyFilters()
+                    }
+                }
             }
         }
 
+        // Шапка таблицы
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -250,6 +373,7 @@ Page {
             }
         }
 
+        // Таблица
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -412,6 +536,27 @@ Page {
         }
     }
 
+    // --- ДИАЛОГИ ---
+
+    Dialog {
+        id: messageDialog
+        modal: true; header: null; width: 350; height: 180; anchors.centerIn: parent; padding: 20
+        property string errorMsg: ""
+        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+
+        ColumnLayout {
+            anchors.fill: parent; spacing: 10
+            Label { text: "Ошибка"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
+            Label { id: msgTextLabel; Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14 }
+            Button {
+                text: "Закрыть"; Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 100; Layout.preferredHeight: 40
+                background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
+                contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true }
+                onClicked: messageDialog.close()
+            }
+        }
+        function showError(msg) { errorMsg = msg; msgTextLabel.text = msg; open() }
+    }
 
     Dialog {
         id: orderDetailsDialog
@@ -511,12 +656,10 @@ Page {
                             valueColor: "#d35400"
                             isBold: true
                         }
-                        // --- НОВАЯ СТРОКА ДЛЯ ФУРНИТУРЫ ---
                         DetailRow {
                             labelText: "Фурнитура:"
                             valueText: orderDetailsDialog.currentData.furniture_name || "—"
                         }
-                        // ----------------------------------
                         DetailRow {
                             labelText: "Сумма:"
                             valueText: (orderDetailsDialog.currentData.total_amount || 0) + " ₽"
@@ -671,7 +814,7 @@ Page {
                     height: orderModel.height,
                     material_name: orderModel.material_name,
                     material_color: orderModel.material_color,
-                    furniture_name: orderModel.furniture_name, // <-- Передаем данные
+                    furniture_name: orderModel.furniture_name,
                     total_amount: orderModel.total_amount,
                     status: orderModel.status,
                     created_at: orderModel.created_at,

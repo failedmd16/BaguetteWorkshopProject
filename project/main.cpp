@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection);
     engine.loadFromModule("project", "Main");
 
-    app.setWindowIcon(QIcon("../../images/icon.ico"));
+    app.setWindowIcon(QIcon("../images/icon.ico"));
 
     return app.exec();
 }
