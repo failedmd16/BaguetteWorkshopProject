@@ -4,24 +4,27 @@
 #include "src/DatabaseManager.h"
 #include <QQuickStyle>
 
+/*!
+ * \brief Главная точка входа в приложение.
+ *
+ * Выполняет инициализацию графического приложения, устанавливает стиль интерфейса,
+ * регистрирует C++ синглтоны (DatabaseManager, Logger) для доступа из QML
+ * и загружает основной QML модуль.
+ */
+
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
     QQuickStyle::setStyle("Basic");
 
-    qmlRegisterSingletonType<DatabaseManager>(
-        "Database",  // Имя модуля
-        1, 0,        // Версия
-        "DatabaseManager",  // Имя синглтона в QML
-        [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject* {
-            Q_UNUSED(engine)
-            Q_UNUSED(scriptEngine)
-            return DatabaseManager::instance();
-        });
+    qmlRegisterSingletonType<DatabaseManager>("Database", 1, 0,"DatabaseManager", [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject* {
+        Q_UNUSED(engine)
+        Q_UNUSED(scriptEngine)
+        return DatabaseManager::instance();
+    });
 
     Logger::instance();
-
     qmlRegisterSingletonInstance("AppLogger", 1, 0, "Logger", &Logger::instance());
 
     QQmlApplicationEngine engine;
@@ -34,7 +37,7 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection);
     engine.loadFromModule("project", "Main");
 
-    app.setWindowIcon(QIcon("../images/icon.ico"));
+    app.setWindowIcon(QIcon("images/icon.ico"));
 
     return app.exec();
 }

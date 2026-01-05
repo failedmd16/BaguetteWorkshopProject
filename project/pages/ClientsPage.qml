@@ -10,10 +10,8 @@ Page {
     property int selectedRow: -1
     property bool isLoading: false
 
-    // Загрузка при старте
     Component.onCompleted: refreshTable()
 
-    // Модель данных (вместо SQL model)
     ListModel {
         id: customersListModel
     }
@@ -23,12 +21,11 @@ Page {
         color: "#f8f9fa"
     }
 
-    // Блокировщик интерфейса при загрузке
     MouseArea {
         anchors.fill: parent
         visible: root.isLoading
         hoverEnabled: true
-        onClicked: {} // Поглощаем клики
+        onClicked: {}
         z: 99
         BusyIndicator {
             anchors.centerIn: parent
@@ -60,25 +57,21 @@ Page {
         }
     }
 
-    // Обработка сигналов от C++
     Connections {
         target: DatabaseManager
 
-        // Загрузка полного списка клиентов (стандартный режим)
         function onCustomersLoaded(data) {
             updateMainTable(data)
         }
 
-        // Результат операций (добавление/обновление/удаление)
         function onCustomerOperationResult(success, message) {
             root.isLoading = false
             if (success) {
-                refreshTable() // Обновляем список
+                refreshTable()
                 if (customerAddDialog.opened) customerAddDialog.close()
                 if (customerEditDialog.opened) customerEditDialog.close()
                 if (deleteConfirmDialog.opened) deleteConfirmDialog.close()
 
-                // Если удаляли из просмотра карточки, закрываем и её
                 if (customerViewDialog.opened && deleteConfirmDialog.opened) {
                      customerViewDialog.close()
                 }
@@ -87,13 +80,10 @@ Page {
             }
         }
 
-        // Загрузка отфильтрованных данных (режим фильтрации)
-        // ТЕПЕРЬ ВЫВОДИТСЯ В ОСНОВНУЮ ТАБЛИЦУ
         function onReportDataLoaded(data) {
             updateMainTable(data)
         }
 
-        // Загрузка истории заказов
         function onCustomerOrdersLoaded(data) {
             customerViewDialog.ordersModel.clear()
             for (var i = 0; i < data.length; i++) {
@@ -103,7 +93,6 @@ Page {
         }
     }
 
-    // Общая функция обновления модели
     function updateMainTable(data) {
         customersListModel.clear()
         for (var i = 0; i < data.length; i++) {
@@ -143,37 +132,47 @@ Page {
     }
 
     function formatDate(dateInput) {
-        if (!dateInput) return "Не указана"
+        if (!dateInput)
+            return "Не указана"
+
         var date
+
         if (dateInput instanceof Date) {
             date = dateInput
         } else {
             var safeDateString = String(dateInput).replace(" ", "T")
             date = new Date(safeDateString)
         }
-        if (isNaN(date.getTime())) return String(dateInput)
+
+        if (isNaN(date.getTime()))
+            return String(dateInput)
+
         return date.toLocaleDateString(Qt.locale("ru_RU"), "dd.MM.yyyy")
     }
 
     function isValidDate(dateString) {
         var regex = /^(\d{2})\.(\d{2})\.(\d{4})$/
         var match = dateString.match(regex)
-        if (!match) return false
+
+        if (!match)
+            return false
         var day = parseInt(match[1], 10)
         var month = parseInt(match[2], 10)
-        if (month < 1 || month > 12) return false
-        if (day < 1 || day > 31) return false
+
+        if (month < 1 || month > 12)
+            return false
+        if (day < 1 || day > 31)
+            return false
+
         return true
     }
 
     function refreshTable() {
         root.isLoading = true
-        // Если поля фильтра заполнены корректно, вызываем фильтрацию, иначе полную загрузку
-        if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
+        if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text))
              DatabaseManager.fetchReportAsync(startDateField.text, endDateField.text)
-        } else {
+        else
              DatabaseManager.fetchCustomers()
-        }
     }
 
     ColumnLayout {
@@ -197,9 +196,8 @@ Page {
             }
         }
 
-        // ПАНЕЛЬ ФИЛЬТРАЦИИ
         Rectangle {
-            Layout.fillWidth: true;
+            Layout.fillWidth: true
             Layout.preferredHeight: 60
             color: "#ffffff"
             radius: 10
@@ -328,7 +326,6 @@ Page {
             }
         }
 
-        // ШАПКА ТАБЛИЦЫ
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -340,10 +337,6 @@ Page {
                 anchors.margins: 5
                 spacing: 1
 
-                // Примечание: Если при фильтрации приходят данные о суммах/заказах,
-                // они могут не отображаться, так как здесь жестко заданы колонки покупателя.
-                // Чтобы это исправить, нужно динамически менять заголовки,
-                // но для упрощения оставляем базовую структуру таблицы покупателей.
                 Repeater {
                     model: ["ФИО", "Телефон", "Email", "Адрес", "Дата создания"]
 
@@ -364,7 +357,6 @@ Page {
             }
         }
 
-        // ТАБЛИЦА (ListView)
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -394,7 +386,6 @@ Page {
                         border.color: "#e9ecef"
                         border.width: 1
 
-                        // Данные строки для диалога
                         property var rowData: {
                             "id": id,
                             "full_name": full_name,
@@ -418,68 +409,82 @@ Page {
                             }
                         }
 
-                        // Эмуляция столбцов
                         Row {
                             anchors.fill: parent
 
-                            // 1. ФИО
                             Rectangle {
                                 width: parent.width / 5
                                 height: parent.height
                                 color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 12
+                                    anchors.fill: parent
+                                    anchors.margins: 12
                                     text: full_name || ""
-                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    color: "#2c3e50"
+                                    font.pixelSize: 13
                                 }
                             }
-                            // 2. Телефон
                             Rectangle {
                                 width: parent.width / 5
                                 height: parent.height
                                 color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 12
+                                    anchors.fill: parent
+                                    anchors.margins: 12
                                     text: phone || ""
-                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    color: "#2c3e50"
+                                    font.pixelSize: 13
                                 }
                             }
-                            // 3. Email
                             Rectangle {
                                 width: parent.width / 5
                                 height: parent.height
                                 color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 12
+                                    anchors.fill: parent
+                                    anchors.margins: 12
                                     text: email || ""
-                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    color: "#2c3e50"
+                                    font.pixelSize: 13
                                 }
                             }
-                            // 4. Адрес
                             Rectangle {
                                 width: parent.width / 5
                                 height: parent.height
                                 color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 12
+                                    anchors.fill: parent
+                                    anchors.margins: 12
                                     text: address || ""
-                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    color: "#2c3e50"
+                                    font.pixelSize: 13
                                 }
                             }
-                            // 5. Дата
                             Rectangle {
                                 width: parent.width / 5
                                 height: parent.height
                                 color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 12
+                                    anchors.fill: parent
+                                    anchors.margins: 12
                                     text: formatDate(created_at)
-                                    verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight; color: "#2c3e50"; font.pixelSize: 13
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    color: "#2c3e50"
+                                    font.pixelSize: 13
                                 }
                             }
                         }
@@ -758,15 +763,19 @@ Page {
                         const email = addEmailField.text.trim()
                         const address = addAddressField.text.trim()
 
-                        if (name.length < 10) errors.push("• ФИО должно содержать минимум 10 символов")
+                        if (name.length < 10)
+                            errors.push("• ФИО должно содержать минимум 10 символов")
 
                         const phoneRegex = /^\+7-[0-9]{3}-[0-9]{3}-[0-9]{2}-[0-9]{2}$/
-                        if (!phoneRegex.test(phone)) errors.push("• Введите корректный номер телефона в формате +7-XXX-XXX-XX-XX")
+                        if (!phoneRegex.test(phone))
+                            errors.push("• Введите корректный номер телефона в формате +7-XXX-XXX-XX-XX")
 
                         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                        if (!emailRegex.test(email)) errors.push("• Введите корректный email адрес")
+                        if (!emailRegex.test(email))
+                            errors.push("• Введите корректный email адрес")
 
-                        if (address.length < 15) errors.push("• Адрес должен содержать минимум 15 символов")
+                        if (address.length < 15)
+                            errors.push("• Адрес должен содержать минимум 15 символов")
 
                         if (errors.length > 0) {
                             addValidationError.text = errors.join("\n")
@@ -801,7 +810,7 @@ Page {
         padding: 20
 
         property int currentRow: -1
-        property int customerId: -1 // Важно для асинхронного вызова
+        property int customerId: -1
         property var currentData: ({})
 
         background: Rectangle {
@@ -1005,15 +1014,19 @@ Page {
                         const email = editEmailField.text.trim()
                         const address = editAddressField.text.trim()
 
-                        if (name.length < 10) errors.push("• ФИО должно содержать минимум 10 символов")
+                        if (name.length < 10)
+                            errors.push("• ФИО должно содержать минимум 10 символов")
 
                         const phoneRegex = /^\+7-[0-9]{3}-[0-9]{3}-[0-9]{2}-[0-9]{2}$/
-                        if (!phoneRegex.test(phone)) errors.push("• Введите корректный номер телефона в формате +7-XXX-XXX-XX-XX")
+                        if (!phoneRegex.test(phone))
+                            errors.push("• Введите корректный номер телефона в формате +7-XXX-XXX-XX-XX")
 
                         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                        if (!emailRegex.test(email)) errors.push("• Введите корректный email адрес")
+                        if (!emailRegex.test(email))
+                            errors.push("• Введите корректный email адрес")
 
-                        if (address.length < 15) errors.push("• Адрес должен содержать минимум 15 символов")
+                        if (address.length < 15)
+                            errors.push("• Адрес должен содержать минимум 15 символов")
 
                         if (errors.length > 0) {
                             editValidationError.text = errors.join("\n")
@@ -1031,7 +1044,7 @@ Page {
         function openWithData(row, data) {
             currentRow = row
             currentData = data
-            customerId = data.id // Сохраняем ID для UPDATE
+            customerId = data.id
             editNameField.text = data.full_name || ""
             editPhoneField.text = data.phone || ""
             editEmailField.text = data.email || ""
@@ -1056,7 +1069,6 @@ Page {
         property var currentData: ({})
         property bool isLoadingOrders: false
 
-        // Модель для истории заказов (асинхронная)
         property ListModel ordersModel: ListModel {}
 
         background: Rectangle {
@@ -1150,7 +1162,6 @@ Page {
                             font.pixelSize: 14
                         }
 
-                        // Индикатор загрузки заказов
                         BusyIndicator {
                             visible: customerViewDialog.isLoadingOrders
                             Layout.alignment: Qt.AlignHCenter
@@ -1298,7 +1309,7 @@ Page {
         }
 
         function openWithData(data) {
-            currentRow = -1 // Индекс в ListView может отличаться от ID, но нам важен сам объект data
+            currentRow = -1
             currentData = data
             ordersModel.clear()
             isLoadingOrders = true
@@ -1400,7 +1411,10 @@ Page {
         id: messageDialog
         modal: true
         header: null
-        width: 350; height: 180; anchors.centerIn: parent; padding: 20
+        width: 350
+        height: 180
+        anchors.centerIn: parent
+        padding: 20
         property string errorMsg: "Введите корректные даты для фильтрации (дд.мм.гг)"
 
         background: Rectangle {
@@ -1411,11 +1425,24 @@ Page {
         }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { text: "Ошибка"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
+            anchors.fill: parent
+            spacing: 10
+            Label {
+                text: "Ошибка"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#e74c3c"
+                Layout.alignment: Qt.AlignHCenter
+            }
             Label {
                 id: msgTextLabel
-                Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                text: messageDialog.errorMsg
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 14
             }
             Button {
                 text: "Закрыть"

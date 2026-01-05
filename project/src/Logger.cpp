@@ -1,18 +1,30 @@
 ﻿#include "logger.h"
 
-// ---------------------------------------------------------
-// Реализация LogWorker (Фоновый поток)
-// ---------------------------------------------------------
-
-LogWorker::~LogWorker() {
-    if (QSqlDatabase::contains(m_connectionName)) {
+/*!
+ * \brief Деструктор LogWorker.
+ *
+ * Закрывает соединение с базой данных, если оно было открыто
+ * под уникальным именем соединения.
+ */
+LogWorker::~LogWorker()
+{
+    if (QSqlDatabase::contains(m_connectionName))
+    {
         QSqlDatabase::database(m_connectionName).close();
     }
 }
 
-void LogWorker::connectToDatabase() {
-    // Настраиваем соединение только один раз внутри потока
-    if (QSqlDatabase::contains(m_connectionName)) return;
+/*!
+ * \brief Настраивает и открывает соединение с БД.
+ *
+ * Использует драйвер QPSQL.
+ */
+void LogWorker::connectToDatabase()
+{
+    if (QSqlDatabase::contains(m_connectionName))
+    {
+        return;
+    }
 
     QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL", m_connectionName);
     db.setDatabaseName("failedmd16");
@@ -22,24 +34,37 @@ void LogWorker::connectToDatabase() {
     db.setPassword("Bagetworkshop123");
     db.setConnectOptions("requiressl=0;connect_timeout=10");
 
-    if (!db.open()) {
+    if (!db.open())
+    {
         qDebug() << "AsyncLogger: Connection failed:" << db.lastError().text();
     }
 }
 
-QSqlDatabase LogWorker::getDatabase() {
-    if (!QSqlDatabase::contains(m_connectionName)) {
+/*!
+ * \brief Получает или создает подключение к БД.
+ * \return Инициализированный объект QSqlDatabase.
+ */
+QSqlDatabase LogWorker::getDatabase()
+{
+    if (!QSqlDatabase::contains(m_connectionName))
+    {
         connectToDatabase();
     }
     return QSqlDatabase::database(m_connectionName);
 }
 
-void LogWorker::processLog(const QString &timestamp, const QString &user, const QString &category, const QString &action, const QString &description) {
+/*!
+ * \brief Реализация слота записи лога.
+ * \sa Logger::writeLog
+ */
+void LogWorker::processLog(const QString &timestamp, const QString &user, const QString &category, const QString &action, const QString &description)
+{
     QSqlDatabase db = getDatabase();
 
-    // Если соединение отвалилось, пробуем переподключиться
-    if (!db.isOpen()) {
-        if (!db.open()) {
+    if (!db.isOpen())
+    {
+        if (!db.open())
+        {
             qDebug() << "AsyncLogger: DB lost and failed to reopen.";
             return;
         }
@@ -49,54 +74,69 @@ void LogWorker::processLog(const QString &timestamp, const QString &user, const 
     query.prepare("INSERT INTO event_logs (timestamp, user_login, category, action, description) "
                   "VALUES (:ts, :user, :cat, :act, :desc)");
 
-    // Приведение типов для PostgreSQL
     query.bindValue(":ts", QVariant(timestamp));
-    query.bindValue(":user", user.isEmpty() ? "System" : user);
+
+    if (user.isEmpty())
+    {
+        query.bindValue(":user", "System");
+    }
+    else
+    {
+        query.bindValue(":user", user);
+    }
+
     query.bindValue(":cat", category);
     query.bindValue(":act", action);
     query.bindValue(":desc", description);
 
-    if (!query.exec()) {
+    if (!query.exec())
+    {
         qDebug() << "AsyncLogger: Insert error:" << query.lastError().text();
     }
 }
 
-// ---------------------------------------------------------
-// Реализация Logger (Основной поток)
-// ---------------------------------------------------------
-
-Logger& Logger::instance() {
+/*!
+ * \brief Возвращает статический экземпляр Logger.
+ */
+Logger& Logger::instance()
+{
     static Logger _instance;
     return _instance;
 }
 
-Logger::Logger(QObject *parent) : QObject(parent) {
+/*!
+ * \brief Инициализирует Logger и запускает рабочий поток.
+ */
+Logger::Logger(QObject *parent) : QObject(parent)
+{
     m_worker = new LogWorker();
 
-    // Перемещаем воркера в отдельный поток
     m_worker->moveToThread(&m_workerThread);
 
-    // Соединяем сигнал интерфейса со слотом воркера
-    // Qt::QueuedConnection гарантирует, что слот выполнится в потоке воркера
     connect(this, &Logger::writeLog, m_worker, &LogWorker::processLog);
-
-    // Удаляем воркера, когда поток завершится
     connect(&m_workerThread, &QThread::finished, m_worker, &QObject::deleteLater);
 
-    // Запускаем поток
     m_workerThread.start();
 }
 
-Logger::~Logger() {
+/*!
+ * \brief Завершает работу потока и уничтожает объект.
+ */
+Logger::~Logger()
+{
     m_workerThread.quit();
     m_workerThread.wait();
 }
 
-void Logger::log(const QString &user, const QString &category, const QString &action, const QString &description) {
-    // Формируем время здесь, в главном потоке, чтобы оно было точным на момент вызова
+/*!
+ * \brief Публичный метод для добавления записи в лог.
+ *
+ * Генерирует текущую временную метку и передает данные
+ * в асинхронный поток.
+ */
+void Logger::log(const QString &user, const QString &category, const QString &action, const QString &description)
+{
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
 
-    // Эмитим сигнал. Благодаря QueuedConnection управление вернется мгновенно,
-    // а запись произойдет в фоне.
     emit writeLog(timestamp, user, category, action, description);
 }

@@ -9,20 +9,18 @@ Page {
 
     property bool isLoading: false
 
-    // Индикатор загрузки (блокирует интерфейс во время создания)
     MouseArea {
         anchors.fill: parent
         visible: root.isLoading
         hoverEnabled: true
         z: 99
-        onClicked: {} // Блокируем клики
+        onClicked: {}
         BusyIndicator {
             anchors.centerIn: parent
             running: root.isLoading
         }
     }
 
-    // Обработка ответов от базы данных
     Connections {
         target: DatabaseManager
 
@@ -31,7 +29,6 @@ Page {
             if (success) {
                 infoLbl.text = "Администратор создан успешно"
                 infoLbl.color = "green"
-                // Даем пользователю увидеть сообщение перед переходом
                 timer.start()
             } else {
                 infoLbl.text = message
@@ -40,7 +37,6 @@ Page {
         }
     }
 
-    // Таймер для небольшой задержки перед переходом (для красоты UX)
     Timer {
         id: timer
         interval: 1000
@@ -113,7 +109,9 @@ Page {
             Layout.fillWidth: true
             enabled: !root.isLoading
             background: Rectangle {
-                border.color: (confirmPassField.text !== passField.text && confirmPassField.text.length > 0) ? "red" : (confirmPassField.activeFocus ? "#3498db" : "#dce0e3")
+                border.color: (confirmPassField.text !== passField.text && confirmPassField.text.length > 0) ?
+                                  "red" :
+                                  (confirmPassField.activeFocus ? "#3498db" : "#dce0e3")
                 border.width: 1
                 radius: 4
             }
@@ -145,7 +143,6 @@ Page {
             ToolTip.text: qsTr("Зарегистрировать первый аккаунт в системе")
 
             onClicked: {
-                // Валидация полей
                 if (loginField.text.length < 3) {
                     infoLbl.text = "Логин слишком короткий (минимум 3 символа)"
                     infoLbl.color = "red"
@@ -164,7 +161,6 @@ Page {
                     return
                 }
 
-                // Запуск асинхронного процесса
                 root.isLoading = true
                 infoLbl.text = "Создание учетной записи..."
                 infoLbl.color = "black"

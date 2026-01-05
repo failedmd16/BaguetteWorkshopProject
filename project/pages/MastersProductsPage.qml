@@ -10,7 +10,6 @@ Page {
     property int selectedRow: -1
     property bool isLoading: false
 
-    // Хранилище сырых данных для фильтрации
     property var allMaterialsData: []
 
     DoubleValidator {
@@ -28,7 +27,6 @@ Page {
         color: "#f8f9fa"
     }
 
-    // Индикатор загрузки
     MouseArea {
         anchors.fill: parent
         visible: root.isLoading
@@ -41,7 +39,6 @@ Page {
         }
     }
 
-    // Модель данных
     ListModel {
         id: materialsModel
     }
@@ -50,9 +47,8 @@ Page {
         sequence: "Ctrl+N"
         enabled: root.visible && !root.isLoading
         onActivated: {
-            if (!productAddDialog.opened && !productEditDialog.opened) {
+            if (!productAddDialog.opened && !productEditDialog.opened)
                 productAddDialog.open()
-            }
         }
     }
 
@@ -73,14 +69,11 @@ Page {
         }
     }
 
-    // Обработка сигналов C++
     Connections {
         target: DatabaseManager
 
         function onMaterialsLoaded(data) {
-            // Сохраняем сырые данные
             root.allMaterialsData = data
-            // Применяем фильтр
             applyFilters()
             root.isLoading = false
         }
@@ -99,7 +92,6 @@ Page {
         }
     }
 
-    // ЛОГИКА
     function refreshTable() {
         root.isLoading = true
         DatabaseManager.fetchMaterialsAsync(root.currentTable)
@@ -113,10 +105,9 @@ Page {
 
         for (var i = 0; i < root.allMaterialsData.length; i++) {
             var item = root.allMaterialsData[i]
-            // Фильтрация по названию
-            if (searchText === "" || (item.name && item.name.toLowerCase().includes(searchText))) {
+
+            if (searchText === "" || (item.name && item.name.toLowerCase().includes(searchText)))
                 materialsModel.append(item)
-            }
         }
     }
 
@@ -142,7 +133,6 @@ Page {
             }
         }
 
-        // ПАНЕЛЬ ПЕРЕКЛЮЧЕНИЯ И ПОИСКА
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -201,10 +191,8 @@ Page {
                     }
                 }
 
-                // РАЗДЕЛИТЕЛЬ
                 Item { Layout.fillWidth: true }
 
-                // ПОЛЕ ПОИСКА
                 TextField {
                     id: searchField
                     Layout.preferredWidth: 250
@@ -222,13 +210,11 @@ Page {
                         border.width: 1
                     }
 
-                    // При изменении текста обновляем фильтр
                     onTextChanged: applyFilters()
                 }
             }
         }
 
-        // ЗАГОЛОВОК ТАБЛИЦЫ
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -262,7 +248,6 @@ Page {
             }
         }
 
-        // ТАБЛИЦА (ListView)
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -282,16 +267,20 @@ Page {
                     id: tableview
                     anchors.fill: parent
                     clip: true
-                    model: materialsModel // Используем ListModel
+                    model: materialsModel
 
                     delegate: Rectangle {
                         implicitHeight: 45
                         color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
                         width: tableview.width
-                        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: "#e9ecef" }
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: 1
+                            color: "#e9ecef"
+                        }
 
-                        // Храним данные строки
                         property var rowData: materialsModel.get(index)
 
                         MouseArea {
@@ -300,7 +289,6 @@ Page {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.selectedRow = index
-                                // Передаем данные из модели
                                 productViewDialog.openWithData(index, parent.rowData)
                             }
 
@@ -310,7 +298,6 @@ Page {
                             }
                         }
 
-                        // Имитация колонок
                         Row {
                             anchors.fill: parent
                             anchors.margins: 12
@@ -421,8 +408,6 @@ Page {
         }
     }
 
-    // --- ДИАЛОГИ (Без изменений, вставлены для полноты) ---
-
     Dialog {
         id: productViewDialog
         modal: true
@@ -435,17 +420,23 @@ Page {
         property int currentRow: -1
         property var currentData: ({})
 
-        function getPriceText() {
-            if (!currentData) return "0.00 ₽"
-            var val
-            if (root.currentTable === "frame_materials") {
-                val = currentData.price_per_meter
-            } else {
-                val = currentData.price_per_unit
+        property string displayPrice: "0.00 ₽"
+        property string displayStock: "0"
+
+        function updateDisplayStrings() {
+            if (!currentData) {
+                displayPrice = "0.00 ₽"
+                displayStock = "0"
+                return
             }
+
+            var val = (root.currentTable === "frame_materials") ? currentData.price_per_meter : currentData.price_per_unit
             var num = parseFloat(val)
-            if (isNaN(num)) return "0.00 ₽"
-            return num.toFixed(2) + " ₽"
+            displayPrice = (isNaN(num) ? "0.00" : num.toFixed(2)) + " ₽"
+
+            var stock = currentData.stock_quantity || 0
+            var unit = (root.currentTable === "frame_materials") ? " м" : " шт"
+            displayStock = stock + unit
         }
 
         background: Rectangle {
@@ -453,6 +444,30 @@ Page {
             radius: 12
             border.color: "#e0e0e0"
             border.width: 1
+        }
+
+        component DetailRow: RowLayout {
+            property string labelText
+            property string valueText
+            property color valueColor: "#2c3e50"
+            property bool isBold: false
+
+            Layout.fillWidth: true
+            Label {
+                text: labelText
+                font.bold: true
+                color: "#7f8c8d"
+                Layout.preferredWidth: 120
+                font.pixelSize: 14
+            }
+            Label {
+                text: valueText
+                color: valueColor
+                font.bold: isBold
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                font.pixelSize: 14
+            }
         }
 
         ColumnLayout {
@@ -484,58 +499,34 @@ Page {
                     anchors.margins: 15
                     spacing: 12
 
-                    component DetailRow: RowLayout {
-                        property string labelText
-                        property string valueText
-                        property color valueColor: "#2c3e50"
-                        property bool isBold: false
-
-                        Layout.fillWidth: true
-                        Label {
-                            text: labelText
-                            font.bold: true
-                            color: "#7f8c8d"
-                            Layout.preferredWidth: 120
-                            font.pixelSize: 14
-                        }
-                        Label {
-                            text: valueText
-                            color: valueColor
-                            font.bold: isBold
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
-                            font.pixelSize: 14
-                        }
-                    }
-
                     DetailRow {
                         labelText: "Название:"
-                        valueText: (productViewDialog.currentData && productViewDialog.currentData.name) ? productViewDialog.currentData.name : "—"
+                        valueText: (productViewDialog.currentData && productViewDialog.currentData.name) ?
+                                        productViewDialog.currentData.name : "—"
                         isBold: true
                     }
                     DetailRow {
                         labelText: "Тип:"
-                        valueText: (productViewDialog.currentData && productViewDialog.currentData.type) ? productViewDialog.currentData.type : "—"
+                        valueText: (productViewDialog.currentData && productViewDialog.currentData.type) ?
+                                       productViewDialog.currentData.type : "—"
                     }
+
                     DetailRow {
                         labelText: "Цена:"
-                        valueText: productViewDialog.getPriceText()
+                        valueText: productViewDialog.displayPrice
                         valueColor: "#27ae60"
                         isBold: true
                     }
                     DetailRow {
                         labelText: "На складе:"
-                        valueText: {
-                            if (!productViewDialog.currentData) return "0"
-                            var stock = productViewDialog.currentData.stock_quantity || 0
-                            var unit = (root.currentTable === "frame_materials") ? " м" : " шт"
-                            return stock + unit
-                        }
+                        valueText: productViewDialog.displayStock
                     }
+
                     DetailRow {
                         visible: root.currentTable === "frame_materials"
                         labelText: "Цвет:"
-                        valueText: (productViewDialog.currentData && productViewDialog.currentData.color) ? productViewDialog.currentData.color : "—"
+                        valueText: (productViewDialog.currentData && productViewDialog.currentData.color) ?
+                                       productViewDialog.currentData.color : "—"
                     }
                     DetailRow {
                         visible: root.currentTable === "frame_materials"
@@ -622,6 +613,7 @@ Page {
         function openWithData(row, data) {
             currentRow = row
             currentData = data || {}
+            updateDisplayStrings()
             open()
         }
     }
@@ -817,20 +809,28 @@ Page {
 
                     function validateEditForm() {
                         var errors = []
-                        if (!editNameField.text.trim()) errors.push("• Введите название")
-                        if (!editTypeField.text.trim()) errors.push("• Введите тип")
+
+                        if (!editNameField.text.trim())
+                            errors.push("• Введите название")
+                        if (!editTypeField.text.trim())
+                            errors.push("• Введите тип")
                         var price = parseFloat(editPriceField.text)
-                        if (isNaN(price) || price <= 0) errors.push("• Введите корректную цену")
+                        if (isNaN(price) || price <= 0)
+                            errors.push("• Введите корректную цену")
 
                         if (root.currentTable === "frame_materials") {
                             var stock = parseFloat(editStockField.text)
-                            if (isNaN(stock) || stock < 0) errors.push("• Введите корректное количество")
-                            if (!editColorField.text.trim()) errors.push("• Введите цвет")
+                            if (isNaN(stock) || stock < 0)
+                                errors.push("• Введите корректное количество")
+                            if (!editColorField.text.trim())
+                                errors.push("• Введите цвет")
                             var width = parseFloat(editWidthField.text)
-                            if (isNaN(width) || width <= 0) errors.push("• Введите ширину")
+                            if (isNaN(width) || width <= 0)
+                                errors.push("• Введите ширину")
                         } else {
                             var stockInt = parseInt(editStockField.text)
-                            if (isNaN(stockInt) || stockInt < 0) errors.push("• Введите корректное количество")
+                            if (isNaN(stockInt) || stockInt < 0)
+                                errors.push("• Введите корректное количество")
                         }
 
                         if (errors.length > 0) {
@@ -949,7 +949,9 @@ Page {
                     id: addPriceField
                     label: root.currentTable === "frame_materials" ? "Цена за метр (₽):" : "Цена за шт (₽):"
                     placeholder: "0.00"
-                    validator: DoubleValidator { bottom: 0.01 }
+                    validator: DoubleValidator {
+                        bottom: 0.01
+                    }
                 }
 
                 InputFieldAdd {
@@ -971,7 +973,9 @@ Page {
                     visible: root.currentTable === "frame_materials"
                     label: "Ширина (см):"
                     placeholder: "0.0"
-                    validator: DoubleValidator { bottom: 0.1 }
+                    validator: DoubleValidator {
+                        bottom: 0.1
+                    }
                 }
 
                 Label {
@@ -1052,20 +1056,27 @@ Page {
 
                     function validateAddForm() {
                         var errors = []
-                        if (!addNameField.text.trim()) errors.push("• Введите название")
-                        if (!addTypeField.text.trim()) errors.push("• Введите тип")
+                        if (!addNameField.text.trim())
+                            errors.push("• Введите название")
+                        if (!addTypeField.text.trim())
+                            errors.push("• Введите тип")
                         var price = parseFloat(addPriceField.text)
-                        if (isNaN(price) || price <= 0) errors.push("• Введите корректную цену")
+                        if (isNaN(price) || price <= 0)
+                            errors.push("• Введите корректную цену")
 
                         if (root.currentTable === "frame_materials") {
                             var stock = parseFloat(addStockField.text)
-                            if (isNaN(stock) || stock < 0) errors.push("• Введите корректное количество")
-                            if (!addColorField.text.trim()) errors.push("• Введите цвет")
+                            if (isNaN(stock) || stock < 0)
+                                errors.push("• Введите корректное количество")
+                            if (!addColorField.text.trim())
+                                errors.push("• Введите цвет")
                             var width = parseFloat(addWidthField.text)
-                            if (isNaN(width) || width <= 0) errors.push("• Введите ширину")
+                            if (isNaN(width) || width <= 0)
+                                errors.push("• Введите ширину")
                         } else {
                             var stockInt = parseInt(addStockField.text)
-                            if (isNaN(stockInt) || stockInt < 0) errors.push("• Введите корректное количество")
+                            if (isNaN(stockInt) || stockInt < 0)
+                                errors.push("• Введите корректное количество")
                         }
 
                         if (errors.length > 0) {
@@ -1129,9 +1140,7 @@ Page {
                 font.pixelSize: 14
             }
 
-            Item {
-                Layout.fillHeight: true
-            }
+            Item { Layout.fillHeight: true }
 
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
@@ -1172,12 +1181,10 @@ Page {
                     }
                     onClicked: {
                         root.isLoading = true
-                        // Используем новые АСИНХРОННЫЕ методы
-                        if (root.currentTable === "frame_materials") {
+                        if (root.currentTable === "frame_materials")
                             DatabaseManager.deleteFrameMaterialAsync(productViewDialog.currentData.id)
-                        } else {
+                        else
                             DatabaseManager.deleteComponentFurnitureAsync(productViewDialog.currentData.id)
-                        }
                     }
                 }
             }
@@ -1194,9 +1201,13 @@ Page {
     }
 
     function formatDate(dateString) {
-        if (!dateString) return "Не указана"
+        if (!dateString)
+            return "Не указана"
         var date = new Date(dateString)
-        if (isNaN(date.getTime())) return "Неверная дата"
+
+        if (isNaN(date.getTime()))
+            return "Неверная дата"
+
         return date.toLocaleDateString(Qt.locale("ru_RU"), "dd.MM.yyyy HH:mm")
     }
 }

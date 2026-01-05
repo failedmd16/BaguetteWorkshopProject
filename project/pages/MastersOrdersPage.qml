@@ -9,9 +9,7 @@ Page {
     property int selectedRow: -1
     property bool isLoading: false
 
-    // Хранилище сырых данных
     property var allOrdersData: []
-    // Флаг, что фильтр по датам активен
     property bool dateFilterActive: false
 
     Rectangle {
@@ -68,16 +66,20 @@ Page {
         }
     }
 
-    // --- ЛОГИКА ---
-
     function isValidDate(dateString) {
         var regex = /^(\d{2})\.(\d{2})\.(\d{4})$/
         var match = dateString.match(regex)
-        if (!match) return false
+
+        if (!match)
+            return false
         var day = parseInt(match[1], 10)
         var month = parseInt(match[2], 10)
-        if (month < 1 || month > 12) return false
-        if (day < 1 || day > 31) return false
+
+        if (month < 1 || month > 12)
+            return false
+        if (day < 1 || day > 31)
+            return false
+
         return true
     }
 
@@ -99,8 +101,11 @@ Page {
     }
 
     function formatDate(dateString) {
-        if (!dateString) return "Не указана"
+        if (!dateString)
+            return "Не указана"
+
         var date = new Date(dateString)
+
         if (isNaN(date.getTime())) {
              var safe = String(dateString).replace(" ", "T")
              date = new Date(safe)
@@ -130,7 +135,6 @@ Page {
         var statusFilterText = statusFilter.currentText
         var searchText = searchField.text.toLowerCase().trim()
 
-        // Подготовка дат для фильтрации
         var filterStartDate = null
         var filterEndDate = null
 
@@ -142,25 +146,28 @@ Page {
 
         for (var i = 0; i < root.allOrdersData.length; i++) {
             var order = root.allOrdersData[i]
-            if (!order) continue
+            if (!order)
+                continue
 
-            // 1. Фильтр по статусу
             if (statusFilterText !== "Все статусы" && order.status !== statusFilterText)
                 continue
 
-            // 2. Фильтр по дате
             if (root.dateFilterActive && filterStartDate && filterEndDate) {
                 var orderDate = new Date(order.created_at)
                 if (isNaN(orderDate.getTime()) && typeof order.created_at === 'string') {
-                     var safeDate = order.created_at.replace(" ", "T")
-                     orderDate = new Date(safeDate)
+                    var safeDate = order.created_at.replace(" ", "T")
+                    orderDate = new Date(safeDate)
                 }
-                if (orderDate < filterStartDate || orderDate > filterEndDate) continue
+                if (orderDate < filterStartDate || orderDate > filterEndDate)
+                    continue
             }
 
-            // 3. Поиск по тексту
-            var orderNumber = order.order_number ? order.order_number.toLowerCase() : ""
-            var customerName = order.customer_name ? order.customer_name.toLowerCase() : ""
+            var orderNumber = order.order_number ?
+                        order.order_number.toLowerCase() :
+                        ""
+            var customerName = order.customer_name ?
+                        order.customer_name.toLowerCase() :
+                        ""
 
             if (searchText && !orderNumber.includes(searchText) && !customerName.includes(searchText))
                 continue
@@ -188,8 +195,6 @@ Page {
         id: ordersModel
     }
 
-    // --- ИНТЕРФЕЙС ---
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
@@ -212,7 +217,6 @@ Page {
             }
         }
 
-        // БЛОК ФИЛЬТРАЦИИ
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -225,7 +229,6 @@ Page {
                 anchors.margins: 10
                 spacing: 10
 
-                // 1. Статус
                 ComboBox {
                     id: statusFilter
                     Layout.preferredWidth: 200
@@ -249,7 +252,6 @@ Page {
                     onCurrentTextChanged: applyFilters()
                 }
 
-                // 2. Поиск
                 TextField {
                     id: searchField
                     Layout.fillWidth: true
@@ -265,9 +267,10 @@ Page {
                     onTextChanged: applyFilters()
                 }
 
-                // --- ДАТЫ И КНОПКИ ---
-
-                Label { text: "С:"; color: "#34495e"; font.bold: true }
+                Label { text: "С:"
+                    color: "#34495e"
+                    font.bold: true
+                }
 
                 TextField {
                     id: startDateField
@@ -277,13 +280,17 @@ Page {
                     padding: 8
                     enabled: !root.isLoading
                     background: Rectangle {
-                        color: "#f8f9fa"; radius: 8
+                        color: "#f8f9fa"
+                        radius: 8
                         border.color: startDateField.activeFocus ? "#3498db" : "#dce0e3"
                         border.width: 1
                     }
                 }
 
-                Label { text: "По:"; color: "#34495e"; font.bold: true }
+                Label { text: "По:"
+                    color: "#34495e"
+                    font.bold: true
+                }
 
                 TextField {
                     id: endDateField
@@ -293,7 +300,8 @@ Page {
                     padding: 8
                     enabled: !root.isLoading
                     background: Rectangle {
-                        color: "#f8f9fa"; radius: 8
+                        color: "#f8f9fa"
+                        radius: 8
                         border.color: endDateField.activeFocus ? "#3498db" : "#dce0e3"
                         border.width: 1
                     }
@@ -305,9 +313,20 @@ Page {
                     Layout.preferredWidth: 110
                     font.pixelSize: 13
                     enabled: !root.isLoading
-                    background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 8 }
-                    contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
-                    ToolTip.delay: 1000; ToolTip.visible: hovered; ToolTip.text: qsTr("Найти заказы за указанный период")
+                    background: Rectangle {
+                        color: parent.down ? "#2980b9" : "#3498db"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    ToolTip.delay: 1000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Найти заказы за указанный период")
 
                     onClicked: {
                         if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
@@ -325,9 +344,20 @@ Page {
                     Layout.preferredWidth: 80
                     font.pixelSize: 13
                     enabled: !root.isLoading
-                    background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                    contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
-                    ToolTip.delay: 1000; ToolTip.visible: hovered; ToolTip.text: qsTr("Сбросить даты и показать все заказы")
+                    background: Rectangle {
+                        color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    ToolTip.delay: 1000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Сбросить даты и показать все заказы")
 
                     onClicked: {
                         startDateField.text = ""
@@ -341,7 +371,6 @@ Page {
             }
         }
 
-        // Шапка таблицы
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -373,7 +402,6 @@ Page {
             }
         }
 
-        // Таблица
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -404,7 +432,13 @@ Page {
                         color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
                         border.color: "#e9ecef"
                         border.width: 1
-                        Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: index === 0 ? "transparent" : "#e9ecef"; visible: false }
+                        Rectangle {
+                            anchors.top: parent.top
+                            width: parent.width
+                            height: 1
+                            color: index === 0 ? "transparent" : "#e9ecef"
+                            visible: false
+                        }
 
                         MouseArea {
                             anchors.fill: parent
@@ -429,9 +463,12 @@ Page {
                             property int colWidth: (parent.width - 5) / 6
 
                             Rectangle {
-                                width: parent.colWidth; height: parent.height; color: "transparent"
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 5
+                                    anchors.fill: parent
+                                    anchors.margins: 5
                                     text: model.order_number
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
@@ -441,9 +478,12 @@ Page {
                                 }
                             }
                             Rectangle {
-                                width: parent.colWidth; height: parent.height; color: "transparent"
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 5
+                                    anchors.fill: parent
+                                    anchors.margins: 5
                                     text: model.customer_name
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
@@ -453,9 +493,12 @@ Page {
                                 }
                             }
                             Rectangle {
-                                width: parent.colWidth; height: parent.height; color: "transparent"
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 5
+                                    anchors.fill: parent
+                                    anchors.margins: 5
                                     text: (model.width && model.height) ? (model.width + "x" + model.height + " см") : "—"
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
@@ -465,9 +508,12 @@ Page {
                                 }
                             }
                             Rectangle {
-                                width: parent.colWidth; height: parent.height; color: "transparent"
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 5
+                                    anchors.fill: parent
+                                    anchors.margins: 5
                                     text: model.status
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
@@ -478,9 +524,12 @@ Page {
                                 }
                             }
                             Rectangle {
-                                width: parent.colWidth; height: parent.height; color: "transparent"
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 5
+                                    anchors.fill: parent
+                                    anchors.margins: 5
                                     text: model.total_amount + " ₽"
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
@@ -490,9 +539,12 @@ Page {
                                 }
                             }
                             Rectangle {
-                                width: parent.colWidth; height: parent.height; color: "transparent"
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
                                 Text {
-                                    anchors.fill: parent; anchors.margins: 5
+                                    anchors.fill: parent
+                                    anchors.margins: 5
                                     text: formatDate(model.created_at)
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
@@ -536,26 +588,64 @@ Page {
         }
     }
 
-    // --- ДИАЛОГИ ---
-
     Dialog {
         id: messageDialog
-        modal: true; header: null; width: 350; height: 180; anchors.centerIn: parent; padding: 20
+        modal: true
+        header: null
+        width: 350
+        height: 180
+        anchors.centerIn: parent
+        padding: 20
         property string errorMsg: ""
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { text: "Ошибка"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
-            Label { id: msgTextLabel; Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14 }
+            anchors.fill: parent
+            spacing: 10
+            Label { text: "Ошибка"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#e74c3c"
+                Layout.alignment: Qt.AlignHCenter
+            }
+            Label { id: msgTextLabel
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                text: messageDialog.errorMsg
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 14
+            }
             Button {
-                text: "Закрыть"; Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 100; Layout.preferredHeight: 40
-                background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true }
+                text: "Закрыть"
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 40
+                background: Rectangle {
+                    color: parent.down ? "#7f8c8d" : "#95a5a6"
+                    radius: 8
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.bold: true
+                }
                 onClicked: messageDialog.close()
             }
         }
-        function showError(msg) { errorMsg = msg; msgTextLabel.text = msg; open() }
+        function showError(msg) {
+            errorMsg = msg
+            msgTextLabel.text = msg
+            open()
+        }
     }
 
     Dialog {
@@ -647,7 +737,8 @@ Page {
                         DetailRow {
                             labelText: "Размер:"
                             valueText: (orderDetailsDialog.currentData.width && orderDetailsDialog.currentData.height) ?
-                                       (orderDetailsDialog.currentData.width + "x" + orderDetailsDialog.currentData.height + " см") : "—"
+                                       (orderDetailsDialog.currentData.width + "x" + orderDetailsDialog.currentData.height + " см") :
+                                        "—"
                         }
                         DetailRow {
                             labelText: "Материал:"
@@ -681,8 +772,11 @@ Page {
                     Layout.fillWidth: true
                     spacing: 5
                     visible: {
-                        if (!orderDetailsDialog.currentData) return false
-                        if (!orderDetailsDialog.currentData.special_instructions) return false
+                        if (!orderDetailsDialog.currentData)
+                            return false
+                        if (!orderDetailsDialog.currentData.special_instructions)
+                            return false
+
                         return orderDetailsDialog.currentData.special_instructions !== ""
                     }
 
@@ -823,11 +917,10 @@ Page {
 
                 if (currentData.status) {
                     var index = statusComboBox.model.indexOf(currentData.status)
-                    if (index >= 0) {
+                    if (index >= 0)
                         statusComboBox.currentIndex = index
-                    } else {
+                    else
                         statusComboBox.currentIndex = 0
-                    }
                 } else {
                     statusComboBox.currentIndex = 0
                 }

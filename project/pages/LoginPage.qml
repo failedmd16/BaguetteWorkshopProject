@@ -12,20 +12,18 @@ Page {
 
     property bool isLoading: false
 
-    // Индикатор загрузки (блокирует интерфейс во время входа)
     MouseArea {
         anchors.fill: parent
         visible: root.isLoading
         hoverEnabled: true
         z: 99
-        onClicked: {} // Перехватываем клики
+        onClicked: { }
         BusyIndicator {
             anchors.centerIn: parent
             running: root.isLoading
         }
     }
 
-    // Обработка сигналов от C++
     Connections {
         target: DatabaseManager
 
@@ -35,7 +33,6 @@ Page {
                 infoLbl.text = "Вход успешен"
                 infoLbl.color = "green"
 
-                // Маршрутизация в зависимости от роли
                 if (role === "Продавец")
                     loginSellerSuccess()
                 else if (role === "Мастер производства")
@@ -136,7 +133,6 @@ Page {
                 infoLbl.text = "Выполняется вход..."
                 infoLbl.color = "black"
 
-                // Асинхронный вызов
                 DatabaseManager.loginUserAsync(user_name, user_password)
             }
         }

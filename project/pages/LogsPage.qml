@@ -9,7 +9,6 @@ Page {
     property string tableName: "event_logs"
     property int selectedRow: -1
 
-    // Свойства для асинхронности
     property int totalLogsCount: 0
     property bool isLoading: false
 
@@ -22,9 +21,6 @@ Page {
         refreshTable()
     }
 
-    // --- ЛОГИКА АСИНХРОННОСТИ ---
-
-    // 1. Модель данных (теперь это ListModel, а не SQL)
     ListModel {
         id: logListModel
     }
@@ -39,22 +35,20 @@ Page {
         sequence: "Esc"
         enabled: root.visible
         onActivated: {
-            // Закрываем диалоги в порядке вложенности
-            if (logDetailsDialog.opened) logDetailsDialog.close()
-            else if (messageDialog.opened) messageDialog.close()
+            if (logDetailsDialog.opened)
+                logDetailsDialog.close()
+            else if (messageDialog.opened)
+                messageDialog.close()
         }
     }
 
-    // 2. Обработка сигналов от C++
     Connections {
         target: DatabaseManager
 
         function onLogsLoaded(data) {
             logListModel.clear()
-            // Заполняем модель данными из базы
-            for (var i = 0; i < data.length; i++) {
+            for (var i = 0; i < data.length; i++)
                 logListModel.append(data[i])
-            }
             root.isLoading = false
         }
 
@@ -63,10 +57,9 @@ Page {
         }
     }
 
-    // 3. Запуск обновления
     function refreshTable() {
         root.isLoading = true
-        // Запускаем асинхронные методы
+
         DatabaseManager.fetchLogs()
         DatabaseManager.fetchLogsCount()
     }
@@ -78,20 +71,22 @@ Page {
         }
     }
 
-    // --- Вспомогательные функции ---
-
     function formatDate(dateInput) {
-        if (!dateInput) return ""
+        if (!dateInput)
+            return ""
+
         var date
+
         if (dateInput instanceof Date) {
             date = dateInput
         } else {
             var safeDateString = String(dateInput).replace(" ", "T")
             date = new Date(safeDateString)
         }
-        if (isNaN(date.getTime())) return String(dateInput)
 
-        // Коррекция времени (-3 часа)
+        if (isNaN(date.getTime()))
+            return String(dateInput)
+
         date.setHours(date.getHours() - 3)
 
         return date.toLocaleString(Qt.locale("ru_RU"), "dd.MM.yyyy HH:mm:ss")
@@ -100,39 +95,55 @@ Page {
     function isValidDate(dateString) {
         var regex = /^(\d{2})\.(\d{2})\.(\d{4})$/
         var match = dateString.match(regex)
-        if (!match) return false
+
+        if (!match)
+            return false
+
         var day = parseInt(match[1], 10)
         var month = parseInt(match[2], 10)
-        if (month < 1 || month > 12) return false
-        if (day < 1 || day > 31) return false
+
+        if (month < 1 || month > 12)
+            return false
+
+        if (day < 1 || day > 31)
+            return false
+
         return true
     }
 
     function convertToSqlDate(dateString) {
         var parts = dateString.split('.')
-        if (parts.length !== 3) return dateString
+
+        if (parts.length !== 3)
+            return dateString
+
         return parts[2] + '-' + parts[1] + '-' + parts[0]
     }
 
     function getCategoryColor(category) {
-        if (!category) return "#2c3e50"
+        if (!category)
+            return "#2c3e50"
         var catUpper = category.toUpperCase()
-        if (catUpper.includes("AUTH") || catUpper.includes("АВТОРИЗАЦИЯ")) return "#8e44ad"
-        if (catUpper.includes("ERROR") || catUpper.includes("FAIL") || catUpper.includes("ОШИБКА")) return "#c0392b"
-        if (catUpper.includes("USER") || catUpper.includes("ПОЛЬЗОВАТЕЛ")) return "#d35400"
-        if (catUpper.includes("ORDER") || catUpper.includes("ЗАКАЗ")) return "#27ae60"
-        if (catUpper.includes("SYS") || catUpper.includes("СИСТЕМ")) return "#7f8c8d"
+
+        if (catUpper.includes("AUTH") || catUpper.includes("АВТОРИЗАЦИЯ"))
+            return "#8e44ad"
+        if (catUpper.includes("ERROR") || catUpper.includes("FAIL") || catUpper.includes("ОШИБКА"))
+            return "#c0392b"
+        if (catUpper.includes("USER") || catUpper.includes("ПОЛЬЗОВАТЕЛ"))
+            return "#d35400"
+        if (catUpper.includes("ORDER") || catUpper.includes("ЗАКАЗ"))
+            return "#27ae60"
+        if (catUpper.includes("SYS") || catUpper.includes("СИСТЕМ"))
+            return "#7f8c8d"
+
         return "#2c3e50"
     }
-
-    // --- Интерфейс ---
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
 
-        // 1. Заголовок
         Label {
             Layout.fillWidth: true
             text: "📜 Журнал событий"
@@ -149,7 +160,6 @@ Page {
             }
         }
 
-        // 2. Панель фильтрации (Оформление из вашего примера)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -170,7 +180,11 @@ Page {
                     color: "#2c3e50"
                     font.pixelSize: 14
                 }
-                Label { text: "С:"; color: "#34495e"; font.bold: true }
+                Label {
+                    text: "С:"
+                    color: "#34495e"
+                    font.bold: true
+                }
                 TextField {
                     id: startDateField
                     Layout.preferredWidth: 120
@@ -184,7 +198,10 @@ Page {
                         border.width: 1
                     }
                 }
-                Label { text: "По:"; color: "#34495e"; font.bold: true }
+                Label { text: "По:"
+                    color: "#34495e"
+                    font.bold: true
+                }
                 TextField {
                     id: endDateField
                     Layout.preferredWidth: 120
@@ -204,9 +221,16 @@ Page {
                     font.bold: true
                     Layout.preferredWidth: 140
                     font.pixelSize: 14
-                    background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 8 }
+                    background: Rectangle {
+                        color: parent.down ? "#2980b9" : "#3498db"
+                        radius: 8
+                    }
                     contentItem: Text {
-                        text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
                     }
 
                     ToolTip.delay: 1000
@@ -216,12 +240,8 @@ Page {
 
                     onClicked: {
                         if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
-                            // Включаем индикатор загрузки
                             root.isLoading = true
-
-                            // Вызываем новый метод C++
                             DatabaseManager.fetchLogsByPeriod(startDateField.text, endDateField.text)
-
                         } else {
                             messageDialog.showError("Введите корректные даты для фильтрации (дд.мм.гг)")
                         }
@@ -233,9 +253,15 @@ Page {
                     font.bold: true
                     Layout.preferredWidth: 120
                     font.pixelSize: 14
-                    background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
+                    background: Rectangle {color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
                     contentItem: Text {
-                        text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
                     }
 
                     ToolTip.delay: 1000
@@ -256,7 +282,6 @@ Page {
             }
         }
 
-        // 3. Шапка таблицы (Синяя)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -287,7 +312,6 @@ Page {
             }
         }
 
-        // 4. Таблица (Замена TableView на ListView для корректного отображения колонок)
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -297,7 +321,6 @@ Page {
             border.width: 1
             clip: true
 
-            // Индикатор загрузки
             BusyIndicator {
                 anchors.centerIn: parent
                 running: root.isLoading
@@ -309,25 +332,22 @@ Page {
                 anchors.fill: parent
                 clip: true
 
-                // Модель данных
                 model: logListModel
 
-                // Настройки скроллбара
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOn }
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AlwaysOn
+                }
 
-                // Внешний вид строки (делегат)
                 delegate: Rectangle {
-                    width: tableview.width // Строка на всю ширину
+                    width: tableview.width
                     height: 45
 
-                    // 'index' вместо 'row' в ListView
                     color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
                     border.color: "#e9ecef"
-                    border.width: 1 // Разделитель снизу
+                    border.width: 1
 
-                    // Данные для диалога
                     property var rowData: {
-                        "id": id, // В ListView можно обращаться к полям напрямую по имени
+                        "id": id,
                         "timestamp": timestamp,
                         "user_login": user_login,
                         "category": category,
@@ -340,19 +360,19 @@ Page {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: logDetailsDialog.openWithData(parent.rowData)
-                        // Подсветка при наведении
-                        Rectangle { anchors.fill: parent; color: parent.containsMouse ? "#e3f2fd" : "transparent" }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: parent.containsMouse ? "#e3f2fd" : "transparent"
+                        }
                     }
 
-                    // ВНУТРИ СТРОКИ РИСУЕМ КОЛОНКИ
                     Row {
                         anchors.fill: parent
-                        // Те же веса, что и в шапке
                         property var colWeights: [0.15, 0.15, 0.15, 0.20, 0.35]
 
-                        // Используем Repeater, чтобы создать 5 колонок, как было у вас
                         Repeater {
-                            model: 5 // 5 колонок
+                            model: 5
 
                             Rectangle {
                                 width: tableview.width * parent.colWeights[index]
@@ -368,7 +388,7 @@ Page {
 
                                     text: {
                                         switch(index) {
-                                            case 0: return formatDate(timestamp) // timestamp берется из модели
+                                            case 0: return formatDate(timestamp)
                                             case 1: return user_login || "System"
                                             case 2: return category || ""
                                             case 3: return action || ""
@@ -377,7 +397,6 @@ Page {
                                         }
                                     }
 
-                                    // Логика цвета
                                     color: (index === 2 || index === 3) ? getCategoryColor(category) : "#2c3e50"
                                     font.bold: (index === 2 || index === 3)
                                 }
@@ -419,40 +438,82 @@ Page {
 
     Dialog {
         id: logDetailsDialog
-        modal: true; header: null; width: 500; height: 400; anchors.centerIn: parent; padding: 20
+        modal: true
+        header: null
+        width: 500
+        height: 400
+        anchors.centerIn: parent
+        padding: 20
+
         property var currentData: ({})
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 15
-            Label { Layout.fillWidth: true; text: "Детали события"; font.bold: true; font.pixelSize: 18; color: "#2c3e50"; horizontalAlignment: Text.AlignHCenter }
+            anchors.fill: parent
+            spacing: 15
+            Label {
+                Layout.fillWidth: true
+                text: "Детали события"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#2c3e50"
+                horizontalAlignment: Text.AlignHCenter
+            }
 
             GridLayout {
-                columns: 2; Layout.fillWidth: true; columnSpacing: 10; rowSpacing: 10
+                columns: 2
+                Layout.fillWidth: true
+                columnSpacing: 10
+                rowSpacing: 10
+
                 Label { text: "ID:"; font.bold: true; color: "#7f8c8d"; font.pixelSize: 14 }
                 Label { text: logDetailsDialog.currentData.id || "-"; font.pixelSize: 14 }
+
                 Label { text: "Время:"; font.bold: true; color: "#7f8c8d"; font.pixelSize: 14 }
                 Label { text: formatDate(logDetailsDialog.currentData.timestamp); font.pixelSize: 14 }
+
                 Label { text: "Пользователь:"; font.bold: true; color: "#7f8c8d"; font.pixelSize: 14 }
                 Label { text: logDetailsDialog.currentData.user_login || "System"; font.bold: true; font.pixelSize: 14 }
+
                 Label { text: "Категория:"; font.bold: true; color: "#7f8c8d"; font.pixelSize: 14 }
                 Label { text: logDetailsDialog.currentData.category || "-"; color: getCategoryColor(logDetailsDialog.currentData.category); font.bold: true; font.pixelSize: 14 }
+
                 Label { text: "Действие:"; font.bold: true; color: "#7f8c8d"; font.pixelSize: 14 }
                 Label { text: logDetailsDialog.currentData.action || "-"; font.pixelSize: 14 }
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#e0e0e0" }
-            Label { text: "Полное описание:"; font.bold: true; color: "#34495e"; font.pixelSize: 14 }
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: "#e0e0e0"
+            }
+            Label {
+                text: "Полное описание:"
+                font.bold: true
+                color: "#34495e"
+                font.pixelSize: 14
+            }
 
             ScrollView {
-                Layout.fillWidth: true; Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 TextArea {
                     readOnly: true
                     text: logDetailsDialog.currentData.description || ""
                     wrapMode: Text.Wrap
                     color: "#2c3e50"
                     font.pixelSize: 14
-                    background: Rectangle { color: "#f8f9fa"; radius: 8; border.color: "#dce0e3" }
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 8
+                        border.color: "#dce0e3"
+                    }
                 }
             }
 
@@ -461,24 +522,62 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 120
                 Layout.preferredHeight: 40
-                background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                contentItem: Text { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle {
+                    color: parent.down ? "#7f8c8d" : "#95a5a6"
+                    radius: 8
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
                 onClicked: logDetailsDialog.close()
             }
         }
-        function openWithData(data) { currentData = data; open() }
+        function openWithData(data) {
+            currentData = data
+            open()
+        }
     }
 
     Dialog {
         id: messageDialog
-        modal: true; header: null; width: 350; height: 180; anchors.centerIn: parent; padding: 20
+        modal: true
+        header: null
+        width: 350
+        height: 180
+        anchors.centerIn: parent
+        padding: 20
         property string errorMsg: "Ошибка"
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { text: "Ошибка"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
-            Label { id: msgTextLabel; Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14 }
+            anchors.fill: parent
+            spacing: 10
+            Label {
+                text: "Ошибка"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#e74c3c"
+                Layout.alignment: Qt.AlignHCenter
+            }
+            Label {
+                id: msgTextLabel
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                text: messageDialog.errorMsg
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 14
+            }
             Button {
                 text: "Закрыть"
                 Layout.alignment: Qt.AlignHCenter

@@ -15,6 +15,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appproject
     main.cpp
+    logo.rc
 )
 
 qt_add_qml_module(appproject
@@ -22,7 +23,7 @@ qt_add_qml_module(appproject
     VERSION 1.0
     QML_FILES
         Main.qml
-        pages/CustomersPage.qml
+        pages/ClientsPage.qml
         pages/LoginPage.qml
         pages/AccountManagementPage.qml
         pages/MastersOrdersPage.qml

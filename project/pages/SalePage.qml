@@ -10,7 +10,6 @@ Page {
     property int selectedRow: -1
     property bool isLoading: false
 
-    // Хранилище сырых данных для фильтрации
     property var allProductsData: []
 
     Rectangle {
@@ -18,20 +17,20 @@ Page {
         color: "#f8f9fa"
     }
 
-    // Индикатор загрузки
     MouseArea {
         anchors.fill: parent
         visible: root.isLoading
         hoverEnabled: true
         z: 99
+
         onClicked: {}
+
         BusyIndicator {
             anchors.centerIn: parent
             running: root.isLoading
         }
     }
 
-    // ЛОКАЛЬНАЯ МОДЕЛЬ ДАННЫХ (ОТОБРАЖАЕМАЯ)
     ListModel {
         id: productsModel
     }
@@ -62,7 +61,6 @@ Page {
         onActivated: updateProductList()
     }
 
-
     Shortcut {
         sequence: "Esc"
         enabled: root.visible
@@ -76,14 +74,11 @@ Page {
         }
     }
 
-    // СВЯЗЬ С C++
     Connections {
         target: DatabaseManager
 
         function onProductsLoaded(data) {
-            // Сохраняем сырые данные
             root.allProductsData = data
-            // Применяем фильтр (который заполнит productsModel)
             applyFilters()
             root.isLoading = false
         }
@@ -91,23 +86,13 @@ Page {
         function onProductOperationResult(success, message) {
             root.isLoading = false
             if (success) {
-                // Если успешно - обновляем список и закрываем окна
                 updateProductList()
 
-                if (kitAddDialog.opened) {
-                    kitAddDialog.close()
-                }
-                if (consumableAddDialog.opened) {
-                    consumableAddDialog.close()
-                }
-                if (productEditDialog.opened) {
-                    productEditDialog.close()
-                }
-                if (deleteConfirmationDialog.opened) {
-                    deleteConfirmationDialog.close()
-                }
+                if (kitAddDialog.opened) kitAddDialog.close()
+                if (consumableAddDialog.opened) consumableAddDialog.close()
+                if (productEditDialog.opened) productEditDialog.close()
+                if (deleteConfirmationDialog.opened) deleteConfirmationDialog.close()
 
-                // Для продажи - открываем окно успеха
                 if (saleDialog.opened) {
                     var sName = saleDialog.tempName
                     var sQty = saleDialog.tempQty
@@ -121,7 +106,6 @@ Page {
         }
     }
 
-    // ЛОГИКА ФИЛЬТРАЦИИ
     function applyFilters() {
         productsModel.clear()
         var searchText = searchField.text.toLowerCase().trim()
@@ -130,10 +114,9 @@ Page {
 
         for (var i = 0; i < root.allProductsData.length; i++) {
             var item = root.allProductsData[i]
-            // Фильтрация по названию
-            if (searchText === "" || item.name.toLowerCase().includes(searchText)) {
+
+            if (searchText === "" || item.name.toLowerCase().includes(searchText))
                 productsModel.append(item)
-            }
         }
     }
 
@@ -151,6 +134,7 @@ Page {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             color: "#2c3e50"
+
             background: Rectangle {
                 color: "#ffffff"
                 radius: 10
@@ -159,7 +143,6 @@ Page {
             }
         }
 
-        // ПАНЕЛЬ УПРАВЛЕНИЯ (ТИП + ПОИСК)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
@@ -227,16 +210,33 @@ Page {
                     checked: true
                     font.pixelSize: 14
                     ButtonGroup.group: productTypeGroup
-                    // Стилизация индикатора (как была)
+
                     indicator: Rectangle {
-                        implicitWidth: 22; implicitHeight: 22
+                        implicitWidth: 22
+                        implicitHeight: 22
                         x: kitsRadio.leftPadding
                         y: parent.height / 2 - height / 2
                         radius: 11
-                        border.color: kitsRadio.checked ? "#3498db" : "#bdc3c7"; border.width: 2
-                        Rectangle { anchors.centerIn: parent; width: 12; height: 12; radius: 6; color: "#3498db"; visible: kitsRadio.checked }
+                        border.color: kitsRadio.checked ? "#3498db" : "#bdc3c7"
+                        border.width: 2
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 12
+                            height: 12
+                            radius: 6
+                            color: "#3498db"
+                            visible: kitsRadio.checked
+                        }
                     }
-                    contentItem: Text { text: kitsRadio.text; font: kitsRadio.font; color: "#2c3e50"; verticalAlignment: Text.AlignVCenter; leftPadding: kitsRadio.indicator.width + kitsRadio.spacing }
+
+                    contentItem: Text {
+                        text: kitsRadio.text
+                        font: kitsRadio.font
+                        color: "#2c3e50"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: kitsRadio.indicator.width + kitsRadio.spacing
+                    }
                 }
 
                 RadioButton {
@@ -244,28 +244,45 @@ Page {
                     text: "Расходная фурнитура"
                     font.pixelSize: 14
                     ButtonGroup.group: productTypeGroup
-                    // Стилизация индикатора (как была)
+
                     indicator: Rectangle {
-                        implicitWidth: 22; implicitHeight: 22
+                        implicitWidth: 22
+                        implicitHeight: 22
                         x: consumablesRadio.leftPadding
                         y: parent.height / 2 - height / 2
                         radius: 11
-                        border.color: consumablesRadio.checked ? "#3498db" : "#bdc3c7"; border.width: 2
-                        Rectangle { anchors.centerIn: parent; width: 12; height: 12; radius: 6; color: "#3498db"; visible: consumablesRadio.checked }
+                        border.color: consumablesRadio.checked ? "#3498db" : "#bdc3c7"
+                        border.width: 2
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 12
+                            height: 12
+                            radius: 6
+                            color: "#3498db"
+                            visible: consumablesRadio.checked
+                        }
                     }
-                    contentItem: Text { text: consumablesRadio.text; font: consumablesRadio.font; color: "#2c3e50"; verticalAlignment: Text.AlignVCenter; leftPadding: consumablesRadio.indicator.width + consumablesRadio.spacing }
+
+                    contentItem: Text {
+                        text: consumablesRadio.text
+                        font: consumablesRadio.font
+                        color: "#2c3e50"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: consumablesRadio.indicator.width + consumablesRadio.spacing
+                    }
                 }
 
-                // РАЗДЕЛИТЕЛЬ И ПОЛЕ ПОИСКА
-                Item { Layout.fillWidth: true } // Растяжка, чтобы поиск прижался вправо или занял место
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 TextField {
                     id: searchField
                     Layout.preferredWidth: 250
-                    Layout.fillWidth: true // Если нужно, чтобы занимал все свободное место
+                    Layout.fillWidth: true
                     Layout.maximumWidth: 400
                     Layout.rightMargin: 10
-
                     placeholderText: "Поиск по названию..."
                     font.pixelSize: 14
                     color: "#000000"
@@ -277,7 +294,6 @@ Page {
                         border.width: 1
                     }
 
-                    // При изменении текста обновляем фильтр
                     onTextChanged: applyFilters()
                 }
             }
@@ -348,17 +364,15 @@ Page {
                         border.color: "#e9ecef"
                         border.width: 1
 
-                        // Данные строки
                         property var rowData: productsModel.get(index)
 
-                        // Обработка клика по строке
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
+
                             onClicked: {
                                 root.selectedRow = index
-                                // Передаем данные из модели в диалог
                                 productEditDialog.openWithData(rowDelegate.rowData, productTypeGroup.checkedButton === kitsRadio)
                             }
 
@@ -368,7 +382,6 @@ Page {
                             }
                         }
 
-                        // Отрисовка ячеек (столбцов)
                         Row {
                             anchors.fill: parent
 
@@ -389,7 +402,6 @@ Page {
                                         color: "#2c3e50"
                                         font.pixelSize: 13
 
-                                        // Логика отображения текста
                                         text: {
                                             var col = index
                                             var data = rowDelegate.rowData
@@ -435,10 +447,12 @@ Page {
                 font.pixelSize: 14
                 padding: 12
                 Layout.preferredWidth: 160
+
                 background: Rectangle {
                     color: parent.down ? "#27ae60" : "#2ecc71"
                     radius: 8
                 }
+
                 contentItem: Text {
                     text: parent.text
                     color: "white"
@@ -467,10 +481,12 @@ Page {
                 font.pixelSize: 14
                 padding: 12
                 Layout.preferredWidth: 160
+
                 background: Rectangle {
                     color: parent.down ? "#2980b9" : "#3498db"
                     radius: 8
                 }
+
                 contentItem: Text {
                     text: parent.text
                     color: "white"
@@ -489,7 +505,6 @@ Page {
         }
     }
 
-    // --- ДИАЛОГИ БЕЗ ИЗМЕНЕНИЙ (НИЖЕ) ---
     Dialog {
         id: productEditDialog
         modal: true
@@ -498,7 +513,6 @@ Page {
         height: 420
         anchors.centerIn: parent
         padding: 0
-
         property int currentRow: -1
         property bool isKit: true
         property var currentData: ({})
@@ -528,16 +542,19 @@ Page {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 5
+
                 Label {
                     text: "Название:"
                     font.bold: true
                     color: "#34495e"
                     font.pixelSize: 13
                 }
+
                 TextField {
                     id: editNameField
                     Layout.fillWidth: true
                     font.pixelSize: 14
+
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 6
@@ -550,18 +567,21 @@ Page {
                 Layout.fillWidth: true
                 spacing: 5
                 visible: productEditDialog.isKit
+
                 Label {
                     text: "Описание:"
                     font.bold: true
                     color: "#34495e"
                     font.pixelSize: 13
                 }
+
                 TextArea {
                     id: editDescriptionField
                     Layout.fillWidth: true
                     Layout.preferredHeight: 70
                     wrapMode: TextArea.Wrap
                     font.pixelSize: 14
+
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 6
@@ -579,22 +599,26 @@ Page {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     spacing: 5
+
                     Label {
                         text: "Тип:"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
                     }
+
                     ComboBox {
                         id: editTypeField
                         Layout.fillWidth: true
                         font.pixelSize: 14
                         model: ["инструменты", "материалы", "аксессуары", "прочее"]
+
                         background: Rectangle {
                             color: "#f8f9fa"
                             radius: 6
                             border.color: "#dce0e3"
                         }
+
                         contentItem: Text {
                             text: editTypeField.displayText
                             font: editTypeField.font
@@ -604,26 +628,31 @@ Page {
                         }
                     }
                 }
+
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     spacing: 5
+
                     Label {
                         text: "Ед. изм.:"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
                     }
+
                     ComboBox {
                         id: editUnitField
                         Layout.fillWidth: true
                         font.pixelSize: 14
                         model: ["шт", "набор", "метр", "упаковка"]
+
                         background: Rectangle {
                             color: "#f8f9fa"
                             radius: 6
                             border.color: "#dce0e3"
                         }
+
                         contentItem: Text {
                             text: editUnitField.displayText
                             font: editUnitField.font
@@ -643,20 +672,24 @@ Page {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     spacing: 5
+
                     Label {
                         text: productEditDialog.isKit ? "Цена (₽):" : "Цена/ед. (₽):"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
                     }
+
                     TextField {
                         id: editPriceField
                         Layout.fillWidth: true
                         font.pixelSize: 14
+
                         validator: DoubleValidator {
                             bottom: 0
                             decimals: 2
                         }
+
                         background: Rectangle {
                             color: "#f8f9fa"
                             radius: 6
@@ -669,12 +702,14 @@ Page {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     spacing: 5
+
                     Label {
                         text: "Количество:"
                         font.bold: true
                         color: "#34495e"
                         font.pixelSize: 13
                     }
+
                     SpinBox {
                         id: editQuantityField
                         Layout.fillWidth: true
@@ -710,6 +745,7 @@ Page {
                             radius: 6
                             color: editQuantityField.down.pressed ? "#bdc3c7" : "#e0e0e0"
                             border.color: "#bdc3c7"
+
                             Rectangle {
                                 x: parent.width - radius
                                 width: radius
@@ -717,6 +753,7 @@ Page {
                                 color: parent.color
                                 visible: true
                             }
+
                             Text {
                                 text: "-"
                                 font.pixelSize: 18
@@ -733,6 +770,7 @@ Page {
                             radius: 6
                             color: editQuantityField.up.pressed ? "#bdc3c7" : "#e0e0e0"
                             border.color: "#bdc3c7"
+
                             Rectangle {
                                 x: 0
                                 width: radius
@@ -740,6 +778,7 @@ Page {
                                 color: parent.color
                                 visible: true
                             }
+
                             Text {
                                 text: "+"
                                 font.pixelSize: 18
@@ -774,10 +813,12 @@ Page {
                     text: "Удалить"
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: 38
+
                     background: Rectangle {
                         color: parent.down ? "#c0392b" : "#e74c3c"
                         radius: 8
                     }
+
                     contentItem: Text {
                         text: parent.text
                         color: "white"
@@ -786,6 +827,7 @@ Page {
                         font.bold: true
                         font.pixelSize: 13
                     }
+
                     onClicked: deleteConfirmationDialog.open()
                 }
 
@@ -797,10 +839,12 @@ Page {
                     text: "Отмена"
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: 38
+
                     background: Rectangle {
                         color: parent.down ? "#7f8c8d" : "#95a5a6"
                         radius: 8
                     }
+
                     contentItem: Text {
                         text: parent.text
                         color: "white"
@@ -809,6 +853,7 @@ Page {
                         font.bold: true
                         font.pixelSize: 13
                     }
+
                     onClicked: productEditDialog.close()
                 }
 
@@ -816,10 +861,12 @@ Page {
                     text: "Сохранить"
                     Layout.preferredWidth: 100
                     Layout.preferredHeight: 38
+
                     background: Rectangle {
                         color: parent.down ? "#27ae60" : "#2ecc71"
                         radius: 8
                     }
+
                     contentItem: Text {
                         text: parent.text
                         color: "white"
@@ -828,11 +875,11 @@ Page {
                         font.bold: true
                         font.pixelSize: 13
                     }
+
                     onClicked: {
                         if (productEditDialog.validateForm()) {
                             root.isLoading = true
                             if (productEditDialog.isKit) {
-                                // АСИНХРОННЫЙ ВЫЗОВ
                                 DatabaseManager.updateEmbroideryKitAsync(
                                     productEditDialog.currentData.id,
                                     editNameField.text,
@@ -841,7 +888,6 @@ Page {
                                     editQuantityField.value
                                 )
                             } else {
-                                // АСИНХРОННЫЙ ВЫЗОВ
                                 DatabaseManager.updateConsumableAsync(
                                     productEditDialog.currentData.id,
                                     editNameField.text,
@@ -874,11 +920,10 @@ Page {
 
         function openWithData(data, isKit) {
             productEditDialog.isKit = isKit
-            // Клонируем данные из переданного объекта (rowData)
             productEditDialog.currentData = {
                 id: data.id,
                 name: data.name,
-                price: data.price || data.price_per_unit, // Учитываем разницу в полях
+                price: data.price || data.price_per_unit,
                 stock_quantity: data.stock_quantity,
                 description: data.description,
                 type: data.type,
@@ -955,10 +1000,12 @@ Page {
                     text: "Отмена"
                     Layout.preferredWidth: 120
                     Layout.preferredHeight: 40
+
                     background: Rectangle {
                         color: parent.down ? "#7f8c8d" : "#95a5a6"
                         radius: 8
                     }
+
                     contentItem: Text {
                         text: parent.text
                         color: "white"
@@ -966,6 +1013,7 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         font.bold: true
                     }
+
                     onClicked: deleteConfirmationDialog.close()
                 }
 
@@ -973,10 +1021,12 @@ Page {
                     text: "Удалить"
                     Layout.preferredWidth: 120
                     Layout.preferredHeight: 40
+
                     background: Rectangle {
                         color: parent.down ? "#c0392b" : "#e74c3c"
                         radius: 8
                     }
+
                     contentItem: Text {
                         text: parent.text
                         color: "white"
@@ -984,13 +1034,12 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         font.bold: true
                     }
+
                     onClicked: {
                         root.isLoading = true
                         if (productEditDialog.isKit) {
-                            // АСИНХРОННЫЙ ВЫЗОВ
                             DatabaseManager.deleteEmbroideryKitAsync(productEditDialog.currentData.id)
                         } else {
-                            // АСИНХРОННЫЙ ВЫЗОВ
                             DatabaseManager.deleteConsumableAsync(productEditDialog.currentData.id)
                         }
                     }
@@ -1007,13 +1056,11 @@ Page {
         height: 500
         anchors.centerIn: parent
         padding: 20
-
         property double unitPrice: 0
         property int availableStock: 0
         property int productId: -1
         property bool isKit: true
 
-        // Временные переменные для передачи в диалог успеха после закрытия этого диалога
         property string tempName: ""
         property int tempQty: 0
         property double tempTotal: 0
@@ -1041,20 +1088,22 @@ Page {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 8
+
                 Label {
                     text: "Выберите товар:"
                     font.bold: true
                     color: "#34495e"
                 }
+
                 ComboBox {
                     id: productComboBox
                     Layout.fillWidth: true
-                    // ИСПОЛЬЗУЕМ ЛОКАЛЬНУЮ МОДЕЛЬ
                     model: ListModel {
                         id: productsComboModel
                     }
                     textRole: "display"
                     onActivated: saleDialog.updateProductInfo()
+
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 6
@@ -1084,13 +1133,16 @@ Page {
                     color: "#e8f5e8"
                     radius: 8
                     border.color: "#27ae60"
+
                     ColumnLayout {
                         anchors.centerIn: parent
+
                         Label {
                             text: "Цена за ед."
                             color: "#27ae60"
                             font.pixelSize: 12
                         }
+
                         Label {
                             text: saleDialog.unitPrice.toFixed(2) + " ₽"
                             font.bold: true
@@ -1099,19 +1151,23 @@ Page {
                         }
                     }
                 }
+
                 Rectangle {
                     Layout.fillWidth: true
                     height: 70
                     color: "#e3f2fd"
                     radius: 8
                     border.color: "#3498db"
+
                     ColumnLayout {
                         anchors.centerIn: parent
+
                         Label {
                             text: "На складе"
                             color: "#3498db"
                             font.pixelSize: 12
                         }
+
                         Label {
                             text: saleDialog.availableStock + " шт"
                             font.bold: true
@@ -1125,6 +1181,7 @@ Page {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 8
+
                 Label {
                     text: "Количество:"
                     font.bold: true
@@ -1218,18 +1275,22 @@ Page {
                 color: "#fff3cd"
                 radius: 8
                 border.color: "#ffc107"
+
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 15
+
                     Label {
                         text: "Итого к оплате:"
                         font.bold: true
                         color: "#e67e22"
                         font.pixelSize: 16
                     }
+
                     Item {
                         Layout.fillWidth: true
                     }
+
                     Label {
                         id: totalAmountLabel
                         text: "0 ₽"
@@ -1263,10 +1324,12 @@ Page {
                         text: "Отмена"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
+
                         background: Rectangle {
                             color: parent.down ? "#7f8c8d" : "#95a5a6"
                             radius: 8
                         }
+
                         contentItem: Text {
                             text: parent.text
                             color: "white"
@@ -1275,6 +1338,7 @@ Page {
                             font.bold: true
                             font.pixelSize: 13
                         }
+
                         onClicked: saleDialog.close()
                     }
 
@@ -1282,10 +1346,12 @@ Page {
                         text: "Продать"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
+
                         background: Rectangle {
                             color: parent.down ? "#27ae60" : "#2ecc71"
                             radius: 8
                         }
+
                         contentItem: Text {
                             text: parent.text
                             color: "white"
@@ -1294,6 +1360,7 @@ Page {
                             font.bold: true
                             font.pixelSize: 13
                         }
+
                         onClicked: saleDialog.processSale()
                     }
                 }
@@ -1332,9 +1399,9 @@ Page {
             tempTotal = saleDialog.unitPrice * quantitySpinBox.value
 
             root.isLoading = true
-            // АСИНХРОННЫЙ ВЫЗОВ (Транзакция)
             DatabaseManager.processRetailSaleAsync(saleDialog.productId, saleDialog.isKit, quantitySpinBox.value, saleDialog.unitPrice)
         }
+
         onOpened: {
             saleValidationError.visible = false
             quantitySpinBox.value = 1
@@ -1362,7 +1429,6 @@ Page {
         height: 250
         anchors.centerIn: parent
         padding: 20
-
         property string productName: ""
         property int quantity: 0
         property double totalAmount: 0
@@ -1398,17 +1464,21 @@ Page {
                 Layout.preferredHeight: 80
                 color: "#f8f9fa"
                 radius: 8
+
                 ColumnLayout {
                     anchors.centerIn: parent
+
                     Label {
                         text: saleSuccessDialog.productName
                         font.bold: true
                         font.pixelSize: 14
                     }
+
                     Label {
                         text: saleSuccessDialog.quantity + " шт. x " + (saleSuccessDialog.totalAmount / saleSuccessDialog.quantity).toFixed(2)
                         font.pixelSize: 14
                     }
+
                     Label {
                         text: "Итого: " + saleSuccessDialog.totalAmount.toFixed(2) + " ₽"
                         color: "#27ae60"
@@ -1422,15 +1492,18 @@ Page {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 50
                 color: "transparent"
+
                 Button {
                     text: "OK"
                     anchors.centerIn: parent
                     width: 100
                     height: 40
+
                     background: Rectangle {
                         color: parent.down ? "#27ae60" : "#2ecc71"
                         radius: 8
                     }
+
                     contentItem: Text {
                         text: parent.text
                         color: "white"
@@ -1438,6 +1511,7 @@ Page {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
+
                     onClicked: saleSuccessDialog.close()
                 }
             }
@@ -1489,10 +1563,12 @@ Page {
                     font.bold: true
                     font.pixelSize: 14
                 }
+
                 TextField {
                     id: addKitNameField
                     Layout.fillWidth: true
                     font.pixelSize: 14
+
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 6
@@ -1505,11 +1581,13 @@ Page {
                     font.bold: true
                     font.pixelSize: 14
                 }
+
                 TextArea {
                     id: addKitDescriptionField
                     Layout.fillWidth: true
                     font.pixelSize: 14
                     Layout.preferredHeight: 80
+
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 6
@@ -1519,16 +1597,19 @@ Page {
 
                 RowLayout {
                     spacing: 15
+
                     ColumnLayout {
                         Label {
                             text: "Цена:"
                             font.bold: true
                             font.pixelSize: 14
                         }
+
                         TextField {
                             id: addKitPriceField
                             Layout.fillWidth: true
                             font.pixelSize: 14
+
                             background: Rectangle {
                                 color: "#f8f9fa"
                                 radius: 6
@@ -1536,17 +1617,20 @@ Page {
                             }
                         }
                     }
+
                     ColumnLayout {
                         Label {
                             text: "Кол-во:"
                             font.bold: true
                             font.pixelSize: 14
                         }
+
                         SpinBox {
                             id: addKitQuantityField
                             value: 0
                             to: 1000
                             Layout.preferredHeight: 30
+
                             background: Rectangle {
                                 implicitWidth: 140
                                 color: "#f8f9fa"
@@ -1642,10 +1726,12 @@ Page {
                         text: "Отмена"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
+
                         background: Rectangle {
                             color: parent.down ? "#7f8c8d" : "#95a5a6"
                             radius: 8
                         }
+
                         contentItem: Text {
                             text: parent.text
                             color: "white"
@@ -1654,16 +1740,20 @@ Page {
                             verticalAlignment: Text.AlignVCenter
                             font.pixelSize: 13
                         }
+
                         onClicked: kitAddDialog.close()
                     }
+
                     Button {
                         text: "Добавить"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
+
                         background: Rectangle {
                             color: parent.down ? "#27ae60" : "#2ecc71"
                             radius: 8
                         }
+
                         contentItem: Text {
                             text: parent.text
                             color: "white"
@@ -1672,10 +1762,10 @@ Page {
                             verticalAlignment: Text.AlignVCenter
                             font.pixelSize: 13
                         }
+
                         onClicked: {
                             if (addKitNameField.text.length > 0 && parseFloat(addKitPriceField.text) > 0) {
                                 root.isLoading = true
-                                // АСИНХРОННЫЙ ВЫЗОВ
                                 DatabaseManager.addEmbroideryKitAsync(addKitNameField.text, addKitDescriptionField.text, parseFloat(addKitPriceField.text), addKitQuantityField.value)
                             } else {
                                 kitValidationError.text = "Проверьте данные"
@@ -1686,13 +1776,13 @@ Page {
                 }
             }
         }
+
         onOpened: {
             addKitNameField.text = ""
             addKitDescriptionField.text = ""
             addKitPriceField.text = ""
             addKitQuantityField.value = 0
             kitValidationError.visible = false
-
             addKitNameField.forceActiveFocus()
         }
     }
@@ -1735,10 +1825,12 @@ Page {
                     font.bold: true
                     font.pixelSize: 14
                 }
+
                 TextField {
                     id: addConsumableNameField
                     Layout.fillWidth: true
                     font.pixelSize: 14
+
                     background: Rectangle {
                         color: "#f8f9fa"
                         radius: 6
@@ -1751,6 +1843,7 @@ Page {
                     font.bold: true
                     font.pixelSize: 14
                 }
+
                 ComboBox {
                     id: addConsumableTypeField
                     Layout.fillWidth: true
@@ -1762,6 +1855,7 @@ Page {
                         radius: 6
                         border.color: "#dce0e3"
                     }
+
                     contentItem: Text {
                         text: addConsumableTypeField.displayText
                         font: addConsumableTypeField.font
@@ -1778,20 +1872,24 @@ Page {
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
+
                         Label {
                             text: "Цена за ед.:"
                             font.bold: true
                             font.pixelSize: 14
                         }
+
                         TextField {
                             id: addConsumablePriceField
                             Layout.fillWidth: true
                             font.pixelSize: 14
                             placeholderText: "0.00"
+
                             validator: DoubleValidator {
                                 bottom: 0.0
                                 decimals: 2
                             }
+
                             background: Rectangle {
                                 color: "#f8f9fa"
                                 radius: 6
@@ -1803,11 +1901,13 @@ Page {
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
+
                         Label {
                             text: "Ед. изм.:"
                             font.bold: true
                             font.pixelSize: 14
                         }
+
                         ComboBox {
                             id: addConsumableUnitField
                             Layout.fillWidth: true
@@ -1819,6 +1919,7 @@ Page {
                                 radius: 6
                                 border.color: "#dce0e3"
                             }
+
                             contentItem: Text {
                                 text: addConsumableUnitField.displayText
                                 font: addConsumableUnitField.font
@@ -1832,11 +1933,13 @@ Page {
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
+
                         Label {
                             text: "Количество:"
                             font.bold: true
                             font.pixelSize: 14
                         }
+
                         SpinBox {
                             id: addConsumableQuantityField
                             value: 0
@@ -1940,10 +2043,12 @@ Page {
                         text: "Отмена"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
+
                         background: Rectangle {
                             color: parent.down ? "#7f8c8d" : "#95a5a6"
                             radius: 8
                         }
+
                         contentItem: Text {
                             text: parent.text
                             color: "white"
@@ -1951,16 +2056,20 @@ Page {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
+
                         onClicked: consumableAddDialog.close()
                     }
+
                     Button {
                         text: "Добавить"
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 40
+
                         background: Rectangle {
                             color: parent.down ? "#27ae60" : "#2ecc71"
                             radius: 8
                         }
+
                         contentItem: Text {
                             text: parent.text
                             color: "white"
@@ -1968,10 +2077,10 @@ Page {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
+
                         onClicked: {
                             if (addConsumableNameField.text.length > 0 && parseFloat(addConsumablePriceField.text) > 0) {
                                 root.isLoading = true
-                                // АСИНХРОННЫЙ ВЫЗОВ
                                 DatabaseManager.addConsumableAsync(
                                     addConsumableNameField.text,
                                     addConsumableTypeField.currentText,
@@ -1996,7 +2105,6 @@ Page {
             addConsumableUnitField.currentIndex = 0
             addConsumableQuantityField.value = 0
             consumableValidationError.visible = false
-
             addConsumableNameField.forceActiveFocus()
         }
     }

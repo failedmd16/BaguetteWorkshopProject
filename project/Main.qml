@@ -63,7 +63,7 @@ ApplicationWindow {
     function loadLoginPage() {
        let loginComponent = Qt.createComponent("pages/LoginPage.qml")
        if (loginComponent.status === Component.Ready) {
-           stack.replace(loginComponent) // Используем replace, чтобы очистить историю
+           stack.replace(loginComponent)
            let loginItem = stack.currentItem
            connectLoginSignals(loginItem)
        } else {
@@ -94,7 +94,7 @@ ApplicationWindow {
 
        loginItem.loginSellerSuccess.connect(function() {
            sellerLogged = true
-           stack.push("pages/CustomersPage.qml")
+           stack.push("pages/ClientsPage.qml")
            headerLabel.text = "Покупатели"
        })
 
@@ -153,7 +153,7 @@ ApplicationWindow {
                 }
 
                 onClicked: {
-                    stack.push("pages/CustomersPage.qml")
+                    stack.push("pages/ClientsPage.qml")
                     headerLabel.text = "Покупатели"
                 }
             }

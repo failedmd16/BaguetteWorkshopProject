@@ -10,24 +10,29 @@ Page {
     property int selectedRow: -1
     property bool isLoading: false
 
-    // Хранилище всех заказов для локальной фильтрации
     property var allOrders: []
-    // Флаг, что фильтр по датам активен
     property bool dateFilterActive: false
+
+    property int lastCreatedOrderId: -1
+    property bool isWaitingForNewOrder: false
 
     Rectangle {
         anchors.fill: parent
         color: "#f8f9fa"
     }
 
-    // Индикатор загрузки
     MouseArea {
-        anchors.fill: parent; visible: root.isLoading; hoverEnabled: true; z: 99
+        anchors.fill: parent
+        visible: root.isLoading
+        hoverEnabled: true
+        z: 99
         onClicked: {}
-        BusyIndicator { anchors.centerIn: parent; running: root.isLoading }
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: root.isLoading
+        }
     }
 
-    // --- МОДЕЛИ ---
     ListModel { id: ordersModel }
     ListModel { id: customersModel }
     ListModel { id: kitsModel }
@@ -52,9 +57,8 @@ Page {
         sequence: "Ctrl+N"
         enabled: root.visible && !root.isLoading
         onActivated: {
-            if (!orderAddDialog.opened && !orderEditDialog.opened) {
+            if (!orderAddDialog.opened && !orderEditDialog.opened)
                 orderAddDialog.open()
-            }
         }
     }
 
@@ -77,55 +81,66 @@ Page {
         }
     }
 
-    // --- СВЯЗЬ С C++ ---
     Connections {
         target: DatabaseManager
 
-        // 1. Загрузка списка заказов
         function onOrdersLoaded(data) {
-            root.allOrders = data // Сохраняем "сырые" данные
-            applyFilters() // Применяем фильтры и заполняем модель
+            root.allOrders = data
+            applyFilters()
             root.isLoading = false
+
+            if (root.isWaitingForNewOrder) {
+                if (root.allOrders.length > 0)
+                    root.lastCreatedOrderId = root.allOrders[0].id
+                root.isWaitingForNewOrder = false
+                orderCreatedMessage.open()
+            }
         }
 
-        // 2. Загрузка справочников
         function onReferenceDataLoaded(data) {
             customersModel.clear()
             var custs = data["customers"] || []
-            for(var i=0; i<custs.length; i++) customersModel.append(custs[i])
+            for(var i=0; i<custs.length; i++)
+                customersModel.append(custs[i])
 
             kitsModel.clear()
             var kits = data["kits"] || []
-            for(var j=0; j<kits.length; j++) kitsModel.append(kits[j])
+            for(var j=0; j<kits.length; j++)
+                kitsModel.append(kits[j])
 
             frameMaterialsModel.clear()
             var mats = data["materials"] || []
-            for(var k=0; k<mats.length; k++) frameMaterialsModel.append(mats[k])
+            for(var k=0; k<mats.length; k++)
+                frameMaterialsModel.append(mats[k])
 
             furnitureModel.clear()
             var furn = data["furniture"] || []
-            for(var f=0; f<furn.length; f++) furnitureModel.append(furn[f])
+            for(var f=0; f<furn.length; f++)
+                furnitureModel.append(furn[f])
 
             mastersModel.clear()
             mastersModel.append({id: -1, display: "Не назначен"})
             var mas = data["masters"] || []
-            for(var m=0; m<mas.length; m++) mastersModel.append(mas[m])
+            for(var m=0; m<mas.length; m++)
+                mastersModel.append(mas[m])
         }
 
-        // 3. Результат операций
         function onOrderOperationResult(success, message) {
             root.isLoading = false
+
             if(success) {
                 if(orderAddDialog.opened) {
                     orderAddDialog.close()
-                    orderCreatedMessage.open()
+                    root.isWaitingForNewOrder = true
                 }
+
                 if(orderEditDialog.opened) orderEditDialog.close()
                 if(deleteConfirmDialog.opened) deleteConfirmDialog.close()
                 if(orderDetailsDialog.opened && deleteConfirmDialog.opened) orderDetailsDialog.close()
 
                 refreshTable()
             } else {
+                root.isWaitingForNewOrder = false
                 if (orderAddDialog.opened) {
                     addOrderValidationError.text = message
                     addOrderValidationError.visible = true
@@ -137,29 +152,39 @@ Page {
 
         function onStatusUpdateResult(success, message) {
             root.isLoading = false
-            if (success) {
+            if (success)
                 refreshTable()
-            } else {
+            else
                 console.log("Ошибка смены статуса: " + message)
-            }
+        }
+
+        function onPdfGenerated(success, pathOrMessage) {
+            root.isLoading = false
+            if (!success)
+                messageDialog.showError("Ошибка печати: " + pathOrMessage)
         }
     }
-
-    // --- ЛОГИКА ---
 
     function isValidDate(dateString) {
         var regex = /^(\d{2})\.(\d{2})\.(\d{4})$/
         var match = dateString.match(regex)
-        if (!match) return false
+
+        if (!match)
+            return false
         var day = parseInt(match[1], 10)
         var month = parseInt(match[2], 10)
-        if (month < 1 || month > 12) return false
-        if (day < 1 || day > 31) return false
+
+        if (month < 1 || month > 12)
+            return false
+        if (day < 1 || day > 31)
+            return false
+
         return true
     }
 
     function parseDateString(dateString) {
         var parts = dateString.split(".")
+
         return new Date(parts[2], parts[1] - 1, parts[0])
     }
 
@@ -170,42 +195,39 @@ Page {
         var typeFilterText = typeFilter.currentText
         var searchText = searchField.text.toLowerCase().trim()
 
-        // Подготовка дат для фильтрации
         var filterStartDate = null
         var filterEndDate = null
 
         if (root.dateFilterActive && startDateField.text && endDateField.text) {
-             filterStartDate = parseDateString(startDateField.text)
-             filterEndDate = parseDateString(endDateField.text)
-             filterEndDate.setHours(23, 59, 59, 999)
+            filterStartDate = parseDateString(startDateField.text)
+            filterEndDate = parseDateString(endDateField.text)
+            filterEndDate.setHours(23, 59, 59, 999)
         }
 
         for (var i = 0; i < root.allOrders.length; i++) {
             var orderData = root.allOrders[i]
 
-            // 1. Фильтр по статусу
-            if (statusFilterText !== "Все статусы" && orderData.status !== statusFilterText) continue
+            if (statusFilterText !== "Все статусы" && orderData.status !== statusFilterText)
+                continue
 
-            // 2. Фильтр по типу
-            if (typeFilterText !== "Все типы" && orderData.order_type !== typeFilterText) continue
+            if (typeFilterText !== "Все типы" && orderData.order_type !== typeFilterText)
+                continue
 
-            // 3. Фильтр по дате
             if (root.dateFilterActive && filterStartDate && filterEndDate) {
                 var orderDate = new Date(orderData.created_at)
                 if (isNaN(orderDate.getTime()) && typeof orderData.created_at === 'string') {
-                     var safeDate = orderData.created_at.replace(" ", "T")
-                     orderDate = new Date(safeDate)
+                    var safeDate = orderData.created_at.replace(" ", "T")
+                    orderDate = new Date(safeDate)
                 }
-                if (orderDate < filterStartDate || orderDate > filterEndDate) continue
+                if (orderDate < filterStartDate || orderDate > filterEndDate)
+                    continue
             }
 
-            // 4. Поиск по тексту
             if (searchText) {
                 var orderNumber = (orderData.order_number || "").toLowerCase()
                 var customerName = (orderData.customer_name || "").toLowerCase()
-                if (!orderNumber.includes(searchText) && !customerName.includes(searchText)) {
+                if (!orderNumber.includes(searchText) && !customerName.includes(searchText))
                     continue
-                }
             }
             ordersModel.append(orderData)
         }
@@ -217,7 +239,8 @@ Page {
     }
 
     function createOrder() {
-        if (!validateForm()) return
+        if (!validateForm())
+            return
 
         root.isLoading = true
 
@@ -250,16 +273,23 @@ Page {
 
     function validateForm() {
         var errors = []
-        if (customerComboBox.currentIndex === -1) errors.push("• Выберите клиента из списка")
-        if (!totalAmountField.text || parseFloat(totalAmountField.text) <= 0) errors.push("• Введите корректную сумму заказа")
+        if (customerComboBox.currentIndex === -1)
+            errors.push("• Выберите клиента из списка")
+        if (!totalAmountField.text || parseFloat(totalAmountField.text) <= 0)
+            errors.push("• Введите корректную сумму заказа")
 
         if (orderTypeComboBox.currentText === "Изготовление рамки") {
-            if (!frameWidthField.text) errors.push("• Введите ширину")
-            if (!frameHeightField.text) errors.push("• Введите высоту")
-            if (materialComboBox.currentIndex === -1) errors.push("• Выберите багет")
-            if (furnitureComboBox.currentIndex === -1) errors.push("• Выберите фурнитуру")
+            if (!frameWidthField.text)
+                errors.push("• Введите ширину")
+            if (!frameHeightField.text)
+                errors.push("• Введите высоту")
+            if (materialComboBox.currentIndex === -1)
+                errors.push("• Выберите багет")
+            if (furnitureComboBox.currentIndex === -1)
+                errors.push("• Выберите фурнитуру")
         } else if (orderTypeComboBox.currentText === "Продажа набора") {
-            if (kitComboBox.currentIndex === -1) errors.push("• Выберите набор")
+            if (kitComboBox.currentIndex === -1)
+                errors.push("• Выберите набор")
         }
 
         if (errors.length > 0) {
@@ -272,18 +302,23 @@ Page {
     }
 
     function formatDate(dateString) {
-        if (!dateString) return "Не указана"
+        if (!dateString)
+            return "Не указана"
+
         var date = new Date(dateString)
+
         if (isNaN(date.getTime())) {
              var safe = String(dateString).replace(" ", "T")
              date = new Date(safe)
-             if (isNaN(date.getTime())) return "Неверная дата"
+             if (isNaN(date.getTime()))
+                return "Неверная дата"
         }
         return date.toLocaleDateString(Qt.locale("ru_RU"), "dd.MM.yyyy")
     }
 
     function getStatusColor(status) {
-        if (!status) return "#7f8c8d"
+        if (!status)
+            return "#7f8c8d"
         switch (status) {
             case 'Новый': return "#3498db"
             case 'В работе': return "#f39c12"
@@ -332,61 +367,101 @@ Page {
         totalAmountField.text = total > 0 ? total.toFixed(2) : ""
     }
 
-    // --- ИНТЕРФЕЙС ---
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 15
 
-        // Заголовок
         Label {
-            Layout.fillWidth: true; Layout.preferredHeight: 60
+            Layout.fillWidth: true
+            Layout.preferredHeight: 60
             text: "📦 Управление заказами"
-            font.bold: true; font.pixelSize: 20
-            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+            font.bold: true
+            font.pixelSize: 20
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
             color: "#2c3e50"
-            background: Rectangle { color: "#ffffff"; radius: 10; border.color: "#e0e0e0"; border.width: 1 }
+            background: Rectangle {
+                color: "#ffffff"
+                radius: 10
+                border.color: "#e0e0e0"
+                border.width: 1
+            }
         }
 
-        // БЛОК ФИЛЬТРАЦИИ (Всё в одну строку)
         Rectangle {
-            Layout.fillWidth: true; Layout.preferredHeight: 60
-            color: "#ffffff"; radius: 10; border.color: "#e0e0e0"
+            Layout.fillWidth: true
+            Layout.preferredHeight: 60
+            color: "#ffffff"
+            radius: 10
+            border.color: "#e0e0e0"
 
             RowLayout {
-                anchors.fill: parent; anchors.margins: 10; spacing: 10
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 10
 
-                // 1. Статус
                 ComboBox {
-                    id: statusFilter; Layout.preferredWidth: 150
+                    id: statusFilter
+                    Layout.preferredWidth: 150
                     model: ["Все статусы", "Новый", "В работе", "Готов", "Завершён", "Отменён"]
-                    contentItem: Text { text: statusFilter.displayText; color: "#000000"; font: statusFilter.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
-                    background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: statusFilter.activeFocus ? "#3498db" : "#dce0e3" }
+                    contentItem: Text {
+                        text: statusFilter.displayText
+                        color: "#000000"
+                        font: statusFilter.font
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignLeft
+                        elide: Text.ElideRight
+                        leftPadding: 12
+                    }
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 6
+                        border.color: statusFilter.activeFocus ? "#3498db" : "#dce0e3"
+                    }
                     onCurrentTextChanged: applyFilters()
                 }
 
-                // 2. Тип
                 ComboBox {
-                    id: typeFilter; Layout.preferredWidth: 160
+                    id: typeFilter
+                    Layout.preferredWidth: 160
                     model: ["Все типы", "Изготовление рамки", "Продажа набора"]
-                    contentItem: Text { text: typeFilter.displayText; color: "#000000"; font: typeFilter.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
-                    background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: typeFilter.activeFocus ? "#3498db" : "#dce0e3" }
+                    contentItem: Text {
+                        text: typeFilter.displayText
+                        color: "#000000"
+                        font: typeFilter.font
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignLeft
+                        elide: Text.ElideRight
+                        leftPadding: 12
+                    }
+                    background: Rectangle {
+                        color: "#f8f9fa"
+                        radius: 6
+                        border.color: typeFilter.activeFocus ? "#3498db" : "#dce0e3"
+                    }
                     onCurrentTextChanged: applyFilters()
                 }
 
-                // 3. Поиск (Занимает всё доступное место)
                 TextField {
-                    id: searchField; Layout.fillWidth: true; Layout.minimumWidth: 150
+                    id: searchField
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 150
                     placeholderText: "Поиск по номеру заказа или клиенту..."
                     font.pixelSize: 14
-                    background: Rectangle { color: "#f8f9fa"; radius: 8; border.color: searchField.activeFocus ? "#3498db" : "#dce0e3"; border.width: 1 }
+                    background: Rectangle { color: "#f8f9fa"
+                        radius: 8
+                        border.color: searchField.activeFocus ? "#3498db" : "#dce0e3"
+                        border.width: 1
+                    }
                     onTextChanged: applyFilters()
                 }
 
-                // --- ДАТЫ И КНОПКИ (Справа от поиска) ---
-
-                Label { text: "С:"; color: "#34495e"; font.bold: true }
+                Label {
+                    text: "С:"
+                    color: "#34495e"
+                    font.bold: true
+                }
 
                 TextField {
                     id: startDateField
@@ -396,13 +471,18 @@ Page {
                     padding: 8
                     enabled: !root.isLoading
                     background: Rectangle {
-                        color: "#f8f9fa"; radius: 8
+                        color: "#f8f9fa"
+                        radius: 8
                         border.color: startDateField.activeFocus ? "#3498db" : "#dce0e3"
                         border.width: 1
                     }
                 }
 
-                Label { text: "По:"; color: "#34495e"; font.bold: true }
+                Label {
+                    text: "По:"
+                    color: "#34495e"
+                    font.bold: true
+                }
 
                 TextField {
                     id: endDateField
@@ -412,7 +492,8 @@ Page {
                     padding: 8
                     enabled: !root.isLoading
                     background: Rectangle {
-                        color: "#f8f9fa"; radius: 8
+                        color: "#f8f9fa"
+                        radius: 8
                         border.color: endDateField.activeFocus ? "#3498db" : "#dce0e3"
                         border.width: 1
                     }
@@ -424,9 +505,20 @@ Page {
                     Layout.preferredWidth: 110
                     font.pixelSize: 13
                     enabled: !root.isLoading
-                    background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 8 }
-                    contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
-                    ToolTip.delay: 1000; ToolTip.visible: hovered; ToolTip.text: qsTr("Найти заказы за указанный период")
+                    background: Rectangle {
+                        color: parent.down ? "#2980b9" : "#3498db"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    ToolTip.delay: 1000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Найти заказы за указанный период")
 
                     onClicked: {
                         if (startDateField.text && endDateField.text && isValidDate(startDateField.text) && isValidDate(endDateField.text)) {
@@ -444,9 +536,20 @@ Page {
                     Layout.preferredWidth: 80
                     font.pixelSize: 13
                     enabled: !root.isLoading
-                    background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                    contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
-                    ToolTip.delay: 1000; ToolTip.visible: hovered; ToolTip.text: qsTr("Сбросить даты и показать все заказы")
+                    background: Rectangle {
+                        color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font: parent.font
+                    }
+                    ToolTip.delay: 1000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Сбросить даты и показать все заказы")
 
                     onClicked: {
                         startDateField.text = ""
@@ -461,62 +564,170 @@ Page {
             }
         }
 
-        // Шапка таблицы
         Rectangle {
-            Layout.fillWidth: true; Layout.preferredHeight: 50
-            color: "#3498db"; radius: 8
+            Layout.fillWidth: true
+            Layout.preferredHeight: 50
+            color: "#3498db"
+            radius: 8
             Row {
-                anchors.fill: parent; anchors.margins: 5; spacing: 1
+                anchors.fill: parent
+                anchors.margins: 5
+                spacing: 1
                 Repeater {
                     model: ["№ заказа", "Клиент", "Тип", "Статус", "Сумма", "Дата"]
                     Rectangle {
-                        width: (parent.width - 5) / 6; height: parent.height; color: "transparent"
-                        Text { anchors.centerIn: parent; text: modelData; color: "white"; font.bold: true; font.pixelSize: 14 }
+                        width: (parent.width - 5) / 6
+                        height: parent.height
+                        color: "transparent"
+                        Text {
+                            anchors.centerIn: parent
+                            text: modelData
+                            color: "white"
+                            font.bold: true
+                            font.pixelSize: 14
+                        }
                     }
                 }
             }
         }
 
-        // Таблица
         Rectangle {
             id: tableContainer
-            Layout.fillWidth: true; Layout.fillHeight: true
-            color: "#ffffff"; radius: 10; border.color: "#e0e0e0"; border.width: 1; clip: true
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: "#ffffff"
+            radius: 10
+            border.color: "#e0e0e0"
+            border.width: 1
+            clip: true
 
             ScrollView {
-                anchors.fill: parent; anchors.margins: 2; clip: true
-                ScrollBar.vertical.policy: ScrollBar.AlwaysOn; ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                anchors.fill: parent
+                anchors.margins: 2
+                clip: true
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 ListView {
                     id: ordersListView
-                    anchors.fill: parent; clip: true
+                    anchors.fill: parent
+                    clip: true
                     model: ordersModel
                     spacing: 0
 
                     delegate: Rectangle {
-                        width: ordersListView.width; height: 45
+                        width: ordersListView.width
+                        height: 45
                         color: index % 2 === 0 ? "#ffffff" : "#f8f9fa"
-                        border.color: "#e9ecef"; border.width: 1
+                        border.color: "#e9ecef"
+                        border.width: 1
 
                         MouseArea {
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.selectedRow = index
                                 orderDetailsDialog.openWithData(model)
                             }
-                            Rectangle { anchors.fill: parent; color: parent.containsMouse ? "#e3f2fd" : "transparent" }
+                            Rectangle {
+                                anchors.fill: parent
+                                color: parent.containsMouse ? "#e3f2fd" : "transparent"
+                            }
                         }
 
                         Row {
-                            anchors.fill: parent; anchors.margins: 5; spacing: 1
+                            anchors.fill: parent
+                            anchors.margins: 5
+                            spacing: 1
                             property int colWidth: (parent.width - 5) / 6
 
-                            Rectangle { width: parent.colWidth; height: parent.height; color: "transparent"; Text { anchors.fill: parent; anchors.margins: 5; text: model.order_number; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13; color: "#2c3e50" } }
-                            Rectangle { width: parent.colWidth; height: parent.height; color: "transparent"; Text { anchors.fill: parent; anchors.margins: 5; text: model.customer_name; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; font.pixelSize: 13; color: "#2c3e50" } }
-                            Rectangle { width: parent.colWidth; height: parent.height; color: "transparent"; Text { anchors.fill: parent; anchors.margins: 5; text: model.order_type; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13; color: "#2c3e50" } }
-                            Rectangle { width: parent.colWidth; height: parent.height; color: "transparent"; Text { anchors.fill: parent; anchors.margins: 5; text: model.status; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; color: getStatusColor(model.status); font.bold: true; font.pixelSize: 13 } }
-                            Rectangle { width: parent.colWidth; height: parent.height; color: "transparent"; Text { anchors.fill: parent; anchors.margins: 5; text: model.total_amount + " ₽"; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13; color: "#2c3e50" } }
-                            Rectangle { width: parent.colWidth; height: parent.height; color: "transparent"; Text { anchors.fill: parent; anchors.margins: 5; text: formatDate(model.created_at); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 13; color: "#2c3e50" } }
+                            Rectangle {
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 5
+                                    text: model.order_number
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 13
+                                    color: "#2c3e50"
+                                }
+                            }
+                            Rectangle {
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 5
+                                    text: model.customer_name
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    font.pixelSize: 13
+                                    color: "#2c3e50"
+                                }
+                            }
+                            Rectangle {
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 5
+                                    text: model.order_type
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 13
+                                    color: "#2c3e50"
+                                }
+                            }
+                            Rectangle {
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 5
+                                    text: model.status
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    color: getStatusColor(model.status)
+                                    font.bold: true
+                                    font.pixelSize: 13
+                                }
+                            }
+                            Rectangle {
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 5
+                                    text: model.total_amount + " ₽"
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 13
+                                    color: "#2c3e50"
+                                }
+                            }
+                            Rectangle {
+                                width: parent.colWidth
+                                height: parent.height
+                                color: "transparent"
+                                Text {
+                                    anchors.fill: parent
+                                    anchors.margins: 5
+                                    text: formatDate(model.created_at)
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 13
+                                    color: "#2c3e50"
+                                }
+                            }
                         }
                     }
                 }
@@ -524,77 +735,225 @@ Page {
         }
 
         RowLayout {
-            Layout.alignment: Qt.AlignRight; spacing: 10
-            Button {
-                id: newOrderButton; text: "Новый заказ"
-                font.bold: true; padding: 12; font.pixelSize: 14; Layout.preferredWidth: 150
-                enabled: !root.isLoading
-                background: Rectangle { color: parent.down ? "#27ae60" : "#2ecc71"; radius: 8 }
-                contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
+            Layout.alignment: Qt.AlignRight
+            spacing: 10
 
-                ToolTip.delay: 1000; ToolTip.timeout: 5000; ToolTip.visible: hovered; ToolTip.text: qsTr("Оформить новый заказ (Ctrl+N)")
+            Button {
+                id: newOrderButton
+                text: "Новый заказ"
+                font.bold: true
+                padding: 12
+                font.pixelSize: 14
+                Layout.preferredWidth: 150
+                enabled: !root.isLoading
+
+                background: Rectangle {
+                    color: parent.down ? "#27ae60" : "#2ecc71"
+                    radius: 8
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font: parent.font
+                }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Оформить новый заказ (Ctrl+N)")
+
                 onClicked: orderAddDialog.open()
             }
-            Button {
-                id: refreshButton; text: "Обновить"
-                font.bold: true; font.pixelSize: 14; padding: 12; Layout.preferredWidth: 120
-                enabled: !root.isLoading
-                background: Rectangle { color: parent.down ? "#2980b9" : "#3498db"; radius: 8 }
-                contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font: parent.font }
 
-                ToolTip.delay: 1000; ToolTip.timeout: 5000; ToolTip.visible: hovered; ToolTip.text: qsTr("Обновить таблицу (F5)")
+            Button {
+                id: refreshButton
+                text: "Обновить"
+                font.bold: true
+                font.pixelSize: 14
+                padding: 12
+                Layout.preferredWidth: 120
+                enabled: !root.isLoading
+
+                background: Rectangle {
+                    color: parent.down ? "#2980b9" : "#3498db"
+                    radius: 8
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font: parent.font
+                }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 5000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Обновить таблицу (F5)")
+
                 onClicked: refreshTable()
             }
         }
     }
 
-    // --- ДИАЛОГИ (Без изменений) ---
-
     Dialog {
         id: messageDialog
-        modal: true; header: null; width: 350; height: 180; anchors.centerIn: parent; padding: 20
+        modal: true
+        header: null
+        width: 350
+        height: 180
+        anchors.centerIn: parent
+        padding: 20
         property string errorMsg: ""
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { text: "Ошибка"; font.bold: true; font.pixelSize: 18; color: "#e74c3c"; Layout.alignment: Qt.AlignHCenter }
-            Label { id: msgTextLabel; Layout.fillWidth: true; Layout.fillHeight: true; text: messageDialog.errorMsg; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 14 }
+            anchors.fill: parent
+            spacing: 10
+
+            Label {
+                text: "Ошибка"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#e74c3c"
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Label {
+                id: msgTextLabel
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                text: messageDialog.errorMsg
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 14
+            }
+
             Button {
-                text: "Закрыть"; Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 100; Layout.preferredHeight: 40
-                background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true }
+                text: "Закрыть"
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 40
+
+                background: Rectangle {
+                    color: parent.down ? "#7f8c8d" : "#95a5a6"
+                    radius: 8
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.bold: true
+                }
+
                 onClicked: messageDialog.close()
             }
         }
-        function showError(msg) { errorMsg = msg; msgTextLabel.text = msg; open() }
+
+        function showError(msg) {
+            errorMsg = msg
+            msgTextLabel.text = msg
+            open()
+        }
     }
 
     Dialog {
         id: orderAddDialog
-        modal: true; header: null; width: 500; height: 700; anchors.centerIn: parent; padding: 20
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+        modal: true
+        header: null
+        width: 500
+        height: 700
+        anchors.centerIn: parent
+        padding: 20
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { Layout.fillWidth: true; text: "Создание нового заказа"; font.bold: true; font.pixelSize: 18; color: "#2c3e50"; padding: 10; horizontalAlignment: Text.AlignHCenter }
+            anchors.fill: parent
+            spacing: 10
+
+            Label {
+                Layout.fillWidth: true
+                text: "Создание нового заказа"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#2c3e50"
+                padding: 10
+                horizontalAlignment: Text.AlignHCenter
+            }
 
             ScrollView {
-                clip: true; Layout.fillHeight: true; Layout.fillWidth: true; contentWidth: availableWidth
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded; ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                clip: true
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                contentWidth: availableWidth
+                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                 Column {
-                    width: parent.width; spacing: 15; anchors.top: parent.top; anchors.topMargin: 10
+                    width: parent.width
+                    spacing: 15
+                    anchors.top: parent.top
+                    anchors.topMargin: 10
+
                     Column {
-                        width: 400; anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
+                        width: 400
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 12
+
                         Column {
-                            width: parent.width; spacing: 6
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Выберите клиента:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+                            width: parent.width
+                            spacing: 6
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Выберите клиента:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             ComboBox {
-                                id: customerComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
-                                model: customersModel; textRole: "display"
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: customerComboBox.activeFocus ? "#3498db" : "#dce0e3" }
-                                contentItem: Text { text: customerComboBox.displayText; color: "#000000"; font: customerComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
+                                id: customerComboBox
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                model: customersModel
+                                textRole: "display"
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: customerComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                contentItem: Text {
+                                    text: customerComboBox.displayText
+                                    color: "#000000"
+                                    font: customerComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
                                 onActivated: {
                                     if (currentIndex >= 0) {
                                         var customerData = customersModel.get(currentIndex)
@@ -604,173 +963,542 @@ Page {
                                 }
                             }
                         }
+
                         Column {
-                            width: parent.width; spacing: 6; visible: customerComboBox.currentIndex >= 0
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Контактная информация:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
-                            Label { id: customerPhoneLabel; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter; padding: 8; background: Rectangle { color: "#f8f9fa"; radius: 6 } }
-                            Label { id: customerEmailLabel; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter; padding: 8; background: Rectangle { color: "#f8f9fa"; radius: 6 } }
+                            width: parent.width
+                            spacing: 6
+                            visible: customerComboBox.currentIndex >= 0
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Контактная информация:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
+                            Label {
+                                id: customerPhoneLabel
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                padding: 8
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                }
+                            }
+
+                            Label {
+                                id: customerEmailLabel
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                padding: 8
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                }
+                            }
                         }
+
                         Column {
-                            width: parent.width; spacing: 6
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Тип заказа:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+                            width: parent.width
+                            spacing: 6
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Тип заказа:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             ComboBox {
-                                id: orderTypeComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
+                                id: orderTypeComboBox
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
                                 model: ["Изготовление рамки", "Продажа набора"]
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: orderTypeComboBox.activeFocus ? "#3498db" : "#dce0e3" }
-                                contentItem: Text { text: orderTypeComboBox.displayText; color: "#000000"; font: orderTypeComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: orderTypeComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                contentItem: Text {
+                                    text: orderTypeComboBox.displayText
+                                    color: "#000000"
+                                    font: orderTypeComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
                                 onCurrentTextChanged: toggleOrderTypeFields()
                             }
                         }
 
-                        // Фрейм
                         Column {
-                            id: frameOrderFields; width: parent.width; spacing: 6; visible: false
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Багет:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+                            id: frameOrderFields
+                            width: parent.width
+                            spacing: 6
+                            visible: false
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Багет:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             ComboBox {
-                                id: materialComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
-                                model: frameMaterialsModel; textRole: "display"
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: materialComboBox.activeFocus ? "#3498db" : "#dce0e3" }
-                                contentItem: Text { text: materialComboBox.displayText; color: "#000000"; font: materialComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
+                                id: materialComboBox
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                model: frameMaterialsModel
+                                textRole: "display"
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: materialComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                contentItem: Text {
+                                    text: materialComboBox.displayText
+                                    color: "#000000"
+                                    font: materialComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
                                 onActivated: calculateTotal()
                             }
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Фурнитура:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Фурнитура:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             ComboBox {
-                                id: furnitureComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
-                                model: furnitureModel; textRole: "display"
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: furnitureComboBox.activeFocus ? "#3498db" : "#dce0e3" }
-                                contentItem: Text { text: furnitureComboBox.displayText; color: "#000000"; font: furnitureComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
+                                id: furnitureComboBox
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                model: furnitureModel
+                                textRole: "display"
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: furnitureComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                contentItem: Text {
+                                    text: furnitureComboBox.displayText
+                                    color: "#000000"
+                                    font: furnitureComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
                                 onActivated: calculateTotal()
                             }
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Мастер:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
-                            ComboBox {
-                                id: masterComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
-                                model: mastersModel; textRole: "display"
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: masterComboBox.activeFocus ? "#3498db" : "#dce0e3" }
-                                contentItem: Text { text: masterComboBox.displayText; color: "#000000"; font: masterComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Мастер:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
                             }
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Размеры рамки (см):"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+
+                            ComboBox {
+                                id: masterComboBox
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                model: mastersModel
+                                textRole: "display"
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: masterComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                contentItem: Text {
+                                    text: masterComboBox.displayText
+                                    color: "#000000"
+                                    font: masterComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+                            }
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Размеры рамки (см):"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             Row {
-                                width: parent.width; anchors.horizontalCenter: parent.horizontalCenter; spacing: 10
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 10
+
                                 Column {
-                                    width: (parent.width - 10) / 2; spacing: 4
-                                    Label { text: "Ширина:"; font.bold: true; color: "#34495e"; font.pixelSize: 12 }
+                                    width: (parent.width - 10) / 2
+                                    spacing: 4
+
+                                    Label {
+                                        text: "Ширина:"
+                                        font.bold: true
+                                        color: "#34495e"
+                                        font.pixelSize: 12
+                                    }
+
                                     TextField {
-                                        id: frameWidthField; width: parent.width; placeholderText: "0.0"
-                                        validator: DoubleValidator { bottom: 0.1; top: 1000.0 }
-                                        background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: frameWidthField.activeFocus ? "#3498db" : "#dce0e3" }
+                                        id: frameWidthField
+                                        width: parent.width
+                                        placeholderText: "0.0"
+
+                                        validator: DoubleValidator {
+                                            bottom: 0.1
+                                            top: 1000.0
+                                        }
+
+                                        background: Rectangle {
+                                            color: "#f8f9fa"
+                                            radius: 6
+                                            border.color: frameWidthField.activeFocus ? "#3498db" : "#dce0e3"
+                                        }
+
                                         onTextChanged: calculateTotal()
                                     }
                                 }
+
                                 Column {
-                                    width: (parent.width - 10) / 2; spacing: 4
-                                    Label { text: "Высота:"; font.bold: true; color: "#34495e"; font.pixelSize: 12 }
+                                    width: (parent.width - 10) / 2
+                                    spacing: 4
+
+                                    Label {
+                                        text: "Высота:"
+                                        font.bold: true
+                                        color: "#34495e"
+                                        font.pixelSize: 12
+                                    }
+
                                     TextField {
-                                        id: frameHeightField; width: parent.width; placeholderText: "0.0"
-                                        validator: DoubleValidator { bottom: 0.1; top: 1000.0 }
-                                        background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: frameHeightField.activeFocus ? "#3498db" : "#dce0e3" }
+                                        id: frameHeightField
+                                        width: parent.width
+                                        placeholderText: "0.0"
+
+                                        validator: DoubleValidator {
+                                            bottom: 0.1
+                                            top: 1000.0
+                                        }
+
+                                        background: Rectangle {
+                                            color: "#f8f9fa"
+                                            radius: 6
+                                            border.color: frameHeightField.activeFocus ? "#3498db" : "#dce0e3"
+                                        }
+
                                         onTextChanged: calculateTotal()
                                     }
                                 }
                             }
                         }
 
-                        // Набор
                         Column {
-                            id: kitOrderFields; width: parent.width; spacing: 6; visible: false
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Набор:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+                            id: kitOrderFields
+                            width: parent.width
+                            spacing: 6
+                            visible: false
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Набор:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             ComboBox {
-                                id: kitComboBox; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
-                                model: kitsModel; textRole: "display"
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: kitComboBox.activeFocus ? "#3498db" : "#dce0e3" }
-                                contentItem: Text { text: kitComboBox.displayText; color: "#000000"; font: kitComboBox.font; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight; leftPadding: 12 }
+                                id: kitComboBox
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                model: kitsModel
+                                textRole: "display"
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: kitComboBox.activeFocus ? "#3498db" : "#dce0e3"
+                                }
+
+                                contentItem: Text {
+                                    text: kitComboBox.displayText
+                                    color: "#000000"
+                                    font: kitComboBox.font
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    leftPadding: 12
+                                }
+
                                 onActivated: calculateKitTotal()
                             }
+
                             Row {
-                                width: parent.width; anchors.horizontalCenter: parent.horizontalCenter; spacing: 10
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 10
+
                                 Column {
-                                    width: (parent.width - 10) / 2; spacing: 4
-                                    Label { text: "Кол-во:"; font.bold: true; color: "#34495e"; font.pixelSize: 12 }
+                                    width: (parent.width - 10) / 2
+                                    spacing: 4
+
+                                    Label {
+                                        text: "Кол-во:"
+                                        font.bold: true
+                                        color: "#34495e"
+                                        font.pixelSize: 12
+                                    }
+
                                     TextField {
-                                        id: kitQuantityField; width: parent.width; text: "1"
-                                        validator: IntValidator { bottom: 1; top: 1000 }
-                                        background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: kitQuantityField.activeFocus ? "#3498db" : "#dce0e3" }
+                                        id: kitQuantityField
+                                        width: parent.width
+                                        text: "1"
+
+                                        validator: IntValidator {
+                                            bottom: 1
+                                            top: 1000
+                                        }
+
+                                        background: Rectangle {
+                                            color: "#f8f9fa"
+                                            radius: 6
+                                            border.color: kitQuantityField.activeFocus ? "#3498db" : "#dce0e3"
+                                        }
+
                                         onTextChanged: calculateKitTotal()
                                     }
                                 }
+
                                 Column {
-                                    width: (parent.width - 10) / 2; spacing: 4
-                                    Label { text: " "; font.pixelSize: 12 }
+                                    width: (parent.width - 10) / 2
+                                    spacing: 4
+
+                                    Label {
+                                        text: " "
+                                        font.pixelSize: 12
+                                    }
+
                                     Row {
-                                        height: kitQuantityField.height; spacing: 5
-                                        Label { text: "Цена за шт:"; color: "#34495e"; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter; height: parent.height }
-                                        Label { id: kitPriceLabel; text: "0 ₽"; color: "#2c3e50"; font.bold: true; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; height: parent.height }
+                                        height: kitQuantityField.height
+                                        spacing: 5
+
+                                        Label {
+                                            text: "Цена за шт:"
+                                            color: "#34495e"
+                                            font.pixelSize: 12
+                                            verticalAlignment: Text.AlignVCenter
+                                            height: parent.height
+                                        }
+
+                                        Label {
+                                            id: kitPriceLabel
+                                            text: "0 ₽"
+                                            color: "#2c3e50"
+                                            font.bold: true
+                                            font.pixelSize: 13
+                                            verticalAlignment: Text.AlignVCenter
+                                            height: parent.height
+                                        }
                                     }
                                 }
                             }
                         }
 
                         Column {
-                            width: parent.width; spacing: 6
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Итоговая сумма (₽):"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+                            width: parent.width
+                            spacing: 6
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Итоговая сумма (₽):"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             TextField {
-                                id: totalAmountField; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
-                                placeholderText: "0.00"; font.bold: true
-                                validator: DoubleValidator { bottom: 0.01; top: 1000000.0 }
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: totalAmountField.activeFocus ? "#3498db" : "#dce0e3" }
+                                id: totalAmountField
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                placeholderText: "0.00"
+                                font.bold: true
+
+                                validator: DoubleValidator {
+                                    bottom: 0.01
+                                    top: 1000000.0
+                                }
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: totalAmountField.activeFocus ? "#3498db" : "#dce0e3"
+                                }
                             }
                         }
+
                         Column {
-                            width: parent.width; spacing: 6
-                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Примечания:"; font.bold: true; color: "#34495e"; font.pixelSize: 13 }
+                            width: parent.width
+                            spacing: 6
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Примечания:"
+                                font.bold: true
+                                color: "#34495e"
+                                font.pixelSize: 13
+                            }
+
                             TextArea {
-                                id: notesField; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter; height: 90
+                                id: notesField
+                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                height: 90
                                 wrapMode: TextArea.Wrap
-                                background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: notesField.activeFocus ? "#3498db" : "#dce0e3" }
+
+                                background: Rectangle {
+                                    color: "#f8f9fa"
+                                    radius: 6
+                                    border.color: notesField.activeFocus ? "#3498db" : "#dce0e3"
+                                }
                             }
                         }
-                        Label { id: addOrderValidationError; width: parent.width; anchors.horizontalCenter: parent.horizontalCenter; color: "#e74c3c"; visible: false; wrapMode: Text.WordWrap; font.pixelSize: 13; font.bold: true }
+
+                        Label {
+                            id: addOrderValidationError
+                            width: parent.width
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            color: "#e74c3c"
+                            visible: false
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: 13
+                            font.bold: true
+                        }
                     }
                 }
             }
 
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 60; color: "transparent"
+                Layout.fillWidth: true
+                Layout.preferredHeight: 60
+                color: "transparent"
+
                 RowLayout {
-                    anchors.centerIn: parent; spacing: 15
+                    anchors.centerIn: parent
+                    spacing: 15
+
                     Button {
-                        text: "Отмена"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
-                        background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
+                        text: "Отмена"
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#7f8c8d" : "#95a5a6"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
                         onClicked: orderAddDialog.close()
                     }
+
                     Button {
-                        text: "Создать"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
-                        background: Rectangle { color: parent.down ? "#27ae60" : "#2ecc71"; radius: 8 }
-                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
+                        text: "Создать"
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#27ae60" : "#2ecc71"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
                         onClicked: createOrder()
                     }
                 }
             }
         }
+
         onOpened: {
-            customerComboBox.currentIndex = -1; kitComboBox.currentIndex = -1; orderTypeComboBox.currentIndex = 0; furnitureComboBox.currentIndex = -1
-            totalAmountField.text = ""; frameWidthField.text = ""; frameHeightField.text = ""; kitQuantityField.text = "1"
-            notesField.text = ""; addOrderValidationError.visible = false
-            customerPhoneLabel.text = "Телефон: Не выбран"; customerEmailLabel.text = "Email: Не выбран"
-            kitPriceLabel.text = "0 ₽"; toggleOrderTypeFields()
+            customerComboBox.currentIndex = -1
+            kitComboBox.currentIndex = -1
+            orderTypeComboBox.currentIndex = 0
+            furnitureComboBox.currentIndex = -1
+            totalAmountField.text = ""
+            frameWidthField.text = ""
+            frameHeightField.text = ""
+            kitQuantityField.text = "1"
+            notesField.text = ""
+            addOrderValidationError.visible = false
+            customerPhoneLabel.text = "Телефон: Не выбран"
+            customerEmailLabel.text = "Email: Не выбран"
+            kitPriceLabel.text = "0 ₽"
+            toggleOrderTypeFields()
         }
     }
 
     Dialog {
         id: orderDetailsDialog
-        modal: true; header: null; width: 500; height: 400; anchors.centerIn: parent; padding: 20
+        modal: true
+        header: null
+        width: 550
+        height: 400
+        anchors.centerIn: parent
+        padding: 20
         property var currentOrderData: ({})
         property var detailsList: []
 
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         function updateDetailsList() {
-            var data = currentOrderData || {};
+            var data = currentOrderData || {}
             detailsList = [
                 {l: "№ заказа:", v: data.order_number},
                 {l: "Статус:",   v: data.status, isStatus: true},
@@ -779,7 +1507,7 @@ Page {
                 {l: "Клиент:",   v: data.customer_name},
                 {l: "Телефон:",  v: data.customer_phone},
                 {l: "Дата:",     v: formatDate(data.created_at)}
-            ];
+            ]
         }
 
         function openWithData(sourceModel) {
@@ -793,55 +1521,111 @@ Page {
                 customer_phone: sourceModel.customer_phone,
                 created_at: sourceModel.created_at,
                 notes: sourceModel.notes
-            };
-            updateDetailsList();
-            open();
+            }
+            updateDetailsList()
+            open()
         }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { Layout.fillWidth: true; text: "Детали заказа"; font.bold: true; font.pixelSize: 18; color: "#2c3e50"; horizontalAlignment: Text.AlignHCenter }
+            anchors.fill: parent
+            spacing: 10
+
+            Label {
+                Layout.fillWidth: true
+                text: "Детали заказа"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#2c3e50"
+                horizontalAlignment: Text.AlignHCenter
+            }
 
             ScrollView {
-                Layout.fillWidth: true; Layout.fillHeight: true; clip: true; ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
                 ColumnLayout {
-                    width: parent.width; spacing: 15; Layout.topMargin: 10
+                    width: parent.width
+                    spacing: 15
+                    Layout.topMargin: 10
+
                     Rectangle {
-                        Layout.fillWidth: true; Layout.preferredHeight: detailsCol.implicitHeight + 20; color: "#f8f9fa"; radius: 8
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: detailsCol.implicitHeight + 20
+                        color: "#f8f9fa"
+                        radius: 8
+
                         ColumnLayout {
-                            id: detailsCol; anchors.fill: parent; anchors.margins: 15; spacing: 10
+                            id: detailsCol
+                            anchors.fill: parent
+                            anchors.margins: 15
+                            spacing: 10
+
                             Repeater {
                                 model: orderDetailsDialog.detailsList
+
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Label { text: modelData.l; font.bold: true; color: "#34495e"; Layout.preferredWidth: 100; font.pixelSize: 16 }
+
+                                    Label {
+                                        text: modelData.l
+                                        font.bold: true
+                                        color: "#34495e"
+                                        Layout.preferredWidth: 100
+                                        font.pixelSize: 16
+                                    }
+
                                     Item {
-                                        Layout.fillWidth: true; Layout.preferredHeight: 30
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 30
+
                                         Label {
                                             visible: !modelData.isStatus
-                                            anchors.verticalCenter: parent.verticalCenter; width: parent.width
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: parent.width
                                             text: modelData.v || "—"
                                             color: (modelData.isPrice === true) ? "#27ae60" : "#2c3e50"
                                             font.bold: modelData.isPrice === true
-                                            wrapMode: Text.Wrap; font.pixelSize: 16
+                                            wrapMode: Text.Wrap
+                                            font.pixelSize: 16
                                         }
+
                                         ComboBox {
                                             visible: modelData.isStatus === true
                                             anchors.verticalCenter: parent.verticalCenter
-                                            width: parent.width; height: 30
+                                            width: parent.width
+                                            height: 30
                                             model: ["Новый", "В работе", "Готов", "Завершён", "Отменён"]
-                                            background: Rectangle { color: "transparent"; border.color: "transparent"
-                                                Rectangle { width: parent.width; height: 1; color: "#bdc3c7"; anchors.bottom: parent.bottom }
+
+                                            background: Rectangle {
+                                                color: "transparent"
+                                                border.color: "transparent"
+                                                Rectangle {
+                                                    width: parent.width
+                                                    height: 1
+                                                    color: "#bdc3c7"
+                                                    anchors.bottom: parent.bottom
+                                                }
                                             }
-                                            contentItem: Text { text: parent.displayText; color: getStatusColor(parent.displayText); font.bold: true; font.pixelSize: 16; verticalAlignment: Text.AlignVCenter }
+
+                                            contentItem: Text {
+                                                text: parent.displayText
+                                                color: getStatusColor(parent.displayText)
+                                                font.bold: true
+                                                font.pixelSize: 16
+                                                verticalAlignment: Text.AlignVCenter
+                                            }
+
                                             Component.onCompleted: currentIndex = indexOfValue(modelData.v)
                                             onModelChanged: currentIndex = indexOfValue(modelData.v)
+
                                             onActivated: {
                                                 if (currentIndex >= 0 && currentText !== modelData.v) {
                                                     root.isLoading = true
                                                     DatabaseManager.updateOrderStatusAsync(orderDetailsDialog.currentOrderData.id, currentText)
-                                                    orderDetailsDialog.currentOrderData.status = currentText;
-                                                    orderDetailsDialog.updateDetailsList();
+                                                    orderDetailsDialog.currentOrderData.status = currentText
+                                                    orderDetailsDialog.updateDetailsList()
                                                 }
                                             }
                                         }
@@ -854,28 +1638,106 @@ Page {
             }
 
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 60; color: "transparent"
+                Layout.fillWidth: true
+                Layout.preferredHeight: 60
+                color: "transparent"
+
                 RowLayout {
-                    anchors.centerIn: parent; spacing: 15
+                    anchors.centerIn: parent
+                    spacing: 15
+
                     Button {
-                        text: "Изменить"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
-                        background: Rectangle { color: parent.down ? "#f39c12" : "#f1c40f"; radius: 8 }
-                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
+                        text: "Печать"
+                        Layout.preferredWidth: 100
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#27ae60" : "#2ecc71"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
+                        onClicked: {
+                             savePdfDialog.targetOrderId = orderDetailsDialog.currentOrderData.id
+                             savePdfDialog.currentFile = "Check_" + orderDetailsDialog.currentOrderData.order_number + ".pdf"
+                             savePdfDialog.open()
+                        }
+                    }
+
+                    Button {
+                        text: "Изменить"
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#f39c12" : "#f1c40f"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
                         onClicked: {
                             orderEditDialog.openWithData(orderDetailsDialog.currentOrderData)
                             orderDetailsDialog.close()
                         }
                     }
+
                     Button {
-                        text: "Удалить"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
-                        background: Rectangle { color: parent.down ? "#c0392b" : "#e74c3c"; radius: 8 }
-                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
+                        text: "Удалить"
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#c0392b" : "#e74c3c"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
                         onClicked: deleteConfirmDialog.open()
                     }
+
                     Button {
-                        text: "Закрыть"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
-                        background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
+                        text: "Закрыть"
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#7f8c8d" : "#95a5a6"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
                         onClicked: orderDetailsDialog.close()
                     }
                 }
@@ -885,48 +1747,147 @@ Page {
 
     Dialog {
         id: orderEditDialog
-        modal: true; header: null; width: 500; height: 400; anchors.centerIn: parent; padding: 20
+        modal: true
+        header: null
+        width: 500
+        height: 400
+        anchors.centerIn: parent
+        padding: 20
         property var currentData: ({})
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { Layout.fillWidth: true; text: "Редактирование заказа"; font.bold: true; font.pixelSize: 18; color: "#2c3e50"; horizontalAlignment: Text.AlignHCenter; Layout.alignment: Qt.AlignHCenter }
+            anchors.fill: parent
+            spacing: 10
+
+            Label {
+                Layout.fillWidth: true
+                text: "Редактирование заказа"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#2c3e50"
+                horizontalAlignment: Text.AlignHCenter
+                Layout.alignment: Qt.AlignHCenter
+            }
 
             ColumnLayout {
-                Layout.fillWidth: true; Layout.fillHeight: true; Layout.alignment: Qt.AlignCenter; spacing: 20
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.alignment: Qt.AlignCenter
+                spacing: 20
+
                 Column {
-                    Layout.alignment: Qt.AlignHCenter; width: 300; spacing: 5
-                    Label { text: "Сумма заказа:"; font.bold: true; color: "#34495e"; font.pixelSize: 14 }
+                    Layout.alignment: Qt.AlignHCenter
+                    width: 300
+                    spacing: 5
+
+                    Label {
+                        text: "Сумма заказа:"
+                        font.bold: true
+                        color: "#34495e"
+                        font.pixelSize: 14
+                    }
+
                     TextField {
-                        id: editTotalAmountField; width: parent.width; font.pixelSize: 14; validator: DoubleValidator { bottom: 0.0 }
-                        background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: editTotalAmountField.activeFocus ? "#3498db" : "#dce0e3" }
+                        id: editTotalAmountField
+                        width: parent.width
+                        font.pixelSize: 14
+                        validator: DoubleValidator {
+                            bottom: 0.0
+                        }
+
+                        background: Rectangle {
+                            color: "#f8f9fa"
+                            radius: 6
+                            border.color: editTotalAmountField.activeFocus ? "#3498db" : "#dce0e3"
+                        }
                     }
                 }
+
                 Column {
-                    Layout.alignment: Qt.AlignHCenter; width: 300; spacing: 5
-                    Label { text: "Примечания:"; font.bold: true; color: "#34495e"; font.pixelSize: 14 }
+                    Layout.alignment: Qt.AlignHCenter
+                    width: 300
+                    spacing: 5
+
+                    Label {
+                        text: "Примечания:"
+                        font.bold: true
+                        color: "#34495e"
+                        font.pixelSize: 14
+                    }
+
                     TextArea {
-                        id: editNotesField; width: parent.width; font.pixelSize: 14; height: 80; wrapMode: TextArea.Wrap
-                        background: Rectangle { color: "#f8f9fa"; radius: 6; border.color: editNotesField.activeFocus ? "#3498db" : "#dce0e3" }
+                        id: editNotesField
+                        width: parent.width
+                        font.pixelSize: 14
+                        height: 80
+                        wrapMode: TextArea.Wrap
+
+                        background: Rectangle {
+                            color: "#f8f9fa"
+                            radius: 6
+                            border.color: editNotesField.activeFocus ? "#3498db" : "#dce0e3"
+                        }
                     }
                 }
             }
 
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 60; color: "transparent"
+                Layout.fillWidth: true
+                Layout.preferredHeight: 60
+                color: "transparent"
+
                 RowLayout {
-                    anchors.centerIn: parent; spacing: 15
+                    anchors.centerIn: parent
+                    spacing: 15
+
                     Button {
-                        text: "Отмена"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
-                        background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
+                        text: "Отмена"
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#7f8c8d" : "#95a5a6"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
                         onClicked: orderEditDialog.close()
                     }
+
                     Button {
-                        text: "Сохранить"; Layout.preferredWidth: 120; Layout.preferredHeight: 40
-                        background: Rectangle { color: parent.down ? "#27ae60" : "#2ecc71"; radius: 8 }
-                        contentItem: Text { text: parent.text; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; font.pixelSize: 13 }
+                        text: "Сохранить"
+                        Layout.preferredWidth: 120
+                        Layout.preferredHeight: 40
+
+                        background: Rectangle {
+                            color: parent.down ? "#27ae60" : "#2ecc71"
+                            radius: 8
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
                         onClicked: {
                             root.isLoading = true
                             DatabaseManager.updateOrderAsync(
@@ -940,6 +1901,7 @@ Page {
                 }
             }
         }
+
         function openWithData(data) {
             currentData = data
             editTotalAmountField.text = data.total_amount
@@ -950,26 +1912,89 @@ Page {
 
     Dialog {
         id: deleteConfirmDialog
-        modal: true; header: null; width: 350; height: 200; anchors.centerIn: parent; padding: 20
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+        modal: true
+        header: null
+        width: 350
+        height: 200
+        anchors.centerIn: parent
+        padding: 20
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
 
         ColumnLayout {
-            anchors.fill: parent; spacing: 15
-            Label { Layout.fillWidth: true; text: "Удаление заказа"; font.bold: true; font.pixelSize: 18; color: "#c0392b"; horizontalAlignment: Text.AlignHCenter }
-            Label { Layout.fillWidth: true; text: "Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить."; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; color: "#2c3e50"; font.pixelSize: 14 }
-            Item { Layout.fillHeight: true }
+            anchors.fill: parent
+            spacing: 15
+
+            Label {
+                Layout.fillWidth: true
+                text: "Удаление заказа"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#c0392b"
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: "Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить."
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                color: "#2c3e50"
+                font.pixelSize: 14
+            }
+
+            Item {
+                Layout.fillHeight: true
+            }
+
             RowLayout {
-                Layout.alignment: Qt.AlignHCenter; spacing: 15
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 15
+
                 Button {
-                    text: "Нет"; Layout.preferredWidth: 100; Layout.preferredHeight: 40
-                    background: Rectangle { color: parent.down ? "#7f8c8d" : "#95a5a6"; radius: 8 }
-                    contentItem: Text { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; }
+                    text: "Нет"
+                    Layout.preferredWidth: 100
+                    Layout.preferredHeight: 40
+
+                    background: Rectangle {
+                        color: parent.down ? "#7f8c8d" : "#95a5a6"
+                        radius: 8
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
                     onClicked: deleteConfirmDialog.close()
                 }
+
                 Button {
-                    text: "Да, удалить"; Layout.preferredWidth: 100; Layout.preferredHeight: 40
-                    background: Rectangle { color: parent.down ? "#c0392b" : "#e74c3c"; radius: 8 }
-                    contentItem: Text { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter;  }
+                    text: "Да, удалить"
+                    Layout.preferredWidth: 100
+                    Layout.preferredHeight: 40
+
+                    background: Rectangle {
+                        color: parent.down ? "#c0392b" : "#e74c3c"
+                        radius: 8
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
                     onClicked: {
                         root.isLoading = true
                         DatabaseManager.deleteOrderAsync(orderDetailsDialog.currentOrderData.id)
@@ -982,19 +2007,107 @@ Page {
 
     Dialog {
         id: orderCreatedMessage
-        modal: true; header: null; width: 300; height: 150; anchors.centerIn: parent; padding: 20
-        background: Rectangle { color: "#ffffff"; radius: 12; border.color: "#e0e0e0"; border.width: 1 }
+        modal: true
+        header: null
+        width: 350
+        height: 160
+        anchors.centerIn: parent
+        padding: 20
+
+        background: Rectangle {
+            color: "#ffffff"
+            radius: 12
+            border.color: "#e0e0e0"
+            border.width: 1
+        }
+
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            Label { text: "Успешно"; font.bold: true; font.pixelSize: 18; color: "#27ae60"; Layout.alignment: Qt.AlignHCenter }
-            Label { text: "Заказ успешно создан!"; Layout.alignment: Qt.AlignHCenter }
-            Item { Layout.fillHeight: true }
-            Button {
-                text: "OK"; Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 100; Layout.preferredHeight: 35
-                background: Rectangle { color: "#2ecc71"; radius: 8 }
-                contentItem: Text { text: "OK"; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                onClicked: orderCreatedMessage.close()
+            anchors.fill: parent
+            spacing: 10
+
+            Label {
+                text: "Успешно"
+                font.bold: true
+                font.pixelSize: 18
+                color: "#27ae60"
+                Layout.alignment: Qt.AlignHCenter
             }
+
+            Label {
+                text: "Заказ успешно создан!"
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Item {
+                Layout.fillHeight: true
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 15
+
+                Button {
+                    text: "Печать чека"
+                    Layout.preferredWidth: 120
+                    Layout.preferredHeight: 35
+                    enabled: root.lastCreatedOrderId !== -1
+
+                    background: Rectangle {
+                        color: parent.down ? "#2980b9" : "#3498db"
+                        radius: 8
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    onClicked: {
+                        savePdfDialog.targetOrderId = root.lastCreatedOrderId
+                        savePdfDialog.currentFile = "Check_New.pdf"
+                        savePdfDialog.open()
+                        orderCreatedMessage.close()
+                    }
+                }
+
+                Button {
+                    text: "OK"
+                    Layout.preferredWidth: 80
+                    Layout.preferredHeight: 35
+
+                    background: Rectangle {
+                        color: "#2ecc71"
+                        radius: 8
+                    }
+
+                    contentItem: Text {
+                        text: "OK"
+                        color: "white"
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    onClicked: orderCreatedMessage.close()
+                }
+            }
+        }
+    }
+
+    FileDialog {
+        id: savePdfDialog
+        title: "Сохранить чек"
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["PDF файлы (*.pdf)"]
+        defaultSuffix: "pdf"
+        property int targetOrderId: -1
+
+        onAccepted: {
+            root.isLoading = true
+            DatabaseManager.generatePdfReceipt(targetOrderId, selectedFile.toString())
         }
     }
 }
