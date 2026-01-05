@@ -6,20 +6,19 @@ moc_*
 qrc_*
 ui_*
 *.qm
-*.qrc
 
 # Build directories
+build/
 build-*/
 *-Build/
-*.build.Debug/
-*.build.Release/
-cmake-build-*/
 Debug/
 Release/
-build/
+cmake-build-*/
+*.build.Debug/
+*.build.Release/
+project/build/
 
 # Qt Creator
-*.cmake
 CMakeLists.txt.user*
 *.settings/
 *.files/
@@ -46,5 +45,10 @@ CMakeLists.txt.user*
 .DS_Store
 Thumbs.db
 
-# Project specific (добавь свои папки сборки)
+# Project specific
 project/build/
+
+# Office temporary files
+~$*.docx
+~$*.xlsx
+~$*.pptx
