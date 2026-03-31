@@ -64,3 +64,11 @@ install(TARGETS appproject
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.ini")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/config.ini"
+         DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+    message(STATUS "config.ini copied to build directory.")
+else()
+    message(WARNING "config.ini not found! Skipping copy. (This is okay for CI/CD)")
+endif()

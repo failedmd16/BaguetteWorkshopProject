@@ -158,11 +158,20 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
         db = QSqlDatabase::database(connectionName);
     }
 
-    db.setDatabaseName("failedmd16");
-    db.setHostName("pg4.sweb.ru");
-    db.setPort(5433);
-    db.setUserName("failedmd16");
-    db.setPassword("Bagetworkshop123");
+    QString configPath = QCoreApplication::applicationDirPath() + "/config.ini";
+    QSettings settings(configPath, QSettings::IniFormat);
+
+    QString host = settings.value("Database/Host").toString();
+    int port = settings.value("Database/Port").toInt();
+    QString dbName = settings.value("Database/Name").toString();
+    QString user = settings.value("Database/User").toString();
+    QString password = settings.value("Database/Password").toString();
+
+    db.setHostName(host);
+    db.setPort(port);
+    db.setDatabaseName(dbName);
+    db.setUserName(user);
+    db.setPassword(password);
     db.setConnectOptions("requiressl=0;connect_timeout=5");
 
     if (!db.open()) {
@@ -171,7 +180,6 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
 
     return db;
 }
-
 /*!
  * \brief Асинхронно выполняет вход пользователя.
  * Проверяет учетные данные и эмитит сигнал loginResult.

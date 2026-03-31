@@ -1,4 +1,3 @@
-# Qt
 *.pro.user
 *.pro.user.*
 *.autosave
@@ -6,9 +5,8 @@ moc_*
 qrc_*
 ui_*
 *.qm
-
-# Build directories
 build/
+Output/
 build-*/
 *-Build/
 Debug/
@@ -17,38 +15,28 @@ cmake-build-*/
 *.build.Debug/
 *.build.Release/
 project/build/
-
-# Qt Creator
 CMakeLists.txt.user*
 *.settings/
 *.files/
 *.includes/
 *.config/
-
-# Compiled files
 *.o
 *.obj
 *.exe
 *.dll
 *.so
 *.app
-
-# Qt specific
 .moc/
 .obj/
 .pch/
 .rcc/
 .qmlc/
 .jsc/
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Project specific
 project/build/
-
-# Office temporary files
 ~$*.docx
 ~$*.xlsx
 ~$*.pptx
+config.ini
+.env
