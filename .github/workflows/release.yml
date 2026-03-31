@@ -1,0 +1,45 @@
+name: Build and Package Release
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    env:
+      MINGW_PATH: "C:\\Qt\\Tools\\mingw1310_64\\bin"
+      QT_PATH: "C:\\Qt\\6.9.0\\mingw_64\\bin"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PATH
+        shell: powershell
+        run: |
+          echo "$env:MINGW_PATH" >> $env:GITHUB_PATH
+          echo "$env:QT_PATH" >> $env:GITHUB_PATH
+
+      - name: Configure CMake
+        run: cmake -S project -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Application
+        run: cmake --build build --config Release
+
+      - name: Qt Deployment (windeployqt)
+        shell: powershell
+        run: windeployqt build/appproject.exe
+
+      - name: Build Setup (Inno Setup)
+        shell: powershell
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "setup.iss"
+
+      - name: Upload Setup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Baguette-Installer
+          path: Output/
+          retention-days: 5
