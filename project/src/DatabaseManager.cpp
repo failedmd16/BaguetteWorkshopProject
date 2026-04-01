@@ -41,19 +41,141 @@ DatabaseManager::~DatabaseManager() {
  */
 bool DatabaseManager::initializeDatabase() {
     _database = QSqlDatabase::addDatabase("QPSQL");
-    _database.setDatabaseName("failedmd16");
-    _database.setHostName("pg4.sweb.ru");
-    _database.setPort(5433);
-    _database.setUserName("failedmd16");
-    _database.setPassword("Bagetworkshop123");
-    _database.setConnectOptions("requiressl=0;connect_timeout=10");
+    _database.setDatabaseName("bws_db");
+    _database.setHostName("72.56.238.251");
+    _database.setPort(5000);
+    _database.setUserName("bws_user");
+    _database.setPassword("Mx95dLtM5xtbfJ3aAyMzF9ZOuUxrWIZt");
+    _database.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!_database.open()) {
         qDebug() << "Ошибка подключения к БД: " << _database.lastError().text();
         return false;
     }
 
+    createTables();
+
     return true;
+}
+
+/*!
+ * \brief Проверяет наличие таблиц в базе данных
+ */
+void DatabaseManager::createTables() {
+    if (!_database.isOpen()) return;
+
+    QSqlQuery query(_database);
+
+    // Пользователи
+    query.exec("CREATE TABLE IF NOT EXISTS users ("
+               "id SERIAL PRIMARY KEY, "
+               "login TEXT UNIQUE NOT NULL, "
+               "password TEXT NOT NULL, "
+               "role TEXT NOT NULL, "
+               "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+    // Покупатели
+    query.exec("CREATE TABLE IF NOT EXISTS customers ("
+               "id SERIAL PRIMARY KEY, "
+               "full_name TEXT NOT NULL, "
+               "phone TEXT, "
+               "email TEXT, "
+               "address TEXT, "
+               "created_by INTEGER REFERENCES users(id), "
+               "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+    // Материалы (Багет)
+    query.exec("CREATE TABLE IF NOT EXISTS frame_materials ("
+               "id SERIAL PRIMARY KEY, "
+               "name TEXT NOT NULL, "
+               "type TEXT, "
+               "price_per_meter REAL NOT NULL, "
+               "stock_quantity REAL DEFAULT 0, "
+               "color TEXT, "
+               "width REAL, "
+               "is_active BOOLEAN DEFAULT TRUE, "
+               "created_by INTEGER REFERENCES users(id), "
+               "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+    // Комплектующая фурнитура
+    query.exec("CREATE TABLE IF NOT EXISTS component_furniture ("
+               "id SERIAL PRIMARY KEY, "
+               "name TEXT NOT NULL, "
+               "price_per_unit REAL NOT NULL, "
+               "stock_quantity INTEGER DEFAULT 0, "
+               "is_active BOOLEAN DEFAULT TRUE, "
+               "created_by INTEGER REFERENCES users(id), "
+               "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+    // Наборы вышивки
+    query.exec("CREATE TABLE IF NOT EXISTS embroidery_kits ("
+               "id SERIAL PRIMARY KEY, "
+               "name TEXT NOT NULL, "
+               "description TEXT, "
+               "price REAL NOT NULL, "
+               "stock_quantity INTEGER DEFAULT 0, "
+               "is_active BOOLEAN DEFAULT TRUE, "
+               "created_by INTEGER REFERENCES users(id), "
+               "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+    // Расходники
+    query.exec("CREATE TABLE IF NOT EXISTS consumable_furniture ("
+               "id SERIAL PRIMARY KEY, "
+               "name TEXT NOT NULL, "
+               "type TEXT, "
+               "price_per_unit REAL NOT NULL, "
+               "stock_quantity INTEGER DEFAULT 0, "
+               "unit TEXT, "
+               "created_by INTEGER REFERENCES users(id), "
+               "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+    // Заказы
+    query.exec("CREATE TABLE IF NOT EXISTS orders ("
+               "id SERIAL PRIMARY KEY, "
+               "order_number TEXT UNIQUE NOT NULL, "
+               "customer_id INTEGER REFERENCES customers(id), "
+               "order_type TEXT NOT NULL, "
+               "total_amount REAL NOT NULL, "
+               "status TEXT NOT NULL, "
+               "notes TEXT, "
+               "created_by INTEGER REFERENCES users(id), "
+               "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+               "completed_at TIMESTAMP)");
+
+    // Детали заказов на рамки
+    query.exec("CREATE TABLE IF NOT EXISTS frame_orders ("
+               "id SERIAL PRIMARY KEY, "
+               "order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE, "
+               "width REAL, "
+               "height REAL, "
+               "frame_material_id INTEGER REFERENCES frame_materials(id), "
+               "component_furniture_id INTEGER REFERENCES component_furniture(id), "
+               "master_id INTEGER REFERENCES users(id), "
+               "production_cost REAL, "
+               "selling_price REAL, "
+               "special_instructions TEXT)");
+
+    // Позиции в заказах (наборы/фурнитура)
+    query.exec("CREATE TABLE IF NOT EXISTS order_items ("
+               "id SERIAL PRIMARY KEY, "
+               "order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE, "
+               "embroidery_kit_id INTEGER REFERENCES embroidery_kits(id), "
+               "consumable_furniture_id INTEGER REFERENCES consumable_furniture(id), "
+               "item_name TEXT, "
+               "quantity INTEGER, "
+               "unit_price REAL, "
+               "total_price REAL)");
+
+    // Системные логи
+    query.exec("CREATE TABLE IF NOT EXISTS event_logs ("
+               "id SERIAL PRIMARY KEY, "
+               "username TEXT, "
+               "category TEXT, "
+               "action TEXT, "
+               "details TEXT, "
+               "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+    qDebug() << "Структура таблиц проверена/создана.";
 }
 
 /*!
@@ -158,12 +280,12 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
         db = QSqlDatabase::database(connectionName);
     }
 
-    db.setDatabaseName("failedmd16");
-    db.setHostName("pg4.sweb.ru");
-    db.setPort(5433);
-    db.setUserName("failedmd16");
-    db.setPassword("Bagetworkshop123");
-    db.setConnectOptions("requiressl=0;connect_timeout=5");
+    db.setDatabaseName("bws_db");
+    db.setHostName("72.56.238.251");
+    db.setPort(5000);
+    db.setUserName("bws_user");
+    db.setPassword("Mx95dLtM5xtbfJ3aAyMzF9ZOuUxrWIZt");
+    db.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!db.open()) {
         qDebug() << "Thread connection error:" << db.lastError().text();
