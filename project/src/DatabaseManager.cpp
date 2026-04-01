@@ -131,10 +131,10 @@ bool DatabaseManager::validatePassword(const QString &password) {
 }
 
 /*!
- * \brief Получает или создает подключение к БД, уникальное для текущего потока.
- * Используется в методах QtConcurrent для предотвращения конфликтов доступа к БД из разных потоков.
- * Имя соединения генерируется на основе адреса текущего потока.
- */
+ * \brief Получает или создает подключение к БД, уникальное для текущего потока.
+ * Используется в методах QtConcurrent для предотвращения конфликтов доступа к БД из разных потоков.
+ * Имя соединения генерируется на основе адреса текущего потока.
+ */
 QSqlDatabase DatabaseManager::getThreadLocalConnection() {
     QString connectionName = "ThreadConn_" + QString::number((quint64)QThread::currentThread(), 16);
     QMutexLocker locker(&m_connectionMutex);
@@ -147,8 +147,8 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
             QSqlQuery q(db);
             if (q.exec("SELECT 1")) {
                 return db;
-            }
         }
+    }
         db.close();
     }
 
@@ -158,20 +158,11 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
         db = QSqlDatabase::database(connectionName);
     }
 
-    QString configPath = QCoreApplication::applicationDirPath() + "/config.ini";
-    QSettings settings(configPath, QSettings::IniFormat);
-
-    QString host = settings.value("Database/Host").toString();
-    int port = settings.value("Database/Port").toInt();
-    QString dbName = settings.value("Database/Name").toString();
-    QString user = settings.value("Database/User").toString();
-    QString password = settings.value("Database/Password").toString();
-
-    db.setHostName(host);
-    db.setPort(port);
-    db.setDatabaseName(dbName);
-    db.setUserName(user);
-    db.setPassword(password);
+    db.setDatabaseName("failedmd16");
+    db.setHostName("pg4.sweb.ru");
+    db.setPort(5433);
+    db.setUserName("failedmd16");
+    db.setPassword("Bagetworkshop123");
     db.setConnectOptions("requiressl=0;connect_timeout=5");
 
     if (!db.open()) {
@@ -180,6 +171,7 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
 
     return db;
 }
+
 /*!
  * \brief Асинхронно выполняет вход пользователя.
  * Проверяет учетные данные и эмитит сигнал loginResult.

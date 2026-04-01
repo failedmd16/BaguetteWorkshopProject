@@ -36,10 +36,3 @@ Name: "{autodesktop}\BaguetteWorkShop"; Filename: "{app}\appproject.exe"; IconFi
 
 [Run]
 Filename: "{app}\appproject.exe"; Description: "{cm:LaunchProgram,BaguetteWorkShop}"; Flags: nowait postinstall skipifsilent
-
-[INI]
-Filename: "{app}\config.ini"; Section: "Database"; Key: "Host"; String: "pg4.sweb.ru"
-Filename: "{app}\config.ini"; Section: "Database"; Key: "Port"; String: "5433"
-Filename: "{app}\config.ini"; Section: "Database"; Key: "Name"; String: "failedmd16"
-Filename: "{app}\config.ini"; Section: "Database"; Key: "User"; String: "failedmd16"
-Filename: "{app}\config.ini"; Section: "Database"; Key: "Password"; String: "Bagetworkshop123"
