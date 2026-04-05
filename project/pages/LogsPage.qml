@@ -290,8 +290,9 @@ Page {
 
             Row {
                 anchors.fill: parent
-                anchors.margins: 5
-                spacing: 1
+                anchors.leftMargin: 10
+                anchors.rightMargin: 20
+                spacing: 0
                 property var colWeights: [0.15, 0.15, 0.15, 0.20, 0.35]
 
                 Repeater {
@@ -349,10 +350,10 @@ Page {
                     property var rowData: {
                         "id": id,
                         "timestamp": timestamp,
-                        "user_login": user_login,
+                        "username": username,
                         "category": category,
                         "action": action,
-                        "description": description
+                        "details": details
                     }
 
                     MouseArea {
@@ -369,6 +370,9 @@ Page {
 
                     Row {
                         anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 20
+                        spacing: 0
                         property var colWeights: [0.15, 0.15, 0.15, 0.20, 0.35]
 
                         Repeater {
@@ -383,16 +387,17 @@ Page {
                                     anchors.fill: parent
                                     anchors.margins: 5
                                     verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
                                     elide: Text.ElideRight
                                     font.pixelSize: 13
 
                                     text: {
                                         switch(index) {
                                             case 0: return formatDate(timestamp)
-                                            case 1: return user_login || "System"
+                                            case 1: return username || "System"
                                             case 2: return category || ""
                                             case 3: return action || ""
-                                            case 4: return description || ""
+                                            case 4: return details || ""
                                             default: return ""
                                         }
                                     }
@@ -479,7 +484,7 @@ Page {
                 Label { text: formatDate(logDetailsDialog.currentData.timestamp); font.pixelSize: 14 }
 
                 Label { text: "Пользователь:"; font.bold: true; color: "#7f8c8d"; font.pixelSize: 14 }
-                Label { text: logDetailsDialog.currentData.user_login || "System"; font.bold: true; font.pixelSize: 14 }
+                Label { text: logDetailsDialog.currentData.username || "System"; font.bold: true; font.pixelSize: 14 }
 
                 Label { text: "Категория:"; font.bold: true; color: "#7f8c8d"; font.pixelSize: 14 }
                 Label { text: logDetailsDialog.currentData.category || "-"; color: getCategoryColor(logDetailsDialog.currentData.category); font.bold: true; font.pixelSize: 14 }
@@ -505,7 +510,7 @@ Page {
                 Layout.fillHeight: true
                 TextArea {
                     readOnly: true
-                    text: logDetailsDialog.currentData.description || ""
+                    text: logDetailsDialog.currentData.details || ""
                     wrapMode: Text.Wrap
                     color: "#2c3e50"
                     font.pixelSize: 14

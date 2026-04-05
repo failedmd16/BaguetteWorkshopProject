@@ -27,12 +27,12 @@ void LogWorker::connectToDatabase()
     }
 
     QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL", m_connectionName);
-    db.setDatabaseName("failedmd16");
-    db.setHostName("pg4.sweb.ru");
-    db.setPort(5433);
-    db.setUserName("failedmd16");
-    db.setPassword("Bagetworkshop123");
-    db.setConnectOptions("requiressl=0;connect_timeout=10");
+    db.setDatabaseName("bws_db");
+    db.setHostName("72.56.238.251");
+    db.setPort(5000);
+    db.setUserName("bws_user");
+    db.setPassword("Mx95dLtM5xtbfJ3aAyMzF9ZOuUxrWIZt");
+    db.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!db.open())
     {
@@ -61,40 +61,29 @@ void LogWorker::processLog(const QString &timestamp, const QString &user, const 
 {
     QSqlDatabase db = getDatabase();
 
-    if (!db.isOpen())
-    {
-        if (!db.open())
-        {
+    if (!db.isOpen()) {
+        if (!db.open()) {
             qDebug() << "AsyncLogger: DB lost and failed to reopen.";
             return;
         }
     }
 
     QSqlQuery query(db);
-    query.prepare("INSERT INTO event_logs (timestamp, user_login, category, action, description) "
-                  "VALUES (:ts, :user, :cat, :act, :desc)");
-
-    query.bindValue(":ts", QVariant(timestamp));
+    query.prepare("INSERT INTO event_logs (username, category, action, details) "
+                  "VALUES (:user, :cat, :act, :details)");
 
     if (user.isEmpty())
-    {
         query.bindValue(":user", "System");
-    }
     else
-    {
         query.bindValue(":user", user);
-    }
 
     query.bindValue(":cat", category);
     query.bindValue(":act", action);
-    query.bindValue(":desc", description);
+    query.bindValue(":details", description);
 
     if (!query.exec())
-    {
         qDebug() << "AsyncLogger: Insert error:" << query.lastError().text();
-    }
 }
-
 /*!
  * \brief Возвращает статический экземпляр Logger.
  */
