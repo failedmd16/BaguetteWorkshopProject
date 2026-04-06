@@ -101,6 +101,7 @@ void DatabaseManager::createTables() {
     query.exec("CREATE TABLE IF NOT EXISTS component_furniture ("
                "id SERIAL PRIMARY KEY, "
                "name TEXT NOT NULL, "
+               "type TEXT, "
                "price_per_unit REAL NOT NULL, "
                "stock_quantity INTEGER DEFAULT 0, "
                "is_active BOOLEAN DEFAULT TRUE, "
@@ -1452,6 +1453,11 @@ void DatabaseManager::addFrameMaterialAsync(const QString &name, const QString &
             return;
         }
 
+        if (!db.transaction()) {
+            emit materialOperationResult(false, "Ошибка старта транзакции");
+            return;
+        }
+
         QSqlQuery query(db);
         query.prepare("INSERT INTO frame_materials (name, type, price_per_meter, stock_quantity, color, width, created_by, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)");
         query.addBindValue(name);
@@ -1463,8 +1469,10 @@ void DatabaseManager::addFrameMaterialAsync(const QString &name, const QString &
         query.addBindValue(currentUserId);
 
         if (query.exec()) {
+            db.commit();
             emit materialOperationResult(true, "Материал добавлен");
         } else {
+            db.rollback();
             emit materialOperationResult(false, query.lastError().text());
         }
     });
@@ -1533,6 +1541,11 @@ void DatabaseManager::addComponentFurnitureAsync(const QString &name, const QStr
             return;
         }
 
+        if (!db.transaction()) {
+            emit materialOperationResult(false, "Ошибка старта транзакции");
+            return;
+        }
+
         QSqlQuery query(db);
         query.prepare("INSERT INTO component_furniture (name, type, price_per_unit, stock_quantity, created_by, is_active) VALUES (?, ?, ?, ?, ?, TRUE)");
         query.addBindValue(name);
@@ -1542,8 +1555,10 @@ void DatabaseManager::addComponentFurnitureAsync(const QString &name, const QStr
         query.addBindValue(currentUserId);
 
         if (query.exec()) {
+            db.commit();
             emit materialOperationResult(true, "Фурнитура добавлена");
         } else {
+            db.rollback();
             emit materialOperationResult(false, query.lastError().text());
         }
     });
