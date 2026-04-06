@@ -2104,7 +2104,8 @@ void DatabaseManager::generatePdfReceipt(int orderId, const QString &filePath) {
         }
 
         QString orderNumber = orderQuery.value("order_number").toString();
-        QString dateStr = orderQuery.value("created_at").toDateTime().toString("dd.MM.yyyy HH:mm");
+        QDateTime dt = orderQuery.value("created_at").toDateTime();
+        QString dateStr = dt.addSecs(10800).toString("dd.MM.yyyy HH:mm");
         double totalAmount = orderQuery.value("total_amount").toDouble();
         QString orderType = orderQuery.value("order_type").toString();
         QString customerName = orderQuery.value("full_name").toString();
