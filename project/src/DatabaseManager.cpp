@@ -40,12 +40,19 @@ DatabaseManager::~DatabaseManager() {
  * \return true, если подключение успешно установлено, иначе false.
  */
 bool DatabaseManager::initializeDatabase() {
-    _database = QSqlDatabase::addDatabase("QPSQL");
+    QString connectionName = QString("PostgresConnection_%1").arg(reinterpret_cast<quintptr>(QThread::currentThreadId()));
+
+    if (QSqlDatabase::contains(connectionName)) {
+        _database = QSqlDatabase::database(connectionName);
+    } else {
+        _database = QSqlDatabase::addDatabase("QPSQL", connectionName);
+    }
+
     _database.setDatabaseName("bws_db");
-    _database.setHostName("72.56.238.251");
-    _database.setPort(5000);
+    _database.setHostName("72.56.14.35");
+    _database.setPort(5432);
     _database.setUserName("bws_user");
-    _database.setPassword("Mx95dLtM5xtbfJ3aAyMzF9ZOuUxrWIZt");
+    _database.setPassword("w.|LD&1P8l1YG1");
     _database.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!_database.open()) {
@@ -62,11 +69,11 @@ bool DatabaseManager::initializeDatabase() {
  * \brief Проверяет наличие таблиц в базе данных
  */
 void DatabaseManager::createTables() {
-    if (!_database.isOpen()) return;
+    QSqlDatabase db = getThreadLocalConnection();
+    if (!db.isOpen()) return;
 
-    QSqlQuery query(_database);
+    QSqlQuery query(db);
 
-    // Пользователи
     query.exec("CREATE TABLE IF NOT EXISTS users ("
                "id SERIAL PRIMARY KEY, "
                "login TEXT UNIQUE NOT NULL, "
@@ -74,7 +81,6 @@ void DatabaseManager::createTables() {
                "role TEXT NOT NULL, "
                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-    // Покупатели
     query.exec("CREATE TABLE IF NOT EXISTS customers ("
                "id SERIAL PRIMARY KEY, "
                "full_name TEXT NOT NULL, "
@@ -84,7 +90,6 @@ void DatabaseManager::createTables() {
                "created_by INTEGER REFERENCES users(id), "
                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-    // Материалы (Багет)
     query.exec("CREATE TABLE IF NOT EXISTS frame_materials ("
                "id SERIAL PRIMARY KEY, "
                "name TEXT NOT NULL, "
@@ -97,7 +102,6 @@ void DatabaseManager::createTables() {
                "created_by INTEGER REFERENCES users(id), "
                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-    // Комплектующая фурнитура
     query.exec("CREATE TABLE IF NOT EXISTS component_furniture ("
                "id SERIAL PRIMARY KEY, "
                "name TEXT NOT NULL, "
@@ -108,7 +112,6 @@ void DatabaseManager::createTables() {
                "created_by INTEGER REFERENCES users(id), "
                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-    // Наборы вышивки
     query.exec("CREATE TABLE IF NOT EXISTS embroidery_kits ("
                "id SERIAL PRIMARY KEY, "
                "name TEXT NOT NULL, "
@@ -119,7 +122,6 @@ void DatabaseManager::createTables() {
                "created_by INTEGER REFERENCES users(id), "
                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-    // Расходники
     query.exec("CREATE TABLE IF NOT EXISTS consumable_furniture ("
                "id SERIAL PRIMARY KEY, "
                "name TEXT NOT NULL, "
@@ -130,7 +132,6 @@ void DatabaseManager::createTables() {
                "created_by INTEGER REFERENCES users(id), "
                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-    // Заказы
     query.exec("CREATE TABLE IF NOT EXISTS orders ("
                "id SERIAL PRIMARY KEY, "
                "order_number TEXT UNIQUE NOT NULL, "
@@ -143,7 +144,6 @@ void DatabaseManager::createTables() {
                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
                "completed_at TIMESTAMP)");
 
-    // Детали заказов на рамки
     query.exec("CREATE TABLE IF NOT EXISTS frame_orders ("
                "id SERIAL PRIMARY KEY, "
                "order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE, "
@@ -156,7 +156,6 @@ void DatabaseManager::createTables() {
                "selling_price REAL, "
                "special_instructions TEXT)");
 
-    // Позиции в заказах (наборы/фурнитура)
     query.exec("CREATE TABLE IF NOT EXISTS order_items ("
                "id SERIAL PRIMARY KEY, "
                "order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE, "
@@ -167,7 +166,6 @@ void DatabaseManager::createTables() {
                "unit_price REAL, "
                "total_price REAL)");
 
-    // Системные логи
     query.exec("CREATE TABLE IF NOT EXISTS event_logs ("
                "id SERIAL PRIMARY KEY, "
                "username TEXT, "
@@ -259,33 +257,30 @@ bool DatabaseManager::validatePassword(const QString &password) {
  * Имя соединения генерируется на основе адреса текущего потока.
  */
 QSqlDatabase DatabaseManager::getThreadLocalConnection() {
-    QString connectionName = "ThreadConn_" + QString::number((quint64)QThread::currentThread(), 16);
+    QString connectionName = "ThreadConn_" + QString::number((quintptr)QThread::currentThreadId(), 16);
+
+    if (QSqlDatabase::contains(connectionName)) {
+        QSqlDatabase db = QSqlDatabase::database(connectionName);
+        if (db.isOpen()) {
+            return db;
+        }
+    }
+
     QMutexLocker locker(&m_connectionMutex);
 
     QSqlDatabase db;
-
-    if (QSqlDatabase::contains(connectionName)) {
+    if (QSqlDatabase::contains(connectionName))
         db = QSqlDatabase::database(connectionName);
-        if (db.isOpen()) {
-            QSqlQuery q(db);
-            if (q.exec("SELECT 1")) {
-                return db;
-        }
-    }
-        db.close();
-    }
-
-    if (!QSqlDatabase::contains(connectionName)) {
+    else
         db = QSqlDatabase::addDatabase("QPSQL", connectionName);
-    } else {
-        db = QSqlDatabase::database(connectionName);
-    }
 
     db.setDatabaseName("bws_db");
-    db.setHostName("72.56.238.251");
-    db.setPort(5000);
+    db.setHostName("72.56.14.35");
+    db.setPort(5432);
     db.setUserName("bws_user");
-    db.setPassword("Mx95dLtM5xtbfJ3aAyMzF9ZOuUxrWIZt");
+
+    db.setPassword(qEnvironmentVariable("BWS_DB_PASS"));
+
     db.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!db.open()) {
@@ -428,15 +423,19 @@ void DatabaseManager::updateUserPasswordAsync(const QString &login, const QStrin
  * \brief Проверяет наличие хотя бы одного администратора в системе.
  */
 bool DatabaseManager::hasAdminAccount() {
-    if (!_database.isOpen()) {
+    QSqlDatabase db = getThreadLocalConnection();
+
+    if (!db.isOpen()) {
         return false;
     }
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     if (query.exec("SELECT COUNT(*) FROM users WHERE role = 'Администратор'")) {
         if (query.next()) {
             return query.value(0).toInt() > 0;
         }
+    } else {
+        qDebug() << "Ошибка SQL в hasAdminAccount:" << query.lastError().text();
     }
     return false;
 }
@@ -697,7 +696,12 @@ void DatabaseManager::fetchReportAsync(const QString &startDate, const QString &
  * Если такого клиента нет, создает его.
  */
 int DatabaseManager::getRetailCustomerId() {
-    QSqlQuery query(_database);
+    QSqlDatabase db = getThreadLocalConnection();
+    if (!db.isOpen()) {
+        return -1;
+    }
+
+    QSqlQuery query(db);
     if (query.exec("SELECT id FROM customers WHERE full_name = 'Розничный покупатель'") && query.next()) {
         return query.value(0).toInt();
     }

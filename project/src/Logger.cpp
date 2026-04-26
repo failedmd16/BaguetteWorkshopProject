@@ -28,10 +28,12 @@ void LogWorker::connectToDatabase()
 
     QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL", m_connectionName);
     db.setDatabaseName("bws_db");
-    db.setHostName("72.56.238.251");
-    db.setPort(5000);
+    db.setHostName("72.56.14.35");
+    db.setPort(5432);
     db.setUserName("bws_user");
-    db.setPassword("Mx95dLtM5xtbfJ3aAyMzF9ZOuUxrWIZt");
+
+    db.setPassword(qEnvironmentVariable("BWS_DB_PASS"));
+
     db.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!db.open())
