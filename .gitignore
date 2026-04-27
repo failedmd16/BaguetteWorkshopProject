@@ -40,3 +40,4 @@ project/build/
 ~$*.pptx
 config.ini
 .env
+monitoring/timeweb_pass.txt

@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'timeweb-node'
+    scheme: https
+    metrics_path: '/057355fe-676b-4d0a-adf2-473bace0c136/node-exporter/metrics'
+    basic_auth:
+      username: 'admin'
+      password_file: '/etc/prometheus/timeweb_pass.txt'
+    static_configs:
+      - targets: ['dbs-exporter.timeweb.cloud']
+
+  - job_name: 'timeweb-postgres'
+    scheme: https
+    metrics_path: '/057355fe-676b-4d0a-adf2-473bace0c136/service/metrics'
+    basic_auth:
+      username: 'admin'
+      password_file: '/etc/prometheus/timeweb_pass.txt'
+    static_configs:
+      - targets: ['dbs-exporter.timeweb.cloud']
