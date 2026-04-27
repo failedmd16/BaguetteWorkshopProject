@@ -52,7 +52,7 @@ bool DatabaseManager::initializeDatabase() {
     _database.setHostName("72.56.14.35");
     _database.setPort(5432);
     _database.setUserName("bws_user");
-    _database.setPassword("w.|LD&1P8l1YG1");
+    _database.setPassword(qEnvironmentVariable("BWS_DB_PASS"));
     _database.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!_database.open()) {
@@ -278,9 +278,7 @@ QSqlDatabase DatabaseManager::getThreadLocalConnection() {
     db.setHostName("72.56.14.35");
     db.setPort(5432);
     db.setUserName("bws_user");
-
     db.setPassword(qEnvironmentVariable("BWS_DB_PASS"));
-
     db.setConnectOptions("sslmode=require;connect_timeout=10");
 
     if (!db.open()) {
