@@ -1975,7 +1975,7 @@ void DatabaseManager::createBackupAsync(const QString &filePath) {
         QTextStream out(&file);
         out.setEncoding(QStringConverter::Utf8);
 
-        out << "-- Бэкап базы данных BagetWorkshop\n";
+        out << "-- Бэкап базы данных BaguetteWorkshop\n";
         out << "-- Дата: " << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n";
         out << "BEGIN;\n\n";
 
@@ -2157,7 +2157,7 @@ void DatabaseManager::generatePdfReceipt(int orderId, const QString &filePath) {
         painter.setFont(smallFont);
         painter.drawText(QRect(0, y, pageWidth, 20), Qt::AlignCenter, "ИП Иванов И.И. | г. Ейск, ул. Коммунистическая, д. 83/3");
         y += 20;
-        painter.drawText(QRect(0, y, pageWidth, 20), Qt::AlignCenter, "Тел: +7 (999) 999-99-99 | baget@mail.ru");
+        painter.drawText(QRect(0, y, pageWidth, 20), Qt::AlignCenter, "Тел: +7 (999) 999-99-99 | baguette@mail.ru");
         y += 40;
 
         QPen pen;
